@@ -1,0 +1,12 @@
+#spring:
+#  application:
+#    name: kf-imes
+#  profiles:
+#    active: eureka,eureka-zone,sleuth,file-upload,security
+server:
+  session:
+    timeout: 5000
+    cookie:
+      name: sessionid
+  port: 8081
+  server-header: hao/1.0

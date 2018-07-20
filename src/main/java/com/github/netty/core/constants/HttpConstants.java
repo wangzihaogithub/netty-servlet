@@ -1,0 +1,18 @@
+package com.github.netty.core.constants;
+
+/**
+ * Created by acer01 on 2018/7/15/015.
+ */
+public class HttpConstants {
+
+    public static final int SESSION_ID_SOURCE_COOKIE = 1;
+    public static final int SESSION_ID_SOURCE_URL = 2;
+    public static final int SESSION_ID_SOURCE_NOT_FOUND_CREATE = 3;
+    public static final String JSESSION_ID_COOKIE = "JSESSIONID";
+    public static final String JSESSION_ID_PARAMS = "jsessionid";
+
+    public static final String SP = ",";
+    public static final String GET = "GET";
+    public static final String HTTPS = "HTTPS";
+
+}

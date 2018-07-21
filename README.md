@@ -4,9 +4,9 @@
 作者邮箱 : 842156727@qq.com
 github地址 : https://github.com/wangzihaogithub
 
-###使用方法
+### 使用方法
 
-####1.添加依赖, 在pom.xml中加入
+#### 1.添加依赖, 在pom.xml中加入
 
     <dependency>
       <groupId>com.github.wangzihaogithub</groupId>
@@ -15,7 +15,7 @@ github地址 : https://github.com/wangzihaogithub
     </dependency>
 	
 	
-####2.注册进springboot容器中
+#### 2.注册进springboot容器中
 
     @Configuration
     public class WebAppConfig extends WebMvcConfigurationSupport {
@@ -44,5 +44,5 @@ github地址 : https://github.com/wangzihaogithub
         }
      }
 
-#### 3.完成!, 快去启动服务看看吧
+#### 3.完成! 快去启动服务看看吧
 

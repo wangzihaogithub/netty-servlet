@@ -1,5 +1,5 @@
 # netty-container
-一个基于netty实现的servlet容器, 可以很好的与springboot集成
+一个基于netty实现的servlet容器, 可以很好的与springboot集成 (jdk1.8+)
 
 作者邮箱 : 842156727@qq.com
 github地址 : https://github.com/wangzihaogithub
@@ -41,7 +41,7 @@ github地址 : https://github.com/wangzihaogithub
         public ServletContextInitializer servletContextInitializer(){
             return this::setServletContext;
         }
-
+     }
 
 #### 3.完成!, 快去启动服务看看吧
 

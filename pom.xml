@@ -6,25 +6,20 @@
 
     <groupId>com.github.wangzihaogithub</groupId>
     <artifactId>netty-container</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>netty-container</name>
     <description>Netty Servlet Container</description>
     <url>https://github.com/wangzihaogithub/netty-container.git</url>
 
-    <parent>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-parent</artifactId>
-        <version>1.5.10.RELEASE</version>
-        <relativePath/>
-    </parent>
-
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>1.8</java.version>
         <netty.version>5.0.0.Alpha2</netty.version>
         <guava.version>20.0</guava.version>
+        <spring-boot.version>1.5.10.RELEASE</spring-boot.version>
+        <servlet-api.version>3.1.0</servlet-api.version>
     </properties>
 
     <licenses>
@@ -35,24 +30,38 @@
     </licenses>
 
     <scm>
+        <tag>master</tag>
         <connection>https://github.com/wangzihaogithub/netty-container.git</connection>
         <developerConnection>https://github.com/wangzihaogithub/netty-container.git</developerConnection>
         <url>https://github.com/wangzihaogithub/netty-container.git</url>
     </scm>
 
+    <!-- 开发者信息 -->
+    <developers>
+        <developer>
+            <id>wangzihao</id>
+            <name>wangzihao</name>
+            <email>842156727@qq.com</email>
+            <roles><role>Project leader</role></roles>
+            <timezone>+8</timezone>
+        </developer>
+    </developers>
 
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter</artifactId>
+            <version>${spring-boot.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
+            <version>${spring-boot.version}</version>
         </dependency>
         <dependency>
             <groupId>javax.servlet</groupId>
             <artifactId>javax.servlet-api</artifactId>
+            <version>${servlet-api.version}</version>
             <!--<version>4.0.1</version>-->
             <!--<scope>provided</scope>-->
         </dependency>
@@ -71,46 +80,46 @@
 
 
 
-    <!--<build>-->
-        <!--<plugins>-->
-            <!--<plugin>-->
-                <!--<groupId>org.springframework.boot</groupId>-->
-                <!--<artifactId>spring-boot-maven-plugin</artifactId>-->
-            <!--</plugin>-->
-            <!--<plugin>-->
-                <!--<groupId>org.apache.maven.plugins</groupId>-->
-                <!--<artifactId>maven-compiler-plugin</artifactId>-->
-                <!--<configuration>-->
-                    <!--<source>${java.version}</source>-->
-                    <!--<target>${java.version}</target>-->
-                <!--</configuration>-->
-            <!--</plugin>-->
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
+                </configuration>
+            </plugin>
 
-            <!--&lt;!&ndash; resource插件 &ndash;&gt;-->
-            <!--<plugin>-->
-                <!--<groupId>org.apache.maven.plugins</groupId>-->
-                <!--<artifactId>maven-resources-plugin</artifactId>-->
-            <!--</plugin>-->
+            <!-- resource插件 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+            </plugin>
 
-            <!--&lt;!&ndash; install插件 &ndash;&gt;-->
-            <!--<plugin>-->
-                <!--<groupId>org.apache.maven.plugins</groupId>-->
-                <!--<artifactId>maven-install-plugin</artifactId>-->
-            <!--</plugin>-->
+            <!-- install插件 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-install-plugin</artifactId>
+            </plugin>
 
-            <!--&lt;!&ndash; clean插件 &ndash;&gt;-->
-            <!--<plugin>-->
-                <!--<groupId>org.apache.maven.plugins</groupId>-->
-                <!--<artifactId>maven-clean-plugin</artifactId>-->
-            <!--</plugin>-->
+            <!-- clean插件 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-clean-plugin</artifactId>
+            </plugin>
 
-            <!--&lt;!&ndash; dependency插件 &ndash;&gt;-->
-            <!--<plugin>-->
-                <!--<groupId>org.apache.maven.plugins</groupId>-->
-                <!--<artifactId>maven-dependency-plugin</artifactId>-->
-            <!--</plugin>-->
-        <!--</plugins>-->
-    <!--</build>-->
+            <!-- dependency插件 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
 
     <!--<distributionManagement>-->
         <!--<snapshotRepository>-->
@@ -146,23 +155,23 @@
                         </executions>
                     </plugin>
                     <!-- Javadoc -->
-                    <!--<plugin>-->
-                        <!--<groupId>org.apache.maven.plugins</groupId>-->
-                        <!--<artifactId>maven-javadoc-plugin</artifactId>-->
-                        <!--<version>2.9.1</version>-->
-                        <!--&lt;!&ndash; -Xdoclint:none 是为了生存apidoc的时候检查不必太严格&ndash;&gt;-->
-                        <!--<configuration>-->
-                            <!--<additionalparam>-Xdoclint:none</additionalparam>-->
-                        <!--</configuration>-->
-                        <!--<executions>-->
-                            <!--<execution>-->
-                                <!--<phase>package</phase>-->
-                                <!--<goals>-->
-                                    <!--<goal>jar</goal>-->
-                                <!--</goals>-->
-                            <!--</execution>-->
-                        <!--</executions>-->
-                    <!--</plugin>-->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <version>2.9.1</version>
+                        <!-- -Xdoclint:none 是为了生存apidoc的时候检查不必太严格-->
+                        <configuration>
+                            <additionalparam>-Xdoclint:none</additionalparam>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>jar</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
                     <!-- GPG  打包插件-->
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
@@ -195,17 +204,7 @@
     </profiles>
 
 
-    <!-- 开发者信息 -->
-    <developers>
-        <developer>
-            <id>wangzihao</id>
-            <name>王子豪</name>
-            <email>842156727@qq.com</email>
-            <roles><role>Project leader</role></roles>
-            <timezone>+8</timezone>
-        </developer>
-    </developers>
-
     <!--mvn clean deploy -P release verify -Dgpg.passphrase=password-->
+    <!--gpg &#45;&#45;keyserver hkp://keyserver.ubuntu.com:11371 &#45;&#45;send-keys DF6BD576-->
 
 </project>

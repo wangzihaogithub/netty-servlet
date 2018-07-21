@@ -46,7 +46,7 @@ public class ServletContext implements javax.servlet.ServletContext {
     private List<EventListener> eventListenerList = new CopyOnWriteArrayList<>();
     private Set<SessionTrackingMode> sessionTrackingModeSet = new CopyOnWriteArraySet<>();
 
-    private SessionCookieConfig sessionCookieConfig;
+    private ServletSessionCookieConfig sessionCookieConfig;
     private RequestUrlPatternMapper servletUrlPatternMapper;
     private String rootDirStr;
     private Charset charset;
@@ -60,7 +60,7 @@ public class ServletContext implements javax.servlet.ServletContext {
                           ExecutorService asyncExecutorService,
                           ClassLoader classLoader,
                           String contextPath, String serverInfo,
-                          SessionCookieConfig sessionCookieConfig) {
+                          ServletSessionCookieConfig sessionCookieConfig) {
 //        File rootDir = new File("");
 //        this.rootDirStr = rootDir.isAbsolute() ? rootDir.getAbsolutePath() : FilenameUtils.concat(new File(".").getAbsolutePath(), rootDir.getPath());
         this.initialized = false;
@@ -443,7 +443,7 @@ public class ServletContext implements javax.servlet.ServletContext {
     }
 
     @Override
-    public SessionCookieConfig getSessionCookieConfig() {
+    public ServletSessionCookieConfig getSessionCookieConfig() {
         return sessionCookieConfig;
     }
 

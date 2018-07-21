@@ -15,7 +15,7 @@ import java.io.IOException;
  */
 @RestController
 @SpringBootApplication
-public class NettyMainApplication {
+public class TestApplication {
 
     @RequestMapping
     public Object hallo(){
@@ -26,7 +26,7 @@ public class NettyMainApplication {
      * Start
      */
     public static void main(String[] args) throws IOException {
-        ConfigurableApplicationContext context = SpringApplication.run(NettyMainApplication.class, args);
+        ConfigurableApplicationContext context = SpringApplication.run(TestApplication.class, args);
 
         System.out.println("启动结束..");
     }

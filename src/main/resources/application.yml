@@ -1,12 +1,10 @@
 #spring:
 #  application:
-#    name: kf-imes
+#    name: netty
 #  profiles:
 #    active: eureka,eureka-zone,sleuth,file-upload,security
 server:
   session:
     timeout: 5000
-    cookie:
-      name: sessionid
   port: 8081
-  server-header: hao/1.0
+  server-header: netty-server/1.0

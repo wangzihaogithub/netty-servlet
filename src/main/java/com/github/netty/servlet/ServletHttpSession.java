@@ -1,6 +1,5 @@
 package com.github.netty.servlet;
 
-import javax.servlet.SessionCookieConfig;
 import javax.servlet.http.HttpSession;
 import javax.servlet.http.HttpSessionContext;
 import java.util.Collections;
@@ -27,13 +26,13 @@ public class ServletHttpSession implements HttpSession{
     private transient AtomicInteger accessCount;
 
 
-    ServletHttpSession(String id, ServletContext servletContext, SessionCookieConfig sessionCookieConfig) {
+    ServletHttpSession(String id, ServletContext servletContext, ServletSessionCookieConfig sessionCookieConfig) {
         this.id = id;
         this.servletContext = servletContext;
         this.attributeMap = new ConcurrentHashMap<>();
         this.creationTime = System.currentTimeMillis();
         this.newSessionFlag = true;
-        this.maxInactiveInterval = servletContext.getInitParameter(ServletContext.SESSION_TIMEOUT,20 * 60);
+        this.maxInactiveInterval = sessionCookieConfig.getSessionTimeout();
         this.accessCount = new AtomicInteger(0);
     }
 

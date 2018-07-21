@@ -1,9 +1,9 @@
 package com.github.netty.springboot;
 
 import com.github.netty.servlet.ServletContext;
-import com.github.netty.util.ProxyUtil;
 import com.github.netty.servlet.ServletDefaultHttpServlet;
 import com.github.netty.servlet.ServletSessionCookieConfig;
+import com.github.netty.util.ProxyUtil;
 import org.springframework.boot.context.embedded.AbstractEmbeddedServletContainerFactory;
 import org.springframework.boot.context.embedded.EmbeddedServletContainer;
 import org.springframework.boot.context.embedded.EmbeddedServletContainerFactory;
@@ -14,7 +14,6 @@ import org.springframework.core.io.ResourceLoader;
 import org.springframework.util.ClassUtils;
 
 import javax.servlet.ServletException;
-import javax.servlet.SessionCookieConfig;
 import java.net.InetSocketAddress;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -79,7 +78,7 @@ public class NettyEmbeddedServletContainerFactory extends AbstractEmbeddedServle
      */
     private ServletContext newServletContext(){
         ClassLoader parentClassLoader = resourceLoader != null ? resourceLoader.getClassLoader() : ClassUtils.getDefaultClassLoader();
-        SessionCookieConfig sessionCookieConfig = loadSessionCookieConfig();
+        ServletSessionCookieConfig sessionCookieConfig = loadSessionCookieConfig();
 
         ServletContext servletContext = new ServletContext(
                 new InetSocketAddress(getAddress(),getPort()),
@@ -95,9 +94,11 @@ public class NettyEmbeddedServletContainerFactory extends AbstractEmbeddedServle
      * 加载session的cookie配置
      * @return
      */
-    private SessionCookieConfig loadSessionCookieConfig(){
-        SessionCookieConfig sessionCookieConfig = new ServletSessionCookieConfig();
+    private ServletSessionCookieConfig loadSessionCookieConfig(){
+        ServletSessionCookieConfig sessionCookieConfig = new ServletSessionCookieConfig();
         sessionCookieConfig.setMaxAge(-1);
+
+        sessionCookieConfig.setSessionTimeout(getSessionTimeout());
         return sessionCookieConfig;
     }
 

@@ -18,7 +18,22 @@ public class ServletSessionCookieConfig implements SessionCookieConfig {
     private String name;
     private String path;
 
+    private int sessionTimeout;
+
     public ServletSessionCookieConfig() {
+        //默认20分钟
+        this.sessionTimeout = 1200;
+    }
+
+    public int getSessionTimeout() {
+        return sessionTimeout;
+    }
+
+    public void setSessionTimeout(int sessionTimeout) {
+        if(sessionTimeout <= 0){
+            return;
+        }
+        this.sessionTimeout = sessionTimeout;
     }
 
     @Override

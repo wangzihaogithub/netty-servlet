@@ -69,9 +69,16 @@ public class NettyEmbeddedServletContainer extends AbstractNettyServer implement
         initServlet();
         servletContext.setInitialized(true);
 
-        new Thread(this).start();
+        String serverInfo = servletContext.getServerInfo();
 
-        System.out.println("启动成功..."+getPort());
+        Thread serverThread = new Thread(this);
+        serverThread.setName(serverInfo);
+        serverThread.setUncaughtExceptionHandler((thread,throwable)->{
+            //
+        });
+        serverThread.start();
+
+        System.out.println("启动成功 "+serverInfo+"["+getPort()+"]...");
     }
 
     @Override

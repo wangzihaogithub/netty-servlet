@@ -1,6 +1,6 @@
 package com.github.netty.core;
 
-import com.github.netty.util.ClassIdFactory;
+import com.github.netty.util.NamespaceUtil;
 import com.github.netty.util.ProxyUtil;
 import io.netty.channel.EventLoop;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -39,7 +39,7 @@ public class MyBossNioEventLoopGroup extends NioEventLoopGroup {
     @Override
     protected EventLoop newChild(Executor executor, Object... args) throws Exception {
         EventLoop eventLoop = super.newChild(executor, args);
-        String newName = toString()+"-"+ ClassIdFactory.newIdName(this,"nioEventLoop");
+        String newName = toString()+"-"+ NamespaceUtil.newIdName(this,"nioEventLoop");
         return ProxyUtil.newProxyByJdk(eventLoop,newName,true);
     }
 
@@ -50,7 +50,7 @@ public class MyBossNioEventLoopGroup extends NioEventLoopGroup {
 
     @Override
     public String toString() {
-        return ClassIdFactory.getIdNameClass(this,"boos");
+        return NamespaceUtil.getIdNameClass(this,"boos");
     }
 
 

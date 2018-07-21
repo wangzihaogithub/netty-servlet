@@ -1,6 +1,6 @@
 package com.github.netty.core;
 
-import com.github.netty.util.ClassIdFactory;
+import com.github.netty.util.NamespaceUtil;
 import com.github.netty.util.ProxyUtil;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelPipeline;
@@ -34,7 +34,7 @@ public class MyNioSocketChannel extends NioSocketChannel {
 
     private void init(EventLoop eventLoop){
         this.nioEventLoop = (NioEventLoop) ProxyUtil.unWrapper(eventLoop);
-        this.pipelineProxy = ProxyUtil.newProxyByJdk(pipeline(), ClassIdFactory.newIdName(this,"Pipeline"),true);
+        this.pipelineProxy = ProxyUtil.newProxyByJdk(pipeline(), NamespaceUtil.newIdName(this,"Pipeline"),true);
     }
 
     @Override

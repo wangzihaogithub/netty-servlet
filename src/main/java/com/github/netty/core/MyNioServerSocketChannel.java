@@ -1,7 +1,7 @@
 package com.github.netty.core;
 
 import com.github.netty.util.ProxyUtil;
-import com.github.netty.util.ClassIdFactory;
+import com.github.netty.util.NamespaceUtil;
 import io.netty.channel.Channel;
 import io.netty.channel.EventLoop;
 import io.netty.channel.nio.NioEventLoop;
@@ -57,7 +57,7 @@ public class MyNioServerSocketChannel extends NioServerSocketChannel {
     private NioSocketChannel newNioServerSocketChannel(SocketChannel socketChannel){
         NioSocketChannel myNioSocketChannel = ProxyUtil.newProxyByCglib(
                 MyNioSocketChannel.class,
-                ClassIdFactory.newIdName(this,"NioSocketChannel"),true,
+                NamespaceUtil.newIdName(this,"NioSocketChannel"),true,
                 new Class[]{Channel.class, SocketChannel.class},
                 new Object[]{this, socketChannel});
         return myNioSocketChannel;

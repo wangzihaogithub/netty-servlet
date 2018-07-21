@@ -2,6 +2,8 @@ package com.github.netty.util;
 
 import org.springframework.cglib.core.DebuggingClassWriter;
 import org.springframework.cglib.proxy.Enhancer;
+import org.springframework.cglib.proxy.MethodInterceptor;
+import org.springframework.cglib.proxy.MethodProxy;
 
 import java.lang.reflect.*;
 import java.util.ArrayList;
@@ -58,7 +60,7 @@ public class ProxyUtil {
     }
 
     public static <T>T newProxyByCglib(Class<T> sourceClass){
-        String logName = ClassIdFactory.getIdNameClass(sourceClass,sourceClass.getSimpleName());
+        String logName = NamespaceUtil.getIdNameClass(sourceClass,sourceClass.getSimpleName());
         return newProxyByCglib(sourceClass,logName, true,new Class[]{},new Object[]{});
     }
 
@@ -152,4 +154,78 @@ public class ProxyUtil {
         System.out.println("--------"+ Thread.currentThread() + "----"+proxyName + " 方法:" + method.getName() +" 参数:"+Arrays.toString(args));
     }
 
+    public static class CglibProxy implements MethodInterceptor {
+
+        private boolean isEnableLog;
+        private String name;
+
+        public CglibProxy(String name, boolean isEnableLog) {
+            this.isEnableLog = isEnableLog;
+            this.name = name;
+        }
+
+        @Override
+        public Object intercept(Object o, Method method, Object[] args, MethodProxy methodProxy) throws Throwable {
+            if(isEnableLog){
+                ProxyUtil.log(name,method,args);
+            }
+            try {
+                if("toString".equals(method.getName())){
+                    return name;
+                }
+                Object result = methodProxy.invokeSuper(o,args);
+                return result;
+            }catch (Throwable t){
+                throw t;
+            }
+        }
+
+        @Override
+        public String toString() {
+            return "CglibProxy{" +
+                    "name='" + name + '\'' +
+                    '}';
+        }
+    }
+
+
+    public static class JdkProxy implements InvocationHandler {
+
+        private Object source;
+        private boolean isEnableLog;
+        private String name;
+
+        public JdkProxy(Object source, String name, boolean isEnableLog) {
+            this.source = source;
+            this.isEnableLog = isEnableLog;
+            this.name = name;
+        }
+
+        @Override
+        public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+            if(isEnableLog){
+                ProxyUtil.log(name,method,args);
+            }
+            try {
+                if("toString".equals(method.getName())){
+                    return name;
+                }
+                Object result = method.invoke(source,args);
+                return result;
+            }catch (Throwable t){
+                throw t;
+            }
+        }
+
+        public Object getSource() {
+            return source;
+        }
+
+        @Override
+        public String toString() {
+            return "JdkProxy{" +
+                    "name='" + name + '\'' +
+                    '}';
+        }
+    }
 }

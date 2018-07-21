@@ -2,7 +2,7 @@ package com.github.netty.core;
 
 import com.github.netty.core.ssl.SecureChatSslContextFactory;
 import com.github.netty.util.ProxyUtil;
-import com.github.netty.util.ClassIdFactory;
+import com.github.netty.util.NamespaceUtil;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.*;
@@ -73,7 +73,7 @@ public abstract class AbstractNettyServer implements Runnable{
 
         this.socketAddress = address;
         this.parentThread = Thread.currentThread();
-        this.name = ClassIdFactory.newIdName(this.getClass(),"nettyServer");
+        this.name = NamespaceUtil.newIdName(this.getClass(),"nettyServer");
         this.bootstrap = newServerBootstrap();
         this.boss = newBossEventLoopGroup();
         this.worker = newWorkerEventLoopGroup();

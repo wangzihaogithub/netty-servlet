@@ -1,7 +1,7 @@
 package com.github.netty.core;
 
 import com.github.netty.util.ProxyUtil;
-import com.github.netty.util.ClassIdFactory;
+import com.github.netty.util.NamespaceUtil;
 import io.netty.channel.ChannelException;
 import io.netty.channel.ChannelFactory;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
@@ -13,7 +13,7 @@ public class MyServerChannelFactory implements ChannelFactory<NioServerSocketCha
         try {
 //            MyNioServerSocketChannel myNioServerSocketChannel = new MyNioServerSocketChannel(eventLoop,childGroup);
             MyNioServerSocketChannel myNioServerSocketChannel = ProxyUtil.newProxyByCglib(MyNioServerSocketChannel.class,
-                    toString() + "-"+ ClassIdFactory.newIdName(this,"serverSocketChannel"),
+                    toString() + "-"+ NamespaceUtil.newIdName(this,"serverSocketChannel"),
                     true);
 
             return myNioServerSocketChannel;
@@ -24,7 +24,7 @@ public class MyServerChannelFactory implements ChannelFactory<NioServerSocketCha
 
     @Override
     public String toString() {
-        return ClassIdFactory.getIdNameClass(this,getClass().getSimpleName());
+        return NamespaceUtil.getIdNameClass(this,getClass().getSimpleName());
     }
 
 }

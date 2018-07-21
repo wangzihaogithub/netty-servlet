@@ -8,16 +8,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
 
-/**
- *
- * @author acer01
- * @date 2017/10/10/010
- */
+
 @RestController
 @SpringBootApplication
 public class TestApplication {
 
-    @RequestMapping
+    @RequestMapping("/")
     public Object hallo(){
         return "啊";
     }

@@ -206,4 +206,6 @@
         </developer>
     </developers>
 
+    <!--mvn clean deploy -P release verify -Dgpg.passphrase=password-->
+
 </project>

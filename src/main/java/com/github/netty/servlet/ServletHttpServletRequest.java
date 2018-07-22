@@ -273,7 +273,9 @@ public class ServletHttpServletRequest implements javax.servlet.http.HttpServlet
         if(session == null){
             if(create) {
                 session = new ServletHttpSession(id, servletContext,servletContext.getSessionCookieConfig());
-                sessionMap.put(id, session);
+                if(isRequestedSessionIdValid()) {
+                    sessionMap.put(id, session);
+                }
                 session.access();
             }
         }else {

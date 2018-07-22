@@ -16,7 +16,7 @@ import java.util.List;
 @SuppressWarnings("unchecked")
 public class ProxyUtil {
 
-    private static boolean enableProxy = true;
+    private static boolean enableProxy = false;
 
     public static boolean isEnableProxy() {
         return enableProxy;
@@ -148,10 +148,11 @@ public class ProxyUtil {
 
 
     static void log(String proxyName, Method method,Object[] args){
-        if(Arrays.asList("toString","hashCode").contains(method.getName())){
+        if(Arrays.asList("toString","hashCode","equals").contains(method.getName())){
             return;
         }
-        System.out.println("--------"+ Thread.currentThread() + "----"+proxyName + " 方法:" + method.getName() +" 参数:"+Arrays.toString(args));
+        System.out.println("--------"+ Thread.currentThread() + "----"+proxyName + " 方法:" + method.getName() +
+                (args == null || args.length == 0? "":" 参数:"+Arrays.toString(args)));
     }
 
     public static class CglibProxy implements MethodInterceptor {

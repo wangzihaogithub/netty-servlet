@@ -1,11 +1,11 @@
 package com.github.netty.servlet;
 
+import com.github.netty.core.constants.HttpConstants;
+import io.netty.handler.codec.http.*;
 import com.google.common.base.Optional;
 import com.google.common.net.MediaType;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.AsciiString;
-import io.netty.handler.codec.http.*;
-import io.netty.handler.codec.http.HttpConstants;
 import io.netty.util.concurrent.FastThreadLocal;
 
 import javax.servlet.http.Cookie;
@@ -26,10 +26,11 @@ public class ServletHttpServletResponse implements javax.servlet.http.HttpServle
      * 用于设置HTTP响应头的时间信息
      */
     private static final FastThreadLocal<DateFormat> FORMAT = new FastThreadLocal<DateFormat>() {
+        private TimeZone timeZone = TimeZone.getTimeZone("GMT");
         @Override
         protected DateFormat initialValue() {
             DateFormat df = new SimpleDateFormat("EEE, dd-MMM-yyyy HH:mm:ss z", Locale.ENGLISH);
-            df.setTimeZone(TimeZone.getTimeZone("GMT"));
+            df.setTimeZone(timeZone);
             return df;
         }
     };
@@ -43,7 +44,7 @@ public class ServletHttpServletResponse implements javax.servlet.http.HttpServle
     private boolean committed;
     private List<Cookie> cookies;
     private String contentType;
-    private String characterEncoding = HttpConstants.DEFAULT_CHARSET.name();
+    private String characterEncoding;
     private Locale locale;
 
     /**
@@ -57,6 +58,7 @@ public class ServletHttpServletResponse implements javax.servlet.http.HttpServle
         this.httpResponse = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, false);
         this.outputStream = new ServletOutputStream(ctx, this);
         this.httpServletRequest = httpServletRequest;
+        this.characterEncoding = servletContext.getDefaultCharset().name();
     }
 
     /**
@@ -69,7 +71,7 @@ public class ServletHttpServletResponse implements javax.servlet.http.HttpServle
         committed = true;
         HttpHeaders headers = httpResponse.headers();
         if (null != contentType) {
-            String value = null == characterEncoding ? contentType : contentType + "; charset=" + characterEncoding; //Content Type 响应头的内容
+            String value = (null == characterEncoding) ? contentType : contentType + "; charset=" + characterEncoding; //Content Type 响应头的内容
             headers.set(HttpHeaderNames.CONTENT_TYPE, value);
         }
         CharSequence date = getFormattedDate();
@@ -80,7 +82,7 @@ public class ServletHttpServletResponse implements javax.servlet.http.HttpServle
 //        long curTime = System.currentTimeMillis(); //用于根据maxAge计算Cookie的Expires
         //先处理Session ，如果是新Session需要通过Cookie写入
         if (httpServletRequest.getSession().isNew()) {
-            String sessionCookieStr = com.github.netty.core.constants.HttpConstants.JSESSION_ID_COOKIE + "=" + httpServletRequest.getRequestedSessionId() + "; path=/; domain=" + httpServletRequest.getServerName();
+            String sessionCookieStr = HttpConstants.JSESSION_ID_COOKIE + "=" + httpServletRequest.getRequestedSessionId() + "; path=/; domain=" + httpServletRequest.getServerName();
             headers.add(HttpHeaderNames.SET_COOKIE, sessionCookieStr);
         }
 
@@ -128,7 +130,7 @@ public class ServletHttpServletResponse implements javax.servlet.http.HttpServle
             //来自Cookie的Session ID,则客户端肯定支持Cookie，无需重写URL
             return url;
         }
-        return url + ";" + com.github.netty.core.constants.HttpConstants.JSESSION_ID_PARAMS + "=" + httpServletRequest.getRequestedSessionId();
+        return url + ";" + HttpConstants.JSESSION_ID_PARAMS + "=" + httpServletRequest.getRequestedSessionId();
     }
 
     @Override

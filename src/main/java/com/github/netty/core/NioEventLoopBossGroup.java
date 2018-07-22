@@ -10,29 +10,29 @@ import java.nio.channels.spi.SelectorProvider;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 
-public class MyBossNioEventLoopGroup extends NioEventLoopGroup {
+public class NioEventLoopBossGroup extends NioEventLoopGroup {
 
-    public MyBossNioEventLoopGroup() {
+    public NioEventLoopBossGroup() {
         super();
     }
 
-    public MyBossNioEventLoopGroup(int nEventLoops) {
+    public NioEventLoopBossGroup(int nEventLoops) {
         super(nEventLoops);
     }
 
-    public MyBossNioEventLoopGroup(int nEventLoops, Executor executor) {
+    public NioEventLoopBossGroup(int nEventLoops, Executor executor) {
         super(nEventLoops, executor);
     }
 
-    public MyBossNioEventLoopGroup(int nEventLoops, ExecutorServiceFactory executorServiceFactory) {
+    public NioEventLoopBossGroup(int nEventLoops, ExecutorServiceFactory executorServiceFactory) {
         super(nEventLoops, executorServiceFactory);
     }
 
-    public MyBossNioEventLoopGroup(int nEventLoops, Executor executor, SelectorProvider selectorProvider) {
+    public NioEventLoopBossGroup(int nEventLoops, Executor executor, SelectorProvider selectorProvider) {
         super(nEventLoops, executor, selectorProvider);
     }
 
-    public MyBossNioEventLoopGroup(int nEventLoops, ExecutorServiceFactory executorServiceFactory, SelectorProvider selectorProvider) {
+    public NioEventLoopBossGroup(int nEventLoops, ExecutorServiceFactory executorServiceFactory, SelectorProvider selectorProvider) {
         super(nEventLoops, executorServiceFactory, selectorProvider);
     }
 

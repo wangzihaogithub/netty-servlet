@@ -1,31 +1,26 @@
 package com.github.netty.core;
 
-import com.github.netty.util.ProxyUtil;
 import com.github.netty.util.NamespaceUtil;
+import com.github.netty.util.ProxyUtil;
 import io.netty.channel.Channel;
 import io.netty.channel.EventLoop;
-import io.netty.channel.nio.NioEventLoop;
-import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.channel.socket.nio.NioSocketChannel;
 
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.SelectorProvider;
 import java.util.List;
 
-public class MyNioServerSocketChannel extends NioServerSocketChannel {
+public class NioServerSocketChannel extends io.netty.channel.socket.nio.NioServerSocketChannel {
 
-    private NioEventLoop nioEventLoop;
-
-    public MyNioServerSocketChannel() {
+    public NioServerSocketChannel() {
         super();
     }
 
-    public MyNioServerSocketChannel(SelectorProvider provider) {
+    public NioServerSocketChannel(SelectorProvider provider) {
         super(provider);
     }
 
-    public MyNioServerSocketChannel(ServerSocketChannel channel) {
+    public NioServerSocketChannel(ServerSocketChannel channel) {
         super(channel);
     }
 
@@ -35,7 +30,7 @@ public class MyNioServerSocketChannel extends NioServerSocketChannel {
 
         try {
             if (ch != null) {
-                NioSocketChannel nioSocketChannel = newNioServerSocketChannel(ch);
+                io.netty.channel.socket.nio.NioSocketChannel nioSocketChannel = newNioServerSocketChannel(ch);
                 buf.add(nioSocketChannel);
                 return 1;
             }
@@ -50,13 +45,12 @@ public class MyNioServerSocketChannel extends NioServerSocketChannel {
 //                logger.warn("Failed to close a socket.", t2);
             }
         }
-
         return 0;
     }
 
-    private NioSocketChannel newNioServerSocketChannel(SocketChannel socketChannel){
-        NioSocketChannel myNioSocketChannel = ProxyUtil.newProxyByCglib(
-                MyNioSocketChannel.class,
+    private io.netty.channel.socket.nio.NioSocketChannel newNioServerSocketChannel(SocketChannel socketChannel){
+        io.netty.channel.socket.nio.NioSocketChannel myNioSocketChannel = ProxyUtil.newProxyByCglib(
+                NioSocketChannel.class,
                 NamespaceUtil.newIdName(this,"NioSocketChannel"),true,
                 new Class[]{Channel.class, SocketChannel.class},
                 new Object[]{this, socketChannel});
@@ -65,7 +59,7 @@ public class MyNioServerSocketChannel extends NioServerSocketChannel {
 
     @Override
     protected boolean isCompatible(EventLoop eventLoop) {
-        return super.isCompatible((EventLoop) ProxyUtil.unWrapper(eventLoop));
+        return super.isCompatible(eventLoop);
     }
 
 }

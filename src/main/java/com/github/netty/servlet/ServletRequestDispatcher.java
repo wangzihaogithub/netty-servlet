@@ -29,8 +29,8 @@ public class ServletRequestDispatcher implements RequestDispatcher {
         // TODO implement
     }
 
-    public void dispatch(ServletRequest request, ServletResponse response) throws ServletException, IOException {
-        request.setAttribute(ServletHttpServletRequest.DISPATCHER_TYPE, DispatcherType.ASYNC);
+    public void dispatch(ServletRequest request, ServletResponse response,DispatcherType dispatcherType) throws ServletException, IOException {
+        request.setAttribute(ServletHttpServletRequest.DISPATCHER_TYPE, dispatcherType);
         filterChain.doFilter(request, response);
     }
 

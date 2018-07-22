@@ -1,6 +1,8 @@
 package com.github.netty.servlet;
 
+import com.github.netty.core.constants.HttpConstants;
 import com.github.netty.util.MimeTypeUtil;
+import com.github.netty.util.NamespaceUtil;
 import com.github.netty.util.TodoOptimize;
 import com.github.netty.util.TypeUtil;
 import org.slf4j.Logger;
@@ -18,46 +20,39 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.CopyOnWriteArraySet;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.*;
 
 /**
  * Created by acer01 on 2018/7/14/014.
  */
 public class ServletContext implements javax.servlet.ServletContext {
 
-    public static final String SESSION_TIMEOUT = ServletContext.class.getName().concat(".SESSION_TIMEOUT");
-
     private Logger logger = LoggerFactory.getLogger(getClass());
 
-    private Map<String,ServletHttpSession> httpSessionMap = new ConcurrentHashMap<>();
+    private Map<String,ServletHttpSession> httpSessionMap;
+    private Map<String,Object> attributeMap;
+    private Map<String,String> initParamMap;
 
-    private Map<String,Object> attributeMap = new ConcurrentHashMap<>();
-    private Map<String,String> initParamMap = new ConcurrentHashMap<>();
+    private Map<String,ServletRegistration> servletRegistrationMap;
+    private Map<String,ServletFilterRegistration> filterRegistrationMap;
 
     private ExecutorService asyncExecutorService;
 
-    private Map<String, com.github.netty.servlet.ServletRegistration> servletRegistrationMap = new ConcurrentHashMap<>();
-    private Map<String,ServletFilterRegistration> filterRegistrationMap = new ConcurrentHashMap<>();
-
     @TodoOptimize("事件")
-    private List<EventListener> eventListenerList = new CopyOnWriteArrayList<>();
-    private Set<SessionTrackingMode> sessionTrackingModeSet = new CopyOnWriteArraySet<>();
+    private List<EventListener> eventListenerList;
+    private Set<SessionTrackingMode> sessionTrackingModeSet;
 
     private ServletSessionCookieConfig sessionCookieConfig;
     private RequestUrlPatternMapper servletUrlPatternMapper;
     private String rootDirStr;
-    private Charset charset;
+    private Charset defaultCharset;
     private InetSocketAddress serverSocketAddress;
     private final String serverInfo;
+    private final ClassLoader classLoader;
     private String contextPath;
     private volatile boolean initialized; //记录是否初始化完毕
-    private final ClassLoader classLoader;
 
     public ServletContext(InetSocketAddress socketAddress,
-                          ExecutorService asyncExecutorService,
                           ClassLoader classLoader,
                           String contextPath, String serverInfo,
                           ServletSessionCookieConfig sessionCookieConfig) {
@@ -65,16 +60,25 @@ public class ServletContext implements javax.servlet.ServletContext {
 //        this.rootDirStr = rootDir.isAbsolute() ? rootDir.getAbsolutePath() : FilenameUtils.concat(new File(".").getAbsolutePath(), rootDir.getPath());
         this.initialized = false;
         this.sessionCookieConfig = sessionCookieConfig;
-        this.contextPath = contextPath == null? "" : contextPath;
-        this.charset = Charset.defaultCharset();
-        this.serverSocketAddress = socketAddress;
-        this.classLoader = classLoader;
-        this.asyncExecutorService = asyncExecutorService;
-        this.servletUrlPatternMapper = new RequestUrlPatternMapper(contextPath);
         this.serverInfo = serverInfo == null? "netty":serverInfo;
 
+        this.contextPath = contextPath == null? "" : contextPath;
+        this.defaultCharset = null;
+        this.eventListenerList = null;
+        this.asyncExecutorService = null;
+        this.sessionTrackingModeSet = null;
+        this.serverSocketAddress = socketAddress;
+        this.classLoader = classLoader;
+
+        this.httpSessionMap = new ConcurrentHashMap<>();
+        this.attributeMap = new ConcurrentHashMap<>();
+        this.initParamMap = new ConcurrentHashMap<>();
+        this.servletRegistrationMap = new ConcurrentHashMap<>();
+        this.filterRegistrationMap = new ConcurrentHashMap<>();
+        this.servletUrlPatternMapper = new RequestUrlPatternMapper(contextPath);
+
         //一分钟检查一次过期session
-        new SessionInvalidThread(60 * 1000).start();
+        new SessionInvalidThread(NamespaceUtil.newIdName(this,"SessionInvalidThread"),60 * 1000).start();
     }
 
     public void addServletMapping(String urlPattern, String name, Servlet servlet) throws ServletException {
@@ -90,6 +94,9 @@ public class ServletContext implements javax.servlet.ServletContext {
     }
 
     public ExecutorService getAsyncExecutorService() {
+        if(asyncExecutorService == null) {
+            asyncExecutorService = Executors.newFixedThreadPool(8);
+        }
         return asyncExecutorService;
     }
 
@@ -113,8 +120,11 @@ public class ServletContext implements javax.servlet.ServletContext {
         return httpSessionMap;
     }
 
-    public Charset getCharset() {
-        return charset;
+    public Charset getDefaultCharset() {
+        if(defaultCharset == null){
+            defaultCharset = HttpConstants.DEFAULT_CHARSET;
+        }
+        return defaultCharset;
     }
 
     @Override
@@ -123,7 +133,7 @@ public class ServletContext implements javax.servlet.ServletContext {
     }
 
     @Override
-    public javax.servlet.ServletContext getContext(String uripath) {
+    public ServletContext getContext(String uripath) {
         return this;
     }
 
@@ -331,11 +341,11 @@ public class ServletContext implements javax.servlet.ServletContext {
 
     @Override
     public String getServletContextName() {
-        return getClass().getName();
+        return getClass().getSimpleName();
     }
 
     @Override
-    public javax.servlet.ServletRegistration.Dynamic addServlet(String servletName, String className) {
+    public ServletRegistration addServlet(String servletName, String className) {
         try {
             return addServlet(servletName, (Class<? extends Servlet>) Class.forName(className).newInstance());
         } catch (InstantiationException e) {
@@ -349,14 +359,14 @@ public class ServletContext implements javax.servlet.ServletContext {
     }
 
     @Override
-    public javax.servlet.ServletRegistration.Dynamic addServlet(String servletName, Servlet servlet) {
-        com.github.netty.servlet.ServletRegistration servletRegistration = new com.github.netty.servlet.ServletRegistration(servletName,servlet,this);
+    public ServletRegistration addServlet(String servletName, Servlet servlet) {
+        ServletRegistration servletRegistration = new com.github.netty.servlet.ServletRegistration(servletName,servlet,this);
         servletRegistrationMap.put(servletName,servletRegistration);
         return servletRegistration;
     }
 
     @Override
-    public javax.servlet.ServletRegistration.Dynamic addServlet(String servletName, Class<? extends Servlet> servletClass) {
+    public ServletRegistration addServlet(String servletName, Class<? extends Servlet> servletClass) {
         Servlet servlet = null;
         try {
             servlet = servletClass.newInstance();
@@ -412,9 +422,7 @@ public class ServletContext implements javax.servlet.ServletContext {
     public FilterRegistration.Dynamic addFilter(String filterName, Class<? extends Filter> filterClass) {
         try {
             return addFilter(filterName,filterClass.newInstance());
-        } catch (InstantiationException e) {
-            e.printStackTrace();
-        } catch (IllegalAccessException e) {
+        } catch (InstantiationException | IllegalAccessException e) {
             e.printStackTrace();
         }
         return null;
@@ -424,9 +432,7 @@ public class ServletContext implements javax.servlet.ServletContext {
     public <T extends Filter> T createFilter(Class<T> clazz) throws ServletException {
         try {
             return clazz.newInstance();
-        } catch (InstantiationException e) {
-            e.printStackTrace();
-        } catch (IllegalAccessException e) {
+        } catch (InstantiationException | IllegalAccessException e) {
             e.printStackTrace();
         }
         return null;
@@ -479,7 +485,7 @@ public class ServletContext implements javax.servlet.ServletContext {
                 t instanceof ServletRequestAttributeListener ||
                 t instanceof HttpSessionIdListener ||
                 t instanceof HttpSessionAttributeListener) {
-            eventListenerList.add(t);
+//            eventListenerList.add(t);
             match = true;
         }
 
@@ -487,11 +493,15 @@ public class ServletContext implements javax.servlet.ServletContext {
                 || (t instanceof ServletContextListener)) {
             // Add listener directly to the list of instances rather than to
             // the list of class names.
-            eventListenerList.add(t);
+//            eventListenerList.add(t);
             match = true;
         }
 
         if (match) {
+            if(eventListenerList == null) {
+                eventListenerList = new CopyOnWriteArrayList<>();
+            }
+            eventListenerList.add(t);
             return;
         }
 
@@ -556,8 +566,9 @@ public class ServletContext implements javax.servlet.ServletContext {
 
         private final long sessionLifeCheckInter;
 
-        public SessionInvalidThread(long sessionLifeCheckInter) {
+        SessionInvalidThread(String name,long sessionLifeCheckInter) {
             this.sessionLifeCheckInter = sessionLifeCheckInter;
+            setName(name);
         }
 
         @Override

@@ -1,6 +1,6 @@
 package com.github.netty.servlet;
 
-import com.google.common.primitives.Ints;
+import com.github.netty.util.ObjectUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.handler.codec.http.HttpContent;
@@ -13,7 +13,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Created by acer01 on 2018/7/15/015.
@@ -28,7 +27,7 @@ public class ServletInputStream extends javax.servlet.ServletInputStream {
     private ReadListener readListener;
 
     public ServletInputStream(Channel channel) {
-        this.channel = checkNotNull(channel);
+        this.channel = ObjectUtil.checkNotNull(channel);
         this.closed = new AtomicBoolean();
         queue = new LinkedBlockingQueue<>();
     }
@@ -44,7 +43,7 @@ public class ServletInputStream extends javax.servlet.ServletInputStream {
 
     @Override
     public int readLine(byte[] b, int off, int len) throws IOException {
-        checkNotNull(b);
+        ObjectUtil.checkNotNull(b);
         return super.readLine(b, off, len); //模板方法，会调用当前类实现的read()方法
     }
 
@@ -77,7 +76,7 @@ public class ServletInputStream extends javax.servlet.ServletInputStream {
     @Override
     public void setReadListener(ReadListener readListener) {
         checkNotClosed();
-        checkNotNull(readListener);
+        ObjectUtil.checkNotNull(readListener);
         this.readListener = readListener;
     }
 
@@ -89,7 +88,7 @@ public class ServletInputStream extends javax.servlet.ServletInputStream {
         checkNotClosed();
         ByteBuf content = current.content();
         long skipLen = Math.min(content.readableBytes(), n); //实际可以跳过的字节数
-        content.skipBytes(Ints.checkedCast(skipLen));
+        content.skipBytes((int) skipLen);
         return skipLen;
     }
 
@@ -138,7 +137,7 @@ public class ServletInputStream extends javax.servlet.ServletInputStream {
      */
     @Override
     public int read(byte[] b, int off, int len) throws IOException {
-        checkNotNull(b);
+        ObjectUtil.checkNotNull(b);
         if (0 == len) {
             return 0;
         }

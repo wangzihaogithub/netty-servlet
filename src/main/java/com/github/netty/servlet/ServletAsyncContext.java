@@ -24,14 +24,16 @@ public class ServletAsyncContext implements AsyncContext {
     private int status;
     private static final int STATUS_INIT = 0;
     private static final int STATUS_START = 1;
+    private static final int STATUS_COMPLETE = 2;
+
     //毫秒
     private long timeout;
 
     private List<ServletAsyncListenerWrapper> asyncListenerWarpperList;
 
-    private com.github.netty.servlet.ServletContext servletContext;
+    private ServletContext servletContext;
 
-    public ServletAsyncContext(com.github.netty.servlet.ServletContext servletContext, ExecutorService executorService, ServletRequest servletRequest, ServletResponse servletResponse) {
+    public ServletAsyncContext(ServletContext servletContext, ExecutorService executorService, ServletRequest servletRequest, ServletResponse servletResponse) {
         this.servletContext = servletContext;
         this.executorService = executorService;
         this.servletRequest = servletRequest;
@@ -81,7 +83,7 @@ public class ServletAsyncContext implements AsyncContext {
         httpRequest.setAttribute(ASYNC_REQUEST_URI, httpRequest.getRequestURI());
         httpRequest.setAttribute(ASYNC_SERVLET_PATH, httpRequest.getServletPath());
 
-        com.github.netty.servlet.ServletContext servletContext = unWarpper(context);
+        ServletContext servletContext = unWrapper(context);
         if(servletContext == null){
             servletContext = this.servletContext;
         }
@@ -90,7 +92,7 @@ public class ServletAsyncContext implements AsyncContext {
 
         start(()->{
             try {
-                dispatcher.dispatch(httpRequest, servletResponse);
+                dispatcher.dispatch(httpRequest, servletResponse,DispatcherType.ASYNC);
             } catch (Throwable throwable) {
                 //通知异常
                 notifyEvent(listenerWrapper -> {
@@ -109,6 +111,7 @@ public class ServletAsyncContext implements AsyncContext {
     @Override
     public void complete() {
         try {
+            status = STATUS_COMPLETE;
             servletResponse.getOutputStream().close();
         } catch (IOException e) {
             // TODO notify listeners
@@ -209,8 +212,8 @@ public class ServletAsyncContext implements AsyncContext {
     }
 
 
-    com.github.netty.servlet.ServletContext unWarpper(javax.servlet.ServletContext context){
-        return (com.github.netty.servlet.ServletContext) context;
+    ServletContext unWrapper(javax.servlet.ServletContext context){
+        return (ServletContext) context;
     }
 
     public boolean isStarted(){

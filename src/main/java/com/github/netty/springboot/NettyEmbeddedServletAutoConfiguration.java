@@ -19,7 +19,7 @@ import org.springframework.core.Ordered;
  *
  * @author Leibniz 2017-08-24
  */
-@AutoConfigureOrder(Ordered.HIGHEST_PRECEDENCE)
+@AutoConfigureOrder(Ordered.HIGHEST_PRECEDENCE + 20)
 @Configuration
 @ConditionalOnWebApplication // 在Web环境下才会起作用
 public class NettyEmbeddedServletAutoConfiguration {

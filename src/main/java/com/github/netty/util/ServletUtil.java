@@ -52,10 +52,6 @@ public class ServletUtil {
         return null;
     }
 
-    public static boolean isEmpty(String str){
-        return str == null || str.isEmpty();
-    }
-
     public static void decodeByUrl(Map<String,String[]> parameterMap, String uri){
         QueryStringDecoder decoder = new QueryStringDecoder(uri);
 

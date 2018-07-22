@@ -1,6 +1,7 @@
 package com.github.netty.servlet;
 
 import com.github.netty.core.constants.HttpConstants;
+import com.github.netty.util.ObjectUtil;
 import com.github.netty.util.ServletUtil;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaders;
@@ -76,11 +77,11 @@ public class ServletHttpServletRequest implements javax.servlet.http.HttpServlet
     private String decodeCharacterEncoding() {
         String contentType = getContentType();
         if (contentType == null) {
-            return servletContext.getCharset().name();
+            return servletContext.getDefaultCharset().name();
         }
         int start = contentType.indexOf("charset=");
         if (start < 0) {
-            return servletContext.getCharset().name();
+            return servletContext.getDefaultCharset().name();
         }
         String encoding = contentType.substring(start + 8);
         int end = encoding.indexOf(';');
@@ -173,7 +174,7 @@ public class ServletHttpServletRequest implements javax.servlet.http.HttpServlet
     @Override
     public long getDateHeader(String name) throws IllegalArgumentException {
         String value = getHeader(name);
-        if(ServletUtil.isEmpty(value)){
+        if(ObjectUtil.isEmpty(value)){
             return -1;
         }
 
@@ -358,21 +359,21 @@ public class ServletHttpServletRequest implements javax.servlet.http.HttpServlet
 
     @Override
     public String getRequestedSessionId() {
-        if(!ServletUtil.isEmpty(sessionId)){
+        if(ObjectUtil.isNotEmpty(sessionId)){
             return sessionId;
         }
 
         String sessionId = ServletUtil.getCookieValue(getCookies(),HttpConstants.JSESSION_ID_COOKIE);
-        if(!ServletUtil.isEmpty(sessionId)){
-            sessionIdSource = HttpConstants.SESSION_ID_SOURCE_COOKIE;
-        }else {
+        if(ObjectUtil.isEmpty(sessionId)){
             sessionId = getParameter(HttpConstants.JSESSION_ID_PARAMS);
-            if(!ServletUtil.isEmpty(sessionId)){
-                sessionIdSource = HttpConstants.SESSION_ID_SOURCE_URL;
-            }else {
+            if(ObjectUtil.isEmpty(sessionId)){
                 sessionIdSource = HttpConstants.SESSION_ID_SOURCE_NOT_FOUND_CREATE;
                 sessionId = UUID.randomUUID().toString().replace("-","");
+            }else {
+                sessionIdSource = HttpConstants.SESSION_ID_SOURCE_URL;
             }
+        }else {
+            sessionIdSource = HttpConstants.SESSION_ID_SOURCE_COOKIE;
         }
         this.sessionId = sessionId;
         return sessionId;

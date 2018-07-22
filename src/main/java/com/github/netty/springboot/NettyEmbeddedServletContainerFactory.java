@@ -3,7 +3,6 @@ package com.github.netty.springboot;
 import com.github.netty.servlet.ServletContext;
 import com.github.netty.servlet.ServletDefaultHttpServlet;
 import com.github.netty.servlet.ServletSessionCookieConfig;
-import com.github.netty.util.ProxyUtil;
 import org.springframework.boot.context.embedded.AbstractEmbeddedServletContainerFactory;
 import org.springframework.boot.context.embedded.EmbeddedServletContainer;
 import org.springframework.boot.context.embedded.EmbeddedServletContainerFactory;
@@ -13,11 +12,10 @@ import org.springframework.context.ResourceLoaderAware;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.util.ClassUtils;
 
-import javax.servlet.ServletException;
+import javax.net.ssl.SSLException;
 import java.net.InetSocketAddress;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.util.concurrent.Executors;
 
 /**
  *
@@ -28,34 +26,32 @@ import java.util.concurrent.Executors;
  */
 public class NettyEmbeddedServletContainerFactory extends AbstractEmbeddedServletContainerFactory implements EmbeddedServletContainerFactory , ResourceLoaderAware {
 
-    private ResourceLoader resourceLoader;
+    protected ResourceLoader resourceLoader;
 
     @Override
     public EmbeddedServletContainer getEmbeddedServletContainer(ServletContextInitializer... initializers) {
-        ProxyUtil.setEnableProxy(false);
+        try {
+            ServletContext servletContext = newServletContext();
+            NettyEmbeddedServletContainer container = newNettyEmbeddedServletContainer(servletContext);
 
-        ServletContext servletContext = newServletContext();
-        NettyEmbeddedServletContainer container = newNettyEmbeddedServletContainer(servletContext);
-
-        if(isRegisterDefaultServlet()){
-            registerDefaultServlet(servletContext);
-        }
-
-        for(ServletContextInitializer initializer : initializers){
-            try {
-                initializer.onStartup(servletContext);
-            } catch (ServletException e) {
-                throw new IllegalArgumentException(e);
+            if (isRegisterDefaultServlet()) {
+                registerDefaultServlet(servletContext);
             }
+
+            for (ServletContextInitializer initializer : initializers) {
+                initializer.onStartup(servletContext);
+            }
+            return container;
+        }catch (Exception e){
+            throw new IllegalStateException(e);
         }
-        return container;
     }
 
     /**
      * 注册默认servlet
      * @param servletContext
      */
-    private void registerDefaultServlet(ServletContext servletContext){
+    protected void registerDefaultServlet(ServletContext servletContext){
         ServletDefaultHttpServlet defaultServlet = new ServletDefaultHttpServlet();
         servletContext.addServlet("default",defaultServlet);
     }
@@ -65,10 +61,9 @@ public class NettyEmbeddedServletContainerFactory extends AbstractEmbeddedServle
      * @param servletContext
      * @return
      */
-    private NettyEmbeddedServletContainer newNettyEmbeddedServletContainer(ServletContext servletContext){
+    protected NettyEmbeddedServletContainer newNettyEmbeddedServletContainer(ServletContext servletContext) throws SSLException {
         Ssl ssl = getSsl();
-        boolean isSsl = ssl != null && ssl.isEnabled();
-        NettyEmbeddedServletContainer container = new NettyEmbeddedServletContainer(servletContext,isSsl);
+        NettyEmbeddedServletContainer container = new NettyEmbeddedServletContainer(servletContext,ssl,50);
         return container;
     }
 
@@ -82,7 +77,6 @@ public class NettyEmbeddedServletContainerFactory extends AbstractEmbeddedServle
 
         ServletContext servletContext = new ServletContext(
                 new InetSocketAddress(getAddress(),getPort()),
-                Executors.newFixedThreadPool(8),
                 new URLClassLoader(new URL[]{}, parentClassLoader),
                 getContextPath(),
                 getServerHeader(),
@@ -94,7 +88,7 @@ public class NettyEmbeddedServletContainerFactory extends AbstractEmbeddedServle
      * 加载session的cookie配置
      * @return
      */
-    private ServletSessionCookieConfig loadSessionCookieConfig(){
+    protected ServletSessionCookieConfig loadSessionCookieConfig(){
         ServletSessionCookieConfig sessionCookieConfig = new ServletSessionCookieConfig();
         sessionCookieConfig.setMaxAge(-1);
 

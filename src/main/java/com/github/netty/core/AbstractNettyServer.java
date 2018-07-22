@@ -1,15 +1,15 @@
 package com.github.netty.core;
 
-import com.github.netty.core.ssl.SecureChatSslContextFactory;
+import com.github.netty.util.HostUtil;
 import com.github.netty.util.NamespaceUtil;
 import com.github.netty.util.ProxyUtil;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.*;
-import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.channel.epoll.EpollEventLoopGroup;
+import io.netty.channel.epoll.EpollServerSocketChannel;
 import io.netty.util.internal.PlatformDependent;
 
-import javax.net.ssl.SSLEngine;
 import java.net.InetSocketAddress;
 
 
@@ -28,6 +28,7 @@ public abstract class AbstractNettyServer implements Runnable{
     private ChannelFuture closeFuture;
     private Channel serverChannel;
     private InetSocketAddress socketAddress;
+    private boolean enableEpoll;
 
     public AbstractNettyServer(int port) {
         this(new InetSocketAddress(port));
@@ -35,6 +36,7 @@ public abstract class AbstractNettyServer implements Runnable{
 
     public AbstractNettyServer(InetSocketAddress address) {
         super();
+        this.enableEpoll = HostUtil.isLinux();
         this.socketAddress = address;
         this.name = NamespaceUtil.newIdName(this.getClass(),"nettyServer");
         this.bootstrap = newServerBootstrap();
@@ -47,28 +49,42 @@ public abstract class AbstractNettyServer implements Runnable{
 
     protected abstract ChannelInitializer<?extends Channel> newInitializerChannelHandler();
 
-    protected SSLEngine newSSLEngine(){
-        SSLEngine engine = SecureChatSslContextFactory.getServerContext().createSSLEngine();
-        return engine;
-    }
-
     protected ServerBootstrap newServerBootstrap(){
-        return new ServerBootstrap();
+        return new NettyServerBootstrap();
     }
 
     protected EventLoopGroup newWorkerEventLoopGroup() {
-        EventLoopGroup worker = new MyWorkerNioEventLoopGroup();
-        return ProxyUtil.newProxyByJdk(worker,worker.toString(),true);
+        EventLoopGroup worker;
+        int nEventLoopCount = Runtime.getRuntime().availableProcessors() * 2;
+        if(enableEpoll){
+            worker = new EpollEventLoopGroup(nEventLoopCount);
+        }else {
+            NioEventLoopWorkerGroup jdkWorker = new NioEventLoopWorkerGroup(nEventLoopCount);
+            worker = ProxyUtil.newProxyByJdk(jdkWorker, jdkWorker.toString(), true);
+        }
+        return worker;
     }
 
     protected EventLoopGroup newBossEventLoopGroup() {
-        EventLoopGroup boss = new MyBossNioEventLoopGroup(1);
-        return ProxyUtil.newProxyByJdk(boss, boss.toString(),true);
+        EventLoopGroup boss;
+        if(enableEpoll){
+            boss = new EpollEventLoopGroup(1);
+        }else {
+            NioEventLoopBossGroup jdkBoss = new NioEventLoopBossGroup(1);
+            boss = ProxyUtil.newProxyByJdk(jdkBoss, jdkBoss.toString(), true);
+        }
+        return boss;
     }
 
     protected ChannelFactory<? extends ServerChannel> newServerChannelFactory() {
-        ChannelFactory<NioServerSocketChannel> serverChannelFactory = new MyServerChannelFactory();
-        return ProxyUtil.newProxyByJdk(serverChannelFactory,serverChannelFactory.toString(),true);
+        ChannelFactory<? extends ServerChannel> channelFactory;
+        if(enableEpoll){
+            channelFactory = EpollServerSocketChannel::new;
+        }else {
+            ChannelFactory<NioServerSocketChannel> serverChannelFactory = new NioServerChannelFactory();
+            channelFactory = ProxyUtil.newProxyByJdk(serverChannelFactory, serverChannelFactory.toString(), true);
+        }
+        return channelFactory;
     }
 
     @Override
@@ -77,6 +93,8 @@ public abstract class AbstractNettyServer implements Runnable{
                 .group(boss, worker)
                 .channelFactory(channelFactory)
                 .childHandler(initializerChannelHandler)
+                .option(ChannelOption.TCP_NODELAY, true)
+                .option(ChannelOption.SO_REUSEADDR, true)
                 .option(ChannelOption.SO_BACKLOG, 128) // determining the number of connections queued
                 .childOption(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
                 .childOption(ChannelOption.SO_KEEPALIVE, Boolean.TRUE);
@@ -100,7 +118,7 @@ public abstract class AbstractNettyServer implements Runnable{
             e.printStackTrace();
         } finally {
             try {
-                boss.shutdownGracefully().sync();         //7
+                boss.shutdownGracefully().sync();
                 worker.shutdownGracefully().sync();
                 serverChannel.close();
             } catch (InterruptedException e) {
@@ -116,6 +134,9 @@ public abstract class AbstractNettyServer implements Runnable{
     }
 
     public int getPort() {
+        if(socketAddress == null){
+            return 0;
+        }
         return socketAddress.getPort();
     }
 

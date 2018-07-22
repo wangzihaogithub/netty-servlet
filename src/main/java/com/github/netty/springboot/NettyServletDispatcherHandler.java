@@ -8,6 +8,7 @@ import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 
+import javax.servlet.DispatcherType;
 import javax.servlet.http.HttpServletResponse;
 
 /**
@@ -33,7 +34,7 @@ public class NettyServletDispatcherHandler extends SimpleChannelInboundHandler<S
                 servletResponse.sendError(HttpServletResponse.SC_NOT_FOUND);
                 return;
             }
-            dispatcher.dispatch(servletRequest, servletResponse);
+            dispatcher.dispatch(servletRequest, servletResponse, DispatcherType.REQUEST);
         } finally {
             if (!servletRequest.isAsyncStarted()) {
                 servletResponse.getOutputStream().close();

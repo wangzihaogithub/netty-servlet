@@ -6,7 +6,6 @@ import com.github.netty.util.ServletUtil;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpRequest;
-import io.netty.handler.codec.http.ServerCookieDecoder;
 
 import javax.servlet.DispatcherType;
 import javax.servlet.ServletException;
@@ -21,7 +20,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
-import java.net.URISyntaxException;
 import java.security.Principal;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -33,123 +31,109 @@ public class ServletHttpServletRequest implements javax.servlet.http.HttpServlet
 
     public static final String DISPATCHER_TYPE = ServletRequestDispatcher.class.getName().concat(".DISPATCHER_TYPE");
 
-    private ServletContext servletContext;
-    private ServletAsyncContext asyncContext;
-    private boolean asyncSupported;
     private String servletPath;
     private String queryString;
     private String pathInfo;
     private String requestUri;
-    private transient boolean decodePaths;
     private String characterEncoding;
-
-    private Cookie[] cookies;
     private String sessionId;
 
+    private transient boolean parsePathsFlag;
+    private transient boolean decodeCookieFlag;
+    private boolean decodeParameterByUrlFlag;
+    private boolean decodeParameterByBodyFlag;
+    private boolean usingReaderFlag;
+    private boolean asyncSupportedFlag;
+
     private Map<String,Object> attributeMap;
-    private ServletHttpSession httpSession;
-    private int sessionIdSource;
-
-    private Locale locale;
     private Map<String,String[]> parameterMap;
-    private transient boolean decodeCookie;
-    private boolean decodeParameterByUrl;
-    private boolean decodeParameterByBody;
-    private ServletInputStream inputStream;
-    private final HttpRequest request;
-    private boolean usingReader;
-    private HttpHeaders headers;
+    private Cookie[] cookies;
+    private Locale locale;
 
-    public ServletHttpServletRequest(ServletInputStream inputStream, ServletContext servletContext, HttpRequest request) throws URISyntaxException {
+    private int sessionIdSource;
+    private ServletHttpSession httpSession;
+    private ServletInputStream inputStream;
+    private ServletContext servletContext;
+    private ServletAsyncContext asyncContext;
+
+    private final HttpRequest request;
+    private final HttpHeaders headers;
+
+    public ServletHttpServletRequest(ServletInputStream inputStream, ServletContext servletContext, HttpRequest request) {
         this.request = request;
-        this.inputStream = inputStream;
-        this.servletContext = servletContext;
-        this.asyncSupported = true;
-        this.decodeParameterByUrl = false;
-        this.decodeParameterByBody = false;
-        this.decodeCookie = false;
-        this.decodePaths = false;
-        this.usingReader = false;
         this.headers = request.headers();
         this.attributeMap = new ConcurrentHashMap<>();
-    }
-
-    private String decodeCharacterEncoding() {
-        String contentType = getContentType();
-        if (contentType == null) {
-            return servletContext.getDefaultCharset().name();
-        }
-        int start = contentType.indexOf("charset=");
-        if (start < 0) {
-            return servletContext.getDefaultCharset().name();
-        }
-        String encoding = contentType.substring(start + 8);
-        int end = encoding.indexOf(';');
-        if (end >= 0) {
-            encoding = encoding.substring(0, end);
-        }
-        encoding = encoding.trim();
-        if ((encoding.length() > 2) && (encoding.startsWith("\""))
-                && (encoding.endsWith("\""))) {
-            encoding = encoding.substring(1, encoding.length() - 1);
-        }
-        return encoding.trim();
+        this.inputStream = inputStream;
+        this.servletContext = servletContext;
+        this.asyncSupportedFlag = true;
+        this.decodeParameterByUrlFlag = false;
+        this.decodeParameterByBodyFlag = false;
+        this.decodeCookieFlag = false;
+        this.parsePathsFlag = false;
+        this.usingReaderFlag = false;
     }
 
     private boolean isDecodeParameter(){
-        return decodeParameterByBody || decodeParameterByUrl;
+        return decodeParameterByBodyFlag || decodeParameterByUrlFlag;
+    }
+
+    private void decodeCharacterEncoding() {
+        String characterEncoding = ServletUtil.decodeCharacterEncoding(getContentType());
+        if (characterEncoding == null) {
+            characterEncoding = servletContext.getDefaultCharset().name();
+        }
+       this.characterEncoding = characterEncoding;
     }
 
     private void decodeParameter(){
         Map<String,String[]> parameterMap = new HashMap<>(16);
         if(HttpConstants.GET.equalsIgnoreCase(getMethod())){
             ServletUtil.decodeByUrl(parameterMap,request.uri());
-            this.decodeParameterByUrl = true;
+            this.decodeParameterByUrlFlag = true;
         }else {
-//            ServletUtil.decodeByBody(parameterMap,request);
-//            this.decodeParameterByBody = true;
+            ServletUtil.decodeByBody(parameterMap,request);
+            this.decodeParameterByBodyFlag = true;
         }
         this.parameterMap = parameterMap;
     }
 
-    private Cookie[] decodeCookie(){
+    private void decodeCookie(){
         CharSequence value = getHeader(HttpHeaderNames.COOKIE.toString());
         if (value == null) {
-            return null;
+            return;
+        }
+        this.cookies = ServletUtil.decodeCookie(value.toString());
+        this.decodeCookieFlag = true;
+    }
+
+    private void checkAndParsePaths(){
+        if(parsePathsFlag){
+            return;
         }
 
-        Set<io.netty.handler.codec.http.Cookie> nettyCookieSet = ServerCookieDecoder.decode(value.toString());
-        io.netty.handler.codec.http.Cookie[] nettyCookieArr = nettyCookieSet.toArray(new io.netty.handler.codec.http.Cookie[nettyCookieSet.size()]);
-        int size = nettyCookieArr.length;
-        Cookie[] cookies = new Cookie[size];
-        for (int i=0; i< size; i++) {
-            io.netty.handler.codec.http.Cookie nettyCookie = nettyCookieArr[i];
-            Cookie cookie = new Cookie(nettyCookie.name(),nettyCookie.value());
-            cookie.setComment(nettyCookie.comment());
-            String domain = nettyCookie.domain();
-            if(domain != null) {
-                cookie.setDomain(domain);
-            }
-            cookie.setHttpOnly(nettyCookie.isHttpOnly());
-            cookie.setMaxAge((int) nettyCookie.maxAge());
-            cookie.setPath(nettyCookie.path());
-            cookie.setVersion(nettyCookie.version());
-            cookie.setSecure(nettyCookie.isSecure());
-
-            cookies[i] = cookie;
+        String servletPath = request.uri().replace(servletContext.getContextPath(), "");
+        if (!servletPath.startsWith("/")) {
+            servletPath = "/" + servletPath;
         }
-        this.decodeCookie = true;
-        return cookies;
+        int queryInx = servletPath.indexOf('?');
+        if (queryInx > -1) {
+            this.queryString = servletPath.substring(queryInx + 1, servletPath.length());
+            servletPath = servletPath.substring(0, queryInx);
+        }
+        this.servletPath = servletPath;
+        this.requestUri = this.servletContext.getContextPath() + servletPath; //TODO 加上pathInfo
+        this.pathInfo = null;
+
+        parsePathsFlag = true;
     }
 
     @Override
     public Cookie[] getCookies() {
-        if(decodeCookie){
+        if(decodeCookieFlag){
             return cookies;
         }
 
-        this.cookies = decodeCookie();
-        this.decodeCookie = true;
+        decodeCookie();
         return cookies;
     }
 
@@ -178,7 +162,7 @@ public class ServletHttpServletRequest implements javax.servlet.http.HttpServlet
             return -1;
         }
 
-        Long timestamp = ServletUtil.internalParseDate(value,ServletUtil.FORMATS_TEMPLATE);
+        Long timestamp = ServletUtil.parseHeaderDate(value,ServletUtil.FORMATS_TEMPLATE);
         if(timestamp == null){
             throw new IllegalArgumentException(value);
         }
@@ -187,12 +171,12 @@ public class ServletHttpServletRequest implements javax.servlet.http.HttpServlet
 
     @Override
     public String getHeader(String name) {
-        return request.headers().getAndConvert(name);
+        return headers.getAndConvert(name);
     }
 
     @Override
     public Enumeration<String> getHeaderNames() {
-        Set<CharSequence> nameSet = request.headers().names();
+        Set<CharSequence> nameSet = headers.names();
         List<String> nameList = new LinkedList<>();
         for(CharSequence name : nameSet){
             nameList.add(name.toString());
@@ -265,29 +249,6 @@ public class ServletHttpServletRequest implements javax.servlet.http.HttpServlet
     }
     /*====== Header 相关方法 结束 ======*/
 
-
-    /*====== 各种路径 相关方法 开始 ======*/
-
-    private void checkAndParsePaths(){
-        if(decodePaths){
-            return;
-        }
-
-        String servletPath = request.uri().replace(servletContext.getContextPath(), "");
-        if (!servletPath.startsWith("/")) {
-            servletPath = "/" + servletPath;
-        }
-        int queryInx = servletPath.indexOf('?');
-        if (queryInx > -1) {
-            this.queryString = servletPath.substring(queryInx + 1, servletPath.length());
-            servletPath = servletPath.substring(0, queryInx);
-        }
-        this.servletPath = servletPath;
-        this.requestUri = this.servletContext.getContextPath() + servletPath; //TODO 加上pathInfo
-        this.pathInfo = null;
-
-        decodePaths = true;
-    }
 
     @Override
     public String getMethod() {
@@ -422,7 +383,7 @@ public class ServletHttpServletRequest implements javax.servlet.http.HttpServlet
     @Override
     public String getCharacterEncoding() {
         if (characterEncoding == null) {
-            characterEncoding = decodeCharacterEncoding();
+            decodeCharacterEncoding();
         }
         return characterEncoding;
     }
@@ -449,11 +410,11 @@ public class ServletHttpServletRequest implements javax.servlet.http.HttpServlet
 
     @Override
     public ServletInputStream getInputStream() throws IOException {
-        if(usingReader){
+        if(usingReaderFlag){
             throw new IllegalStateException("stream not double using");
         }
 
-        usingReader = true;
+        usingReaderFlag = true;
         return inputStream;
     }
 
@@ -619,7 +580,7 @@ public class ServletHttpServletRequest implements javax.servlet.http.HttpServlet
 
     @Override
     public boolean isAsyncSupported() {
-        return asyncSupported;
+        return asyncSupportedFlag;
     }
 
     @Override

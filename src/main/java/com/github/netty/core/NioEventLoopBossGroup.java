@@ -2,6 +2,7 @@ package com.github.netty.core;
 
 import com.github.netty.util.NamespaceUtil;
 import com.github.netty.util.ProxyUtil;
+
 import io.netty.channel.EventLoop;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.util.concurrent.ExecutorServiceFactory;

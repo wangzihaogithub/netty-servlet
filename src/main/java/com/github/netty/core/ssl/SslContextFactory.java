@@ -1,7 +1,5 @@
 package com.github.netty.core.ssl;
 
-import com.github.netty.core.exception.GatewayException;
-
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
@@ -93,7 +91,7 @@ public class SslContextFactory {
                         init();
                     } catch (CertificateException | KeyStoreException | KeyManagementException |
                             IOException | NoSuchAlgorithmException | UnrecoverableKeyException e) {
-                        throw new GatewayException(e.getMessage(),e);
+                        throw new IllegalStateException(e.getMessage(),e);
                     }
                 }
             }

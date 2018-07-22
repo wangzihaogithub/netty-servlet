@@ -30,7 +30,7 @@ public class NioServerSocketChannel extends io.netty.channel.socket.nio.NioServe
 
         try {
             if (ch != null) {
-                io.netty.channel.socket.nio.NioSocketChannel nioSocketChannel = newNioServerSocketChannel(ch);
+                NioSocketChannel nioSocketChannel = newNioServerSocketChannel(ch);
                 buf.add(nioSocketChannel);
                 return 1;
             }
@@ -48,8 +48,8 @@ public class NioServerSocketChannel extends io.netty.channel.socket.nio.NioServe
         return 0;
     }
 
-    private io.netty.channel.socket.nio.NioSocketChannel newNioServerSocketChannel(SocketChannel socketChannel){
-        io.netty.channel.socket.nio.NioSocketChannel myNioSocketChannel = ProxyUtil.newProxyByCglib(
+    private NioSocketChannel newNioServerSocketChannel(SocketChannel socketChannel){
+        NioSocketChannel myNioSocketChannel = ProxyUtil.newProxyByCglib(
                 NioSocketChannel.class,
                 NamespaceUtil.newIdName(this,"NioSocketChannel"),true,
                 new Class[]{Channel.class, SocketChannel.class},

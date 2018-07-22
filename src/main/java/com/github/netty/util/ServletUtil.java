@@ -1,7 +1,8 @@
 package com.github.netty.util;
 
-import io.netty.handler.codec.http.FullHttpRequest;
+import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.QueryStringDecoder;
+import io.netty.handler.codec.http.ServerCookieDecoder;
 import io.netty.handler.codec.http.multipart.*;
 
 import javax.servlet.http.Cookie;
@@ -9,17 +10,14 @@ import java.io.IOException;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Created by acer01 on 2018/7/15/015.
  */
 public class ServletUtil {
 
-    private static final HttpDataFactory HTTP_DATA_FACTORY = new DefaultHttpDataFactory(DefaultHttpDataFactory.MINSIZE); //Disk
+    private static HttpDataFactory HTTP_DATA_FACTORY;
 
     /**
      * The only date format permitted when generating HTTP headers.
@@ -36,7 +34,7 @@ public class ServletUtil {
 
 
     public static String getCookieValue(Cookie[] cookies, String cookieName){
-        if(cookies == null) {
+        if(cookies == null || cookieName == null) {
             return null;
         }
         for(Cookie cookie : cookies){
@@ -45,7 +43,7 @@ public class ServletUtil {
             }
 
             String name = cookie.getName();
-            if(cookieName.equalsIgnoreCase(name)){
+            if(cookieName.equals(name)){
                 return cookie.getValue();
             }
         }
@@ -62,8 +60,53 @@ public class ServletUtil {
         }
     }
 
-    public static void decodeByBody(Map<String,String[]> parameterMap,FullHttpRequest fullHttpRequest){
-        HttpPostRequestDecoder decoder = new HttpPostRequestDecoder(HTTP_DATA_FACTORY, fullHttpRequest);
+    public static String decodeCharacterEncoding(String contentType) {
+        if (contentType == null) {
+            return null;
+        }
+        int start = contentType.indexOf("charset=");
+        if (start < 0) {
+            return null;
+        }
+        String encoding = contentType.substring(start + 8);
+        int end = encoding.indexOf(';');
+        if (end >= 0) {
+            encoding = encoding.substring(0, end);
+        }
+        encoding = encoding.trim();
+        if ((encoding.length() > 2) && (encoding.startsWith("\""))
+                && (encoding.endsWith("\""))) {
+            encoding = encoding.substring(1, encoding.length() - 1);
+        }
+        return encoding.trim();
+    }
+
+    public static Cookie[] decodeCookie(String value){
+        Set<io.netty.handler.codec.http.Cookie> nettyCookieSet = ServerCookieDecoder.decode(value);
+        io.netty.handler.codec.http.Cookie[] nettyCookieArr = nettyCookieSet.toArray(new io.netty.handler.codec.http.Cookie[nettyCookieSet.size()]);
+        int size = nettyCookieArr.length;
+        Cookie[] cookies = new Cookie[size];
+        for (int i=0; i< size; i++) {
+            io.netty.handler.codec.http.Cookie nettyCookie = nettyCookieArr[i];
+            Cookie cookie = new Cookie(nettyCookie.name(),nettyCookie.value());
+            cookie.setComment(nettyCookie.comment());
+            String domain = nettyCookie.domain();
+            if(domain != null) {
+                cookie.setDomain(domain);
+            }
+            cookie.setHttpOnly(nettyCookie.isHttpOnly());
+            cookie.setMaxAge((int) nettyCookie.maxAge());
+            cookie.setPath(nettyCookie.path());
+            cookie.setVersion(nettyCookie.version());
+            cookie.setSecure(nettyCookie.isSecure());
+
+            cookies[i] = cookie;
+        }
+        return cookies;
+    }
+
+    public static void decodeByBody(Map<String,String[]> parameterMap,HttpRequest httpRequest){
+        HttpPostRequestDecoder decoder = new HttpPostRequestDecoder(getHttpDataFactory(), httpRequest);
 
         while (decoder.hasNext()){
             InterfaceHttpData data = decoder.next();
@@ -89,7 +132,7 @@ public class ServletUtil {
         decoder.destroy();
     }
 
-    public static Long internalParseDate
+    public static Long parseHeaderDate
             (String value, DateFormat[] formats) {
         Date date = null;
         for (int i = 0; (date == null) && (i < formats.length); i++) {
@@ -102,6 +145,18 @@ public class ServletUtil {
         if (date == null) {
             return null;
         }
-        return Long.valueOf(date.getTime());
+        return date.getTime();
     }
+
+    private static HttpDataFactory getHttpDataFactory(){
+        if(HTTP_DATA_FACTORY == null){
+            synchronized (ServletUtil.class) {
+                if(HTTP_DATA_FACTORY == null) {
+                    HTTP_DATA_FACTORY = new DefaultHttpDataFactory(DefaultHttpDataFactory.MINSIZE); //Disk
+                }
+            }
+        }
+        return HTTP_DATA_FACTORY;
+    }
+
 }

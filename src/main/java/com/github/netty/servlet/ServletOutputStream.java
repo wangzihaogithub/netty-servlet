@@ -28,6 +28,7 @@ public class ServletOutputStream extends javax.servlet.ServletOutputStream {
     private int totalLength;//内容总长度
     private boolean closed; //是否已经调用close()方法关闭输出流
 
+    private final Object buffLock = new Object();
 
     ServletOutputStream(ChannelHandlerContext ctx, ServletHttpServletResponse servletResponse) {
         this.ctx = ctx;
@@ -53,24 +54,28 @@ public class ServletOutputStream extends javax.servlet.ServletOutputStream {
 
     @Override
     public void write(byte[] b, int off, int len) throws IOException {
-        totalLength += len;
-        if (len > count) {
-            flushBuffer();
-            ByteBuf content = ctx.alloc().buffer(len);
-            content.writeBytes(b, off, len);
-            writeContent(content, false);
-            return;
+        synchronized (buffLock) {
+            totalLength += len;
+            if (len > count) {
+                flushBuffer();
+                ByteBuf content = ctx.alloc().buffer(len);
+                content.writeBytes(b, off, len);
+                writeContent(content, false);
+                return;
+            }
+            writeBufferIfNeeded(len);
+            System.arraycopy(b, off, buf, count, len); //输入的b复制到缓存buf
+            count += len;
         }
-        writeBufferIfNeeded(len);
-        System.arraycopy(b, off, buf, count, len); //输入的b复制到缓存buf
-        count += len;
     }
 
     @Override
     public void write(int b) throws IOException {
-        writeBufferIfNeeded(1);
-        buf[count++] = (byte) b;
-        totalLength++;
+        synchronized (buffLock) {
+            writeBufferIfNeeded(1);
+            buf[count++] = (byte) b;
+            totalLength++;
+        }
     }
 
     private void writeBufferIfNeeded(int len) throws IOException {
@@ -89,13 +94,15 @@ public class ServletOutputStream extends javax.servlet.ServletOutputStream {
     }
 
     private void flushBuffer(boolean lastContent) {
-        if (count > 0) {
-            ByteBuf content = ctx.alloc().buffer(count);
-            content.writeBytes(buf, 0, count);//buf写入ByteBuf
-            count = 0;//游标归位
-            writeContent(content, lastContent);
-        } else if (lastContent) { //如果是最后一次flush，即便内容为空也要执行ctx.write写入EMPTY_LAST_CONTENT
-            writeContent(Unpooled.EMPTY_BUFFER, true);
+        synchronized (buffLock) {
+            if (count > 0) {
+                ByteBuf content = ctx.alloc().buffer(count);
+                content.writeBytes(buf, 0, count);//buf写入ByteBuf
+                count = 0;//游标归位
+                writeContent(content, lastContent);
+            } else if (lastContent) { //如果是最后一次flush，即便内容为空也要执行ctx.write写入EMPTY_LAST_CONTENT
+                writeContent(Unpooled.EMPTY_BUFFER, true);
+            }
         }
     }
 

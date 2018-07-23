@@ -29,7 +29,7 @@
     </licenses>
 
     <scm>
-        <tag>${version}</tag>
+        <tag>netty-container-1.0.2</tag>
         <connection>scm:git:https://github.com/wangzihaogithub/netty-container.git</connection>
         <developerConnection>scm:git:https://github.com/wangzihaogithub/netty-container.git</developerConnection>
         <url>https://github.com/wangzihaogithub/netty-container.git</url>

@@ -31,8 +31,8 @@
 
     <scm>
         <tag>master</tag>
-        <connection>scm:git:https://github.com/wangzihaogithub/netty-container.git</connection>
-        <developerConnection>scm:git:https://github.com/wangzihaogithub/netty-container.git</developerConnection>
+        <connection>https://github.com/wangzihaogithub/netty-container.git</connection>
+        <developerConnection>https://github.com/wangzihaogithub/netty-container.git</developerConnection>
         <url>https://github.com/wangzihaogithub/netty-container.git</url>
     </scm>
 

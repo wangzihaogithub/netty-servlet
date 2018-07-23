@@ -6,7 +6,7 @@
 
     <groupId>com.github.wangzihaogithub</groupId>
     <artifactId>netty-container</artifactId>
-    <version>1.0.1.SNAPSHOT</version>
+    <version>1.0.0</version>
     <packaging>jar</packaging>
 
     <name>netty-container</name>
@@ -30,7 +30,7 @@
     </licenses>
 
     <scm>
-        <tag>master</tag>
+        <tag>${version}</tag>
         <connection>https://github.com/wangzihaogithub/netty-container.git</connection>
         <developerConnection>https://github.com/wangzihaogithub/netty-container.git</developerConnection>
         <url>https://github.com/wangzihaogithub/netty-container.git</url>

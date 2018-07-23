@@ -4,7 +4,7 @@
 
     <groupId>com.github.wangzihaogithub</groupId>
     <artifactId>netty-container</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.0.0</version>
     <packaging>jar</packaging>
 
     <name>netty-container</name>
@@ -33,7 +33,7 @@
         <tag>netty-container-1.0.0</tag>
         <connection>scm:git:git@github.com:wangzihaogithub/netty-container.git</connection>
         <developerConnection>scm:git:git@github.com:wangzihaogithub/netty-container.git</developerConnection>
-        <url>https://github.com/wangzihaogithub/netty-container.git</url>
+        <url>git@github.com:wangzihaogithub/netty-container.git</url>
     </scm>
 
     <!-- 开发者信息 -->

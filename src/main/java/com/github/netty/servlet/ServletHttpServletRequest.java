@@ -26,6 +26,8 @@ import java.security.Principal;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static com.github.netty.util.ObjectUtil.EMPTY;
+
 /**
  * Created by acer01 on 2018/7/15/015.
  */
@@ -64,7 +66,7 @@ public class ServletHttpServletRequest implements javax.servlet.http.HttpServlet
     public ServletHttpServletRequest(ServletInputStream inputStream, ServletContext servletContext, HttpRequest request) {
         this.request = request;
         this.headers = request.headers();
-        this.attributeMap = new ConcurrentHashMap<>();
+        this.attributeMap = null;
         this.inputStream = inputStream;
         this.servletContext = servletContext;
         this.asyncSupportedFlag = true;
@@ -383,7 +385,12 @@ public class ServletHttpServletRequest implements javax.servlet.http.HttpServlet
 
     @Override
     public Object getAttribute(String name) {
-        return getAttributeMap().get(name);
+        Object value = getAttributeMap().get(name);
+
+        if(value == EMPTY){
+            return null;
+        }
+        return value;
     }
 
     @Override
@@ -530,6 +537,9 @@ public class ServletHttpServletRequest implements javax.servlet.http.HttpServlet
 
     @Override
     public void setAttribute(String name, Object o) {
+        if(o == null){
+            o = EMPTY;
+        }
         getAttributeMap().put(name,o);
     }
 

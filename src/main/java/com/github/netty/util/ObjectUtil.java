@@ -2,9 +2,13 @@ package com.github.netty.util;
 
 
 /**
- * Created by acer01 on 2018/7/22/022.
+ *
+ * @author acer01
+ * @date 2018/7/22/022
  */
 public class ObjectUtil {
+
+    public static final Object EMPTY = new Object();
 
     public static void checkState(boolean b, String errorMessageTemplate, Object p1, Object p2, Object p3, Object p4) {
         if(!b) {

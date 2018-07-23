@@ -8,6 +8,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static com.github.netty.util.ObjectUtil.EMPTY;
+
 /**
  * Created by acer01 on 2018/7/15/015.
  */
@@ -29,11 +31,18 @@ public class ServletHttpSession implements HttpSession{
     ServletHttpSession(String id, ServletContext servletContext, ServletSessionCookieConfig sessionCookieConfig) {
         this.id = id;
         this.servletContext = servletContext;
-        this.attributeMap = new ConcurrentHashMap<>();
+        this.attributeMap = null;
         this.creationTime = System.currentTimeMillis();
         this.newSessionFlag = true;
         this.maxInactiveInterval = sessionCookieConfig.getSessionTimeout();
         this.accessCount = new AtomicInteger(0);
+    }
+
+    private Map<String, Object> getAttributeMap() {
+        if(attributeMap == null){
+            attributeMap = new ConcurrentHashMap<>(16);
+        }
+        return attributeMap;
     }
 
     @Override
@@ -73,7 +82,12 @@ public class ServletHttpSession implements HttpSession{
 
     @Override
     public Object getAttribute(String name) {
-        return attributeMap.get(name);
+        Object value = getAttributeMap().get(name);
+
+        if(value == EMPTY){
+            return null;
+        }
+        return value;
     }
 
     @Override
@@ -83,17 +97,20 @@ public class ServletHttpSession implements HttpSession{
 
     @Override
     public Enumeration<String> getAttributeNames() {
-        return Collections.enumeration(attributeMap.keySet());
+        return Collections.enumeration(getAttributeMap().keySet());
     }
 
     @Override
     public String[] getValueNames() {
-        return attributeMap.keySet().toArray(new String[attributeMap.size()]);
+        return getAttributeMap().keySet().toArray(new String[getAttributeMap().size()]);
     }
 
     @Override
     public void setAttribute(String name, Object value) {
-        attributeMap.put(name,value);
+        if(value == null){
+            value = EMPTY;
+        }
+        getAttributeMap().put(name,value);
     }
 
     @Override
@@ -103,7 +120,7 @@ public class ServletHttpSession implements HttpSession{
 
     @Override
     public void removeAttribute(String name) {
-        attributeMap.remove(name);
+        getAttributeMap().remove(name);
     }
 
     @Override
@@ -114,8 +131,10 @@ public class ServletHttpSession implements HttpSession{
     @Override
     public void invalidate() {
         servletContext.getHttpSessionMap().remove(id);
-        attributeMap.clear();
-        attributeMap = null;
+        if(attributeMap != null) {
+            attributeMap.clear();
+            attributeMap = null;
+        }
         servletContext = null;
     }
 

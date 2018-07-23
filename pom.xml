@@ -178,7 +178,6 @@
             </build>
             <distributionManagement>
                 <snapshotRepository>
-                    <!--- 此处的id需要和setting.xml 配置的service的id一致 -->
                     <id>ossrh</id>
                     <url>https://oss.sonatype.org/content/repositories/snapshots</url>
                 </snapshotRepository>

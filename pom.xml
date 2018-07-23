@@ -20,6 +20,7 @@
         <guava.version>20.0</guava.version>
         <spring-boot.version>1.5.10.RELEASE</spring-boot.version>
         <servlet-api.version>3.1.0</servlet-api.version>
+        <javassist.version>3.19.0-GA</javassist.version>
     </properties>
 
     <licenses>
@@ -63,6 +64,12 @@
             <groupId>io.netty</groupId>
             <artifactId>netty-all</artifactId>
             <version>${netty.version}</version>
+        </dependency>
+        <!-- Netty建议的反射依赖 -->
+        <dependency>
+            <groupId>org.javassist</groupId>
+            <artifactId>javassist</artifactId>
+            <version>${javassist.version}</version>
         </dependency>
 
         <dependency>

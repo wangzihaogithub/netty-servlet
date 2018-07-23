@@ -4,7 +4,7 @@
 
     <groupId>com.github.wangzihaogithub</groupId>
     <artifactId>netty-container</artifactId>
-    <version>1.0.3-SNAPSHOT</version>
+    <version>1.0.3</version>
     <packaging>jar</packaging>
 
     <name>netty-container</name>
@@ -29,7 +29,7 @@
     </licenses>
 
     <scm>
-        <tag>netty-container-1.0.2</tag>
+        <tag>netty-container-1.0.3</tag>
         <connection>scm:git:https://github.com/wangzihaogithub/netty-container.git</connection>
         <developerConnection>scm:git:https://github.com/wangzihaogithub/netty-container.git</developerConnection>
         <url>https://github.com/wangzihaogithub/netty-container.git</url>
@@ -130,7 +130,7 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-source-plugin</artifactId>
-                        <version>2.2.1</version>
+                        <version>3.0.1</version>
                         <executions>
                             <execution>
                                 <phase>package</phase>
@@ -139,15 +139,17 @@
                                 </goals>
                             </execution>
                         </executions>
+                        <configuration>
+                        </configuration>
                     </plugin>
                     <!-- Javadoc -->
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-javadoc-plugin</artifactId>
-                        <version>2.9.1</version>
+                        <version>3.0.1</version>
                         <!-- -Xdoclint:none 是为了生存apidoc的时候检查不必太严格-->
                         <configuration>
-                            <additionalparam>-Xdoclint:none</additionalparam>
+                            <doclint>none</doclint>
                         </configuration>
                         <executions>
                             <execution>

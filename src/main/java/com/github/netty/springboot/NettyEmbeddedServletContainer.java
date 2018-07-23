@@ -34,7 +34,6 @@ public class NettyEmbeddedServletContainer extends AbstractNettyServer implement
     private final boolean enableSsl;
     private SslContext sslContext;
     private ChannelHandler dispatcherHandler;
-    private NettyServletCodecHandler servletCodecHandler;
 
     public NettyEmbeddedServletContainer(ServletContext servletContext,Ssl ssl,int bizThreadCount) throws SSLException {
         super(servletContext.getServerSocketAddress());
@@ -43,7 +42,6 @@ public class NettyEmbeddedServletContainer extends AbstractNettyServer implement
         if(enableSsl){
             this.sslContext = newSslContext(ssl);
         }
-        this.servletCodecHandler = new NettyServletCodecHandler(servletContext);
         this.dispatcherExecutorGroup = new DefaultEventExecutorGroup(bizThreadCount);
         this.dispatcherHandler = new NettyServletDispatcherHandler(servletContext);
     }
@@ -63,7 +61,7 @@ public class NettyEmbeddedServletContainer extends AbstractNettyServer implement
 
                 pipeline.addLast("HttpCodec", new HttpServerCodec(4096, 8192, 8192, false)); //HTTP编码解码Handler
                 pipeline.addLast("Aggregator", new HttpObjectAggregator(512 * 1024));  // HTTP聚合，设置最大消息值为512KB
-                pipeline.addLast("ServletCodec",servletCodecHandler ); //处理请求，读入数据，生成Request和Response对象
+                pipeline.addLast("ServletCodec",new NettyServletCodecHandler(servletContext) ); //处理请求，读入数据，生成Request和Response对象
                 pipeline.addLast(dispatcherExecutorGroup, "Dispatcher", dispatcherHandler); //获取请求分发器，让对应的Servlet处理请求，同时处理404情况
             }
         };

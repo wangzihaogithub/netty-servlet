@@ -19,7 +19,9 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.security.Principal;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -73,6 +75,13 @@ public class ServletHttpServletRequest implements javax.servlet.http.HttpServlet
         this.usingReaderFlag = false;
     }
 
+    private Map<String, Object> getAttributeMap() {
+        if(attributeMap == null){
+            attributeMap = new ConcurrentHashMap<>(16);
+        }
+        return attributeMap;
+    }
+
     private boolean isDecodeParameter(){
         return decodeParameterByBodyFlag || decodeParameterByUrlFlag;
     }
@@ -91,8 +100,8 @@ public class ServletHttpServletRequest implements javax.servlet.http.HttpServlet
             ServletUtil.decodeByUrl(parameterMap,request.uri());
             this.decodeParameterByUrlFlag = true;
         }else {
-            ServletUtil.decodeByBody(parameterMap,request);
-            this.decodeParameterByBodyFlag = true;
+//            ServletUtil.decodeByBody(parameterMap,request);
+//            this.decodeParameterByBodyFlag = true;
         }
         this.parameterMap = parameterMap;
     }
@@ -374,12 +383,12 @@ public class ServletHttpServletRequest implements javax.servlet.http.HttpServlet
 
     @Override
     public Object getAttribute(String name) {
-        return attributeMap.get(name);
+        return getAttributeMap().get(name);
     }
 
     @Override
     public Enumeration<String> getAttributeNames() {
-        return Collections.enumeration(attributeMap.keySet());
+        return Collections.enumeration(getAttributeMap().keySet());
     }
 
     @Override
@@ -479,27 +488,54 @@ public class ServletHttpServletRequest implements javax.servlet.http.HttpServlet
 
     @Override
     public String getRemoteAddr() {
-        return ((InetSocketAddress) inputStream.getChannel().remoteAddress()).getAddress().getHostAddress();
+        InetSocketAddress inetSocketAddress = getRemoteAddress();
+        if(inetSocketAddress == null){
+            return null;
+        }
+        InetAddress inetAddress = inetSocketAddress.getAddress();
+        if(inetAddress == null){
+            return null;
+        }
+        return inetAddress.getHostAddress();
+    }
+
+    private InetSocketAddress getRemoteAddress(){
+        SocketAddress socketAddress = inputStream.getChannel().remoteAddress();
+        if(socketAddress == null){
+            return null;
+        }
+        if(socketAddress instanceof InetSocketAddress){
+            return (InetSocketAddress) socketAddress;
+        }
+        return null;
     }
 
     @Override
     public String getRemoteHost() {
-        return ((InetSocketAddress) inputStream.getChannel().remoteAddress()).getHostName();
+        InetSocketAddress inetSocketAddress = getRemoteAddress();
+        if(inetSocketAddress == null){
+            return null;
+        }
+        return inetSocketAddress.getHostName();
     }
 
     @Override
     public int getRemotePort() {
-        return ((InetSocketAddress) inputStream.getChannel().remoteAddress()).getPort();
+        InetSocketAddress inetSocketAddress = getRemoteAddress();
+        if(inetSocketAddress == null){
+            return 0;
+        }
+        return inetSocketAddress.getPort();
     }
 
     @Override
     public void setAttribute(String name, Object o) {
-        attributeMap.put(name,o);
+        getAttributeMap().put(name,o);
     }
 
     @Override
     public void removeAttribute(String name) {
-        attributeMap.remove(name);
+        getAttributeMap().remove(name);
     }
 
     @Override
@@ -592,7 +628,7 @@ public class ServletHttpServletRequest implements javax.servlet.http.HttpServlet
 
     @Override
     public DispatcherType getDispatcherType() {
-        return (DispatcherType) attributeMap.getOrDefault(DISPATCHER_TYPE,DispatcherType.REQUEST);
+        return (DispatcherType) getAttributeMap().getOrDefault(DISPATCHER_TYPE,DispatcherType.REQUEST);
     }
 
     @Override

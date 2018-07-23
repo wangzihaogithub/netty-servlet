@@ -60,7 +60,7 @@ public class ServletContext implements javax.servlet.ServletContext {
 //        this.rootDirStr = rootDir.isAbsolute() ? rootDir.getAbsolutePath() : FilenameUtils.concat(new File(".").getAbsolutePath(), rootDir.getPath());
         this.initialized = false;
         this.sessionCookieConfig = sessionCookieConfig;
-        this.serverInfo = serverInfo == null? "netty":serverInfo;
+        this.serverInfo = serverInfo == null? "netty-server/1.0":serverInfo;
 
         this.contextPath = contextPath == null? "" : contextPath;
         this.defaultCharset = null;

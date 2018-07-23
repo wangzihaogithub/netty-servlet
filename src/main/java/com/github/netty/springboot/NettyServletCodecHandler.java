@@ -13,7 +13,7 @@ import io.netty.handler.codec.http.*;
  * 有信息/请求进入时，封装请求和响应对象，执行读操作
  * channel恢复时，关闭输入流，等待下一次连接到来
  */
-@ChannelHandler.Sharable
+//@ChannelHandler.Sharable
 public class NettyServletCodecHandler extends SimpleChannelInboundHandler<HttpObject> {
 
     private ServletContext servletContext;

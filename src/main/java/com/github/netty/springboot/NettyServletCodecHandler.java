@@ -13,7 +13,6 @@ import io.netty.handler.codec.http.*;
  * channel恢复时，关闭输入流，等待下一次连接到来
  * @author 84215
  */
-//@ChannelHandler.Sharable
 public class NettyServletCodecHandler extends SimpleChannelInboundHandler<HttpObject> {
 
     private ServletContext servletContext;
@@ -32,13 +31,15 @@ public class NettyServletCodecHandler extends SimpleChannelInboundHandler<HttpOb
     protected void messageReceived(ChannelHandlerContext ctx, HttpObject msg) throws Exception {
         if (msg instanceof HttpRequest) {
             HttpRequest request = (HttpRequest) msg;
-            ServletHttpServletRequest servletResponse = new ServletHttpServletRequest(inputStream, servletContext, request);
 
             if (HttpHeaderUtil.is100ContinueExpected(request)) { //请求头包含Expect: 100-continue
                 ctx.write(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.CONTINUE), ctx.voidPromise());
             }
-            ctx.fireChannelRead(servletResponse);
+
+            ServletHttpServletRequest servletRequest = new ServletHttpServletRequest(inputStream, servletContext, request);
+            ctx.fireChannelRead(servletRequest);
         }
+
         if (msg instanceof HttpContent) { //EmptyLastHttpContent, DefaultLastHttpContent
             inputStream.addContent((HttpContent) msg);
         }

@@ -12,7 +12,9 @@ import javax.servlet.DispatcherType;
 import javax.servlet.http.HttpServletResponse;
 
 /**
- * Created by acer01 on 2018/7/1/001.
+ *
+ * @author acer01
+ * @date 2018/7/1/001
  */
 @ChannelHandler.Sharable
 public class NettyServletDispatcherHandler extends SimpleChannelInboundHandler<ServletHttpServletRequest> {

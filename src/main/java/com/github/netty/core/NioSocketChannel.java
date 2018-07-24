@@ -7,6 +7,9 @@ import io.netty.channel.EventLoop;
 import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.SelectorProvider;
 
+/**
+ * @author 84215
+ */
 public class NioSocketChannel extends io.netty.channel.socket.nio.NioSocketChannel {
 
     public NioSocketChannel() {

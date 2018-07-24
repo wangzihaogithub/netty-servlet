@@ -3,7 +3,9 @@ package com.github.netty.servlet;
 import javax.servlet.SessionCookieConfig;
 
 /**
- * Created by acer01 on 2018/7/14/014.
+ *
+ * @author acer01
+ * @date 2018/7/14/014
  */
 public class ServletSessionCookieConfig implements SessionCookieConfig {
 

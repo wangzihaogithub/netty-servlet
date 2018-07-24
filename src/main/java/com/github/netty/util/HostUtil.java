@@ -3,11 +3,12 @@ package com.github.netty.util;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 
-/*
+/**
  * Copyright (c) 2010, 2014, Oracle and/or its affiliates. All rights reserved.
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
  *
  * Common functions that involve the host platform
+ * @author 84215
  */
 public class HostUtil {
     private static String osName;

@@ -5,6 +5,9 @@ import com.github.netty.util.ProxyUtil;
 import io.netty.channel.ChannelException;
 import io.netty.channel.ChannelFactory;
 
+/**
+ * @author 84215
+ */
 public class NioServerChannelFactory implements ChannelFactory<NioServerSocketChannel> {
 
     @Override

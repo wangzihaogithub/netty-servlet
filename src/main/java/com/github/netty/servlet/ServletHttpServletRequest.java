@@ -77,6 +77,10 @@ public class ServletHttpServletRequest implements javax.servlet.http.HttpServlet
         this.usingReaderFlag = false;
     }
 
+    public HttpRequest getNettyRequest() {
+        return request;
+    }
+
     private Map<String, Object> getAttributeMap() {
         if(attributeMap == null){
             attributeMap = new ConcurrentHashMap<>(16);

@@ -4,6 +4,9 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * @author 84215
+ */
 public class NamespaceUtil {
 
     private static Namespace defaultNamespace;

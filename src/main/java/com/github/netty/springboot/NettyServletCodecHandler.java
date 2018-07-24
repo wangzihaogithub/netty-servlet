@@ -1,9 +1,8 @@
 package com.github.netty.springboot;
 
 import com.github.netty.servlet.ServletContext;
-import com.github.netty.servlet.ServletInputStream;
 import com.github.netty.servlet.ServletHttpServletRequest;
-import io.netty.channel.ChannelHandler;
+import com.github.netty.servlet.ServletInputStream;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.*;
@@ -12,6 +11,7 @@ import io.netty.handler.codec.http.*;
  * channel激活时， 开启一个新的输入流
  * 有信息/请求进入时，封装请求和响应对象，执行读操作
  * channel恢复时，关闭输入流，等待下一次连接到来
+ * @author 84215
  */
 //@ChannelHandler.Sharable
 public class NettyServletCodecHandler extends SimpleChannelInboundHandler<HttpObject> {
@@ -32,8 +32,6 @@ public class NettyServletCodecHandler extends SimpleChannelInboundHandler<HttpOb
     protected void messageReceived(ChannelHandlerContext ctx, HttpObject msg) throws Exception {
         if (msg instanceof HttpRequest) {
             HttpRequest request = (HttpRequest) msg;
-            HttpResponse response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, false);
-            HttpHeaderUtil.setKeepAlive(response, HttpHeaderUtil.isKeepAlive(request));
             ServletHttpServletRequest servletResponse = new ServletHttpServletRequest(inputStream, servletContext, request);
 
             if (HttpHeaderUtil.is100ContinueExpected(request)) { //请求头包含Expect: 100-continue

@@ -11,7 +11,9 @@ import java.security.cert.CertificateException;
 import java.util.Properties;
 
 /**
- * Created by acer01 on 2018/7/1/001.
+ *
+ * @author acer01
+ * @date 2018/7/1/001
  *
  * 主要名词 [Netty, OpenSSL, KeyTool, Diffie-Hellman]
  * 参考地址 https://blog.csdn.net/chuorena/article/details/77622235

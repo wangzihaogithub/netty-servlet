@@ -13,7 +13,9 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 
 /**
- * Created by acer01 on 2018/7/15/015.
+ *
+ * @author acer01
+ * @date 2018/7/15/015
  */
 public class ServletUtil {
 
@@ -25,8 +27,7 @@ public class ServletUtil {
     public static final String RFC1123_DATE =
             "EEE, dd MMM yyyy HH:mm:ss zzz";
 
-    //tomcat 居然是写死的地区 US
-    public static final SimpleDateFormat FORMATS_TEMPLATE[] = {
+    public static final SimpleDateFormat[] FORMATS_TEMPLATE = {
             new SimpleDateFormat(RFC1123_DATE, Locale.getDefault()),
             new SimpleDateFormat("EEEEEE, dd-MMM-yy HH:mm:ss zzz", Locale.getDefault()),
             new SimpleDateFormat("EEE MMMM d HH:mm:ss yyyy", Locale.getDefault())

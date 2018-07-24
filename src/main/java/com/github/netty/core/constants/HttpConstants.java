@@ -3,7 +3,9 @@ package com.github.netty.core.constants;
 import java.nio.charset.Charset;
 
 /**
- * Created by acer01 on 2018/7/15/015.
+ *
+ * @author acer01
+ * @date 2018/7/15/015
  */
 public class HttpConstants {
 

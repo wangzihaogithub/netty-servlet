@@ -16,6 +16,7 @@ import java.net.InetSocketAddress;
 
 /**
  * 一个抽象的netty服务端
+ * @author 84215
  */
 public abstract class AbstractNettyServer implements Runnable{
 

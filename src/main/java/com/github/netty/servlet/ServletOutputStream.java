@@ -15,6 +15,9 @@ import java.io.IOException;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
+/**
+ * @author 84215
+ */
 public class ServletOutputStream extends javax.servlet.ServletOutputStream {
 
     private static final int DEFAULT_BUFFER_SIZE = 1024 * 8;

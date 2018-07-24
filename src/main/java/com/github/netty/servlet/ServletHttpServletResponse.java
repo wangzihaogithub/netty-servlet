@@ -17,7 +17,9 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 
 /**
- * Created by acer01 on 2018/7/15/015.
+ *
+ * @author acer01
+ * @date 2018/7/15/015
  */
 public class ServletHttpServletResponse implements javax.servlet.http.HttpServletResponse {
 
@@ -56,6 +58,7 @@ public class ServletHttpServletResponse implements javax.servlet.http.HttpServle
         this.servletContext = servletContext;
         //Netty自带的http响应对象，初始化为200
         this.httpResponse = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, false);
+        HttpHeaderUtil.setKeepAlive(httpResponse, HttpHeaderUtil.isKeepAlive(httpServletRequest.getNettyRequest()));
         this.outputStream = new ServletOutputStream(ctx, this);
         this.httpServletRequest = httpServletRequest;
         this.characterEncoding = servletContext.getDefaultCharset().name();

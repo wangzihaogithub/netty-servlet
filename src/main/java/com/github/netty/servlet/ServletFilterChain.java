@@ -4,6 +4,9 @@ import javax.servlet.*;
 import java.io.IOException;
 import java.util.Iterator;
 
+/**
+ * @author 84215
+ */
 public class ServletFilterChain implements FilterChain {
 
     /**

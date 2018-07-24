@@ -9,6 +9,9 @@ import javax.net.ssl.TrustManagerFactory;
 import java.io.FileInputStream;
 import java.security.KeyStore;
 
+/**
+ * @author 84215
+ */
 public final class SecureChatSslContextFactory {
 
     private static final String PROTOCOL = "SSL";

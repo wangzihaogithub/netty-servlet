@@ -10,6 +10,9 @@ import java.nio.channels.spi.SelectorProvider;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 
+/**
+ * @author 84215
+ */
 public class NioEventLoopWorkerGroup extends NioEventLoopGroup {
 
     public NioEventLoopWorkerGroup() {

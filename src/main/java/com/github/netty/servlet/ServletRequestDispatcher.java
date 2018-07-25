@@ -1,7 +1,6 @@
 package com.github.netty.servlet;
 
 import javax.servlet.*;
-import javax.servlet.ServletContext;
 import java.io.IOException;
 
 /**
@@ -11,7 +10,7 @@ import java.io.IOException;
  */
 public class ServletRequestDispatcher implements RequestDispatcher {
 
-    private javax.servlet.ServletContext context;
+    private ServletContext context;
     private FilterChain filterChain;
 
     ServletRequestDispatcher(ServletContext context, FilterChain filterChain) {
@@ -21,7 +20,9 @@ public class ServletRequestDispatcher implements RequestDispatcher {
 
     @Override
     public void forward(ServletRequest request, ServletResponse response) throws ServletException, IOException {
-        request.setAttribute(ServletHttpServletRequest.DISPATCHER_TYPE, DispatcherType.FORWARD);
+        DispatcherType dispatcherType = DispatcherType.FORWARD;
+        request.setAttribute(ServletHttpServletRequest.DISPATCHER_TYPE,dispatcherType);
+        dispatch(request,response,dispatcherType);
         // TODO implement
     }
 

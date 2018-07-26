@@ -19,12 +19,11 @@ import java.net.URLClassLoader;
 
 /**
  *
- * EmbeddedWebApplicationContext -> createEmbeddedServletContainer
+ * EmbeddedWebApplicationContext - createEmbeddedServletContainer
  * ImportAwareBeanPostProcessor
  *
- *
  * @author acer01
- * @date 2018/7/14/014
+ *  2018/7/14/014
  */
 public class NettyEmbeddedServletContainerFactory extends AbstractEmbeddedServletContainerFactory implements EmbeddedServletContainerFactory , ResourceLoaderAware {
 
@@ -51,7 +50,7 @@ public class NettyEmbeddedServletContainerFactory extends AbstractEmbeddedServle
 
     /**
      * 注册默认servlet
-     * @param servletContext
+     * @param servletContext servlet上下文
      */
     protected void registerDefaultServlet(ServletContext servletContext){
         ServletDefaultHttpServlet defaultServlet = new ServletDefaultHttpServlet();
@@ -60,8 +59,9 @@ public class NettyEmbeddedServletContainerFactory extends AbstractEmbeddedServle
 
     /**
      * 新建netty容器
-     * @param servletContext
-     * @return
+     * @param servletContext servlet上下文
+     * @return netty容器
+     * @throws SSLException ssl异常
      */
     protected NettyEmbeddedServletContainer newNettyEmbeddedServletContainer(ServletContext servletContext) throws SSLException {
         Ssl ssl = getSsl();
@@ -88,7 +88,7 @@ public class NettyEmbeddedServletContainerFactory extends AbstractEmbeddedServle
 
     /**
      * 加载session的cookie配置
-     * @return
+     * @return cookie配置
      */
     protected ServletSessionCookieConfig loadSessionCookieConfig(){
         ServletSessionCookieConfig sessionCookieConfig = new ServletSessionCookieConfig();

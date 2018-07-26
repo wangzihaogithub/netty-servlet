@@ -157,16 +157,15 @@ public class ServletHttpServletRequest implements javax.servlet.http.HttpServlet
      *
      * 返回指定请求头的值
      *作为long值，代表a
-     * <代码> < /代码>日期对象。使用这种方法
+     * 日期对象。使用这种方法
      *包含日期的标头，例如
-     * <代码> if - modified - since > < /代码。
      返回日期为
      从1970年1月1日开始的毫秒数。
      头名不区分大小写。
      ，如果请求没有页眉
      *指定名称，此方法返回-1。如果消息头
      不能转换为日期，方法抛出。
-     *一个<代码> IllegalArgumentException > < /代码。
+     *IllegalArgumentException代码
      * @param name ，指定标题的名称
      * @return 表示指定的日期 在表示为毫秒数自1970年1月1日起，或-1，如果指定标题。未包括在请求
      */
@@ -245,10 +244,10 @@ public class ServletHttpServletRequest implements javax.servlet.http.HttpServlet
      * servlet标准:
      *
      * 返回指定请求头的值
-     *作为<代码> int > < /代码。如果请求没有标题
+     *作为int。如果请求没有标题
      *指定的名称，此方法返回-1。如果
      该方法不能将header转换为整数
-     *抛出一个<代码> NumberFormatException > < /代码。
+     *抛出一个NumberFormatException 代码。
      头名不区分大小写。
      * @param name String指定请求头的名称
      * @exception NumberFormatException 如果标题值不能转换一个int。

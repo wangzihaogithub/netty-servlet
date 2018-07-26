@@ -25,12 +25,14 @@ public class RequestUrlPatternMapper {
         this.contextPath = contextPath;
     }
 
+
     /**
      * 增加映射关系
      *
      * @param urlPattern  urlPattern
      * @param servlet     servlet对象
      * @param servletName servletName
+     * @throws ServletException servlet异常
      */
     public void addServlet(String urlPattern, Servlet servlet, String servletName) throws ServletException {
         if (urlPattern.endsWith("/*")) {
@@ -80,7 +82,7 @@ public class RequestUrlPatternMapper {
     /**
      * 删除映射关系
      *
-     * @param urlPattern
+     * @param urlPattern url匹配规则
      */
     public void removeServlet(String urlPattern) {
         if (urlPattern.endsWith("/*")) {

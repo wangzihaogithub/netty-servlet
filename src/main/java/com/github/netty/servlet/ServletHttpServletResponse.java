@@ -19,7 +19,7 @@ import java.util.*;
 /**
  *
  * @author acer01
- * @date 2018/7/15/015
+ *  2018/7/15/015
  */
 public class ServletHttpServletResponse implements javax.servlet.http.HttpServletResponse {
 
@@ -53,6 +53,7 @@ public class ServletHttpServletResponse implements javax.servlet.http.HttpServle
      * 构造方法
      * @param ctx            Netty的Context
      * @param servletContext ServletContext
+     * @param httpServletRequest servlet请求
      */
     public ServletHttpServletResponse(ChannelHandlerContext ctx, ServletContext servletContext,ServletHttpServletRequest httpServletRequest) {
         this.servletContext = servletContext;
@@ -64,8 +65,10 @@ public class ServletHttpServletResponse implements javax.servlet.http.HttpServle
         this.characterEncoding = servletContext.getDefaultCharset().name();
     }
 
+
     /**
      * 设置基本的请求头
+     * @return netty的响应
      */
     public HttpResponse getNettyResponse() {
         if (committed) {

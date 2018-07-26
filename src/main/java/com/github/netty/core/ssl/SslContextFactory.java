@@ -13,7 +13,7 @@ import java.util.Properties;
 /**
  *
  * @author acer01
- * @date 2018/7/1/001
+ *  2018/7/1/001
  *
  * 主要名词 [Netty, OpenSSL, KeyTool, Diffie-Hellman]
  * 参考地址 https://blog.csdn.net/chuorena/article/details/77622235

@@ -49,8 +49,10 @@ public class HostUtil {
         return osName.startsWith("ios");
     }
 
+
     /**
      * Returns true if the platform is embedded.
+     * @return 是否虚拟容器
      */
     public static boolean isEmbedded() {
         return embedded;

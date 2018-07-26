@@ -18,11 +18,14 @@ public class TestApplication {
 
     @RequestMapping("/")
     public Object hallo(){
-        return "啊";
+        return "测试";
     }
+
 
     /**
      * Start
+     * @param args vm参数
+     * @throws IOException io异常
      */
     public static void main(String[] args) throws IOException {
         ConfigurableApplicationContext context = SpringApplication.run(TestApplication.class, args);

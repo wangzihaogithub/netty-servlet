@@ -14,7 +14,7 @@ import javax.servlet.http.HttpServletResponse;
 /**
  *
  * @author acer01
- * @date 2018/7/1/001
+ *  2018/7/1/001
  */
 @ChannelHandler.Sharable
 public class NettyServletDispatcherHandler extends SimpleChannelInboundHandler<ServletHttpServletRequest> {

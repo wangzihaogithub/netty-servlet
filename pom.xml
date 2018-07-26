@@ -4,7 +4,7 @@
 
     <groupId>com.github.wangzihaogithub</groupId>
     <artifactId>netty-container</artifactId>
-    <version>1.1.12-SNAPSHOT</version>
+    <version>1.1.12</version>
     <packaging>jar</packaging>
 
     <name>Netty Container</name>
@@ -192,7 +192,7 @@
                             <artifactId>maven-source-plugin</artifactId>
                             <version>3.0.1</version>
                             <configuration>
-                                <skipSource>true</skipSource>
+                                <skipSource>false</skipSource>
                             </configuration>
                             <executions>
                                 <execution>

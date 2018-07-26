@@ -4,7 +4,7 @@
 
     <groupId>com.github.wangzihaogithub</groupId>
     <artifactId>netty-container</artifactId>
-    <version>1.1.12</version>
+    <version>1.1.13</version>
     <packaging>jar</packaging>
 
     <name>Netty Container</name>
@@ -30,7 +30,7 @@
     </licenses>
 
     <scm>
-        <tag>netty-container-1.1.12</tag>
+        <tag>netty-container-1.1.13</tag>
         <connection>scm:git:https://github.com/wangzihaogithub/netty-container.git</connection>
         <developerConnection>scm:git:https://github.com/wangzihaogithub/netty-container.git</developerConnection>
         <url>https://github.com/wangzihaogithub/netty-container</url>
@@ -80,48 +80,48 @@
 
 
 
-    <build>
-        <pluginManagement>
-        <plugins>
-            <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>${java.version}</source>
-                    <target>${java.version}</target>
-                </configuration>
-            </plugin>
+    <!--<build>-->
+        <!--<pluginManagement>-->
+        <!--<plugins>-->
+            <!--<plugin>-->
+                <!--<groupId>org.springframework.boot</groupId>-->
+                <!--<artifactId>spring-boot-maven-plugin</artifactId>-->
+            <!--</plugin>-->
+            <!--<plugin>-->
+                <!--<groupId>org.apache.maven.plugins</groupId>-->
+                <!--<artifactId>maven-compiler-plugin</artifactId>-->
+                <!--<configuration>-->
+                    <!--<source>${java.version}</source>-->
+                    <!--<target>${java.version}</target>-->
+                <!--</configuration>-->
+            <!--</plugin>-->
 
-            <!-- resource插件 -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-resources-plugin</artifactId>
-            </plugin>
+            <!--&lt;!&ndash; resource插件 &ndash;&gt;-->
+            <!--<plugin>-->
+                <!--<groupId>org.apache.maven.plugins</groupId>-->
+                <!--<artifactId>maven-resources-plugin</artifactId>-->
+            <!--</plugin>-->
 
-            <!-- install插件 -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-install-plugin</artifactId>
-            </plugin>
+            <!--&lt;!&ndash; install插件 &ndash;&gt;-->
+            <!--<plugin>-->
+                <!--<groupId>org.apache.maven.plugins</groupId>-->
+                <!--<artifactId>maven-install-plugin</artifactId>-->
+            <!--</plugin>-->
 
-            <!-- clean插件 -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-clean-plugin</artifactId>
-            </plugin>
+            <!--&lt;!&ndash; clean插件 &ndash;&gt;-->
+            <!--<plugin>-->
+                <!--<groupId>org.apache.maven.plugins</groupId>-->
+                <!--<artifactId>maven-clean-plugin</artifactId>-->
+            <!--</plugin>-->
 
-            <!-- dependency插件 -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-dependency-plugin</artifactId>
-            </plugin>
-        </plugins>
-        </pluginManagement>
-    </build>
+            <!--&lt;!&ndash; dependency插件 &ndash;&gt;-->
+            <!--<plugin>-->
+                <!--<groupId>org.apache.maven.plugins</groupId>-->
+                <!--<artifactId>maven-dependency-plugin</artifactId>-->
+            <!--</plugin>-->
+        <!--</plugins>-->
+        <!--</pluginManagement>-->
+    <!--</build>-->
 
     <distributionManagement>
         <snapshotRepository>
@@ -216,7 +216,7 @@
                                 </execution>
                             </executions>
                             <configuration>
-                                <!--<doclint>none</doclint>-->
+                                <doclint>none</doclint>
                             </configuration>
                         </plugin>
                     </plugins>

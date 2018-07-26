@@ -4,7 +4,7 @@
 
     <groupId>com.github.wangzihaogithub</groupId>
     <artifactId>netty-container</artifactId>
-    <version>1.1.10-SNAPSHOT</version>
+    <version>1.1.11-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>Netty Container</name>

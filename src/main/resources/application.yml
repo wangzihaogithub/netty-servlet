@@ -1,0 +1,8 @@
+#spring:
+#  application:
+#    name: netty
+server:
+  session:
+    timeout: 5000
+  server-header: netty-server/1.0.0
+  port: 8080

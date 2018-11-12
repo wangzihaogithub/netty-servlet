@@ -17,7 +17,7 @@
         <!--<netty.version>5.0.0.Alpha2</netty.version>-->
         <netty.version>4.1.25.Final</netty.version>
         <spring-boot.version>2.1.0.RELEASE</spring-boot.version>
-        <servlet-api.version>3.1.0</servlet-api.version>
+        <servlet-api.version>4.0.1</servlet-api.version>
         <javassist.version>3.19.0-GA</javassist.version>
         <protostuff.version>1.6.0</protostuff.version>
         <fastjson.version>1.2.49</fastjson.version>

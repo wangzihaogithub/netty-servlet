@@ -7,7 +7,7 @@ import com.github.netty.core.util.ThreadPoolX;
 import com.github.netty.rpc.RpcClientInstance;
 import com.github.netty.rpc.RpcFuture;
 import com.github.netty.servlet.ServletFilterChain;
-import com.github.netty.servlet.handler.HttpTaskFactory;
+import com.github.netty.servlet.handler.HttpMessageToServletRunnable;
 
 import javax.servlet.Filter;
 import java.math.BigDecimal;
@@ -19,14 +19,14 @@ import java.util.concurrent.atomic.AtomicInteger;
  * 统计服务器信息的任务
  * @author 84215
  */
-public class NettyReportTask implements Runnable{
+public class NettyReportRunnable implements Runnable{
 
     private LoggerX logger = LoggerFactoryX.getLogger(getClass());
     private AtomicInteger reportCount = new AtomicInteger();
     private long beginTime = System.currentTimeMillis();
 
     public static void start(){
-        ThreadPoolX.getDefaultInstance().scheduleAtFixedRate(new NettyReportTask(),5,5, TimeUnit.SECONDS);
+        ThreadPoolX.getDefaultInstance().scheduleAtFixedRate(new NettyReportRunnable(),5,5, TimeUnit.SECONDS);
     }
 
     @Override
@@ -42,8 +42,8 @@ public class NettyReportTask implements Runnable{
 
             long totalTime = System.currentTimeMillis() - beginTime;
 
-            long servletQueryCount = HttpTaskFactory.SERVLET_QUERY_COUNT.get();
-            long servletAndFilterTime = HttpTaskFactory.SERVLET_AND_FILTER_TIME.get();
+            long servletQueryCount = HttpMessageToServletRunnable.SERVLET_QUERY_COUNT.get();
+            long servletAndFilterTime = HttpMessageToServletRunnable.SERVLET_AND_FILTER_TIME.get();
             long servletTime = ServletFilterChain.SERVLET_TIME.get();
             long filterTime = ServletFilterChain.FILTER_TIME.get();
 

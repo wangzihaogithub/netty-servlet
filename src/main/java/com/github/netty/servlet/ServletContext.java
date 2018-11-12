@@ -1,12 +1,9 @@
 package com.github.netty.servlet;
 
 import com.github.netty.core.constants.HttpConstants;
-import com.github.netty.core.util.LoggerFactoryX;
-import com.github.netty.core.util.LoggerX;
-import com.github.netty.core.util.RecyclableUtil;
-import com.github.netty.core.util.TypeUtil;
-import com.github.netty.servlet.util.MimeMappingsX;
+import com.github.netty.core.util.*;
 import com.github.netty.servlet.support.ServletEventListenerManager;
+import com.github.netty.servlet.util.MimeMappingsX;
 import com.github.netty.servlet.util.UrlMapper;
 import com.github.netty.session.SessionService;
 
@@ -23,7 +20,6 @@ import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
-import java.util.function.Supplier;
 
 /**
  * servlet上下文 (生命周期同服务器)
@@ -43,7 +39,7 @@ public class ServletContext implements javax.servlet.ServletContext {
     private Map<String,ServletRegistration> servletRegistrationMap;
     private Map<String,ServletFilterRegistration> filterRegistrationMap;
 
-    private Supplier<ExecutorService> asyncExecutorSupplier;
+    private ExecutorService asyncExecutorService;
     private Set<SessionTrackingMode> sessionTrackingModeSet;
 
     private ServletEventListenerManager servletEventListenerManager;
@@ -52,28 +48,28 @@ public class ServletContext implements javax.servlet.ServletContext {
     private UrlMapper<ServletFilterRegistration> filterUrlMapper;
     private Charset defaultCharset;
     private InetSocketAddress servletServerAddress;
-    private final String serverInfo;
-    private final ClassLoader classLoader;
+    private String serverInfo;
+    private ClassLoader classLoader;
     private String contextPath;
 
     private SessionService sessionService;
     private MimeMappingsX mimeMappings;
 
+    private String requestCharacterEncoding;
+    private String responseCharacterEncoding;
 
-    public ServletContext(InetSocketAddress socketAddress,
-                          ClassLoader classLoader,
-                          String contextPath, String serverInfo,
-                          ServletSessionCookieConfig sessionCookieConfig, MimeMappingsX mimeMappings) {
-        this.sessionCookieConfig = Objects.requireNonNull(sessionCookieConfig);
-        this.mimeMappings = Objects.requireNonNull(mimeMappings);
-        this.serverInfo = serverInfo == null? "netty-server/1.2.0":serverInfo;
 
-        this.contextPath = contextPath == null? "" : contextPath;
+    public ServletContext(InetSocketAddress socketAddress) {
+        this.sessionCookieConfig = new ServletSessionCookieConfig();
+//        this.mimeMappings = Objects.requireNonNull(mimeMappings);
+//        this.serverInfo = serverInfo == null? "netty-server/1.2.0":serverInfo;
+
+//        this.contextPath = contextPath == null? "" : contextPath;
         this.defaultCharset = null;
-        this.asyncExecutorSupplier = null;
+        this.asyncExecutorService = null;
         this.sessionTrackingModeSet = null;
         this.servletServerAddress = socketAddress;
-        this.classLoader = classLoader;
+//        this.classLoader = classLoader;
 
         this.attributeMap = new HashMap<>(16);
         this.initParamMap = new HashMap<>(16);
@@ -84,15 +80,32 @@ public class ServletContext implements javax.servlet.ServletContext {
         this.servletEventListenerManager = new ServletEventListenerManager();
     }
 
-    public void setAsyncExecutorSupplier(Supplier<ExecutorService> asyncExecutorSupplier) {
-        this.asyncExecutorSupplier = asyncExecutorSupplier;
+    public ExecutorService getAsyncExecutorService() {
+        if(asyncExecutorService == null) {
+            synchronized (this){
+                if(asyncExecutorService == null) {
+                    asyncExecutorService = new ThreadPoolX("Async",8);
+//                            executorService = new DefaultEventExecutorGroup(15);
+                }
+            }
+        }
+        return asyncExecutorService;
     }
 
-    public ExecutorService getAsyncExecutorService() {
-        if(asyncExecutorSupplier == null){
-            return null;
-        }
-        return asyncExecutorSupplier.get();
+    public void setMimeMappings(MimeMappingsX mimeMappings) {
+        this.mimeMappings = mimeMappings;
+    }
+
+    public void setServerInfo(String serverInfo) {
+        this.serverInfo = serverInfo;
+    }
+
+    public void setContextPath(String contextPath) {
+        this.contextPath = contextPath;
+    }
+
+    public void setClassLoader(ClassLoader classLoader) {
+        this.classLoader = classLoader;
     }
 
     public ServletEventListenerManager getServletEventListenerManager() {
@@ -624,6 +637,34 @@ public class ServletContext implements javax.servlet.ServletContext {
     @Override
     public String getVirtualServerName() {
         return "Netty-servlet/" + servletServerAddress.getHostString();
+    }
+
+    @Override
+    public String getRequestCharacterEncoding() {
+        // TODO: 2018/11/11/011 getRequestCharacterEncoding
+        return requestCharacterEncoding;
+    }
+
+    @Override
+    public void setRequestCharacterEncoding(String requestCharacterEncoding) {
+        this.requestCharacterEncoding = requestCharacterEncoding;
+    }
+
+    @Override
+    public String getResponseCharacterEncoding() {
+        // TODO: 2018/11/11/011 getResponseCharacterEncoding
+        return responseCharacterEncoding;
+    }
+
+    @Override
+    public void setResponseCharacterEncoding(String responseCharacterEncoding) {
+        this.responseCharacterEncoding = responseCharacterEncoding;
+    }
+
+    @Override
+    public javax.servlet.ServletRegistration.Dynamic addJspFile(String jspName, String jspFile) {
+        // TODO: 2018/11/11/011  addJspFile
+        return null;
     }
 
 

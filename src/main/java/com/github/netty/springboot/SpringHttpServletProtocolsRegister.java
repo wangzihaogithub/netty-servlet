@@ -1,0 +1,110 @@
+package com.github.netty.springboot;
+
+import com.github.netty.core.util.StringUtil;
+import com.github.netty.servlet.ServletContext;
+import com.github.netty.servlet.handler.HttpServletProtocolsRegister;
+import com.github.netty.servlet.util.MimeMappingsX;
+import com.github.netty.session.CompositeSessionServiceImpl;
+import com.github.netty.session.SessionService;
+import io.netty.handler.ssl.SslContext;
+import io.netty.handler.ssl.SslContextBuilder;
+import org.springframework.boot.web.server.MimeMappings;
+import org.springframework.boot.web.server.Ssl;
+import org.springframework.boot.web.servlet.server.AbstractServletWebServerFactory;
+import org.springframework.util.ClassUtils;
+import org.springframework.web.servlet.DispatcherServlet;
+
+import javax.net.ssl.SSLException;
+import java.io.File;
+import java.net.InetSocketAddress;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.util.Arrays;
+
+/**
+ * httpServlet协议注册器 - spring版本的适配
+ * Created by acer01 on 2018/11/12/012.
+ */
+public class SpringHttpServletProtocolsRegister extends HttpServletProtocolsRegister {
+
+    public SpringHttpServletProtocolsRegister(NettyProperties properties,
+                                              ServletContext servletContext,
+                                              AbstractServletWebServerFactory configurableWebServer) throws SSLException {
+        super(properties,
+                servletContext,
+                newSslContext(configurableWebServer.getSsl()));
+        initServletContext(servletContext,configurableWebServer,properties);
+    }
+
+    /**
+     * 初始化servlet上下文
+     * @return
+     */
+    protected ServletContext initServletContext(ServletContext servletContext,AbstractServletWebServerFactory configurableWebServer, NettyProperties properties){
+        MimeMappingsX mimeMappings = new MimeMappingsX();
+        for (MimeMappings.Mapping mapping :configurableWebServer.getMimeMappings()) {
+            mimeMappings.add(mapping.getExtension(),mapping.getMimeType());
+        }
+
+        servletContext.setClassLoader(new URLClassLoader(new URL[]{}, ClassUtils.getDefaultClassLoader()));
+        servletContext.setContextPath(configurableWebServer.getContextPath());
+        servletContext.setServerInfo(configurableWebServer.getServerHeader());
+        servletContext.setMimeMappings(mimeMappings);
+
+        //session超时时间
+        servletContext.setSessionTimeout((int) configurableWebServer.getSession().getTimeout().getSeconds());
+        servletContext.setSessionService(newSessionService(properties));
+        servletContext.getServletEventListenerManager().setServletAddedListener(servlet -> {
+            if(servlet instanceof DispatcherServlet){
+//                return null;
+//                return new SpringDispatcherServlet();
+            }
+            return servlet;
+        });
+        return servletContext;
+    }
+
+    /**
+     * 新建会话服务
+     * @return
+     */
+    protected SessionService newSessionService(NettyProperties properties){
+        //组合会话
+        CompositeSessionServiceImpl compositeSessionService = new CompositeSessionServiceImpl();
+        String remoteSessionServerAddress = properties.getSessionRemoteServerAddress();
+        //启用远程会话管理, 利用RPC
+        if(StringUtil.isNotEmpty(remoteSessionServerAddress)) {
+            InetSocketAddress address;
+            if(remoteSessionServerAddress.contains(":")){
+                String[] addressArr = remoteSessionServerAddress.split(":");
+                address = new InetSocketAddress(addressArr[0], Integer.parseInt(addressArr[1]));
+            }else {
+                address = new InetSocketAddress(remoteSessionServerAddress,80);
+            }
+            compositeSessionService.enableRemoteSession(address,properties);
+        }
+        return compositeSessionService;
+    }
+
+    /**
+     * 配置 https
+     * @return
+     * @throws SSLException
+     */
+    private static SslContext newSslContext(Ssl ssl) throws SSLException {
+        if(ssl == null || !ssl.isEnabled()){
+            return null;
+        }
+
+        File certChainFile = new File(ssl.getTrustStore());
+        File keyFile = new File(ssl.getKeyStore());
+        String keyPassword = ssl.getKeyPassword();
+
+        SslContext sslContext = SslContextBuilder.forServer(certChainFile,keyFile,keyPassword)
+                .ciphers(Arrays.asList(ssl.getCiphers()))
+                .protocols(ssl.getProtocol())
+                .build();
+        return sslContext;
+    }
+
+}

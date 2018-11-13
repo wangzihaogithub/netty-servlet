@@ -7,7 +7,7 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
 @Documented
-@Import({NettyRpcClientAutoConfiguration.class,NettyRpcClientsRegistrar.class})
+@Import({NettyPropertiesAutoConfiguration.class,NettyRpcClientsRegistrar.class})
 public @interface EnableNettyRpcClients {
 
 	String[] value() default {};

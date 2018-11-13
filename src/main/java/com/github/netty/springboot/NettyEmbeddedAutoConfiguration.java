@@ -1,8 +1,10 @@
 package com.github.netty.springboot;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.DependsOn;
 
 /**
  * netty容器自动配置
@@ -11,17 +13,11 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class NettyEmbeddedAutoConfiguration {
 
-    @Bean
-    @ConditionalOnMissingBean(NettyProperties.class)
-    public NettyProperties nettyProperties(){
-        NettyProperties config = new NettyProperties();
-        return config;
-    }
-
-    @Bean
+    @Bean("nettyServerFactory")
+    @DependsOn("nettyProperties")
     @ConditionalOnMissingBean(NettyTcpServerFactory.class)
-    public NettyTcpServerFactory nettyTcpServerFactory(){
-        return new NettyTcpServerFactory(nettyProperties());
+    public NettyTcpServerFactory nettyTcpServerFactory(@Qualifier("nettyProperties") NettyProperties nettyProperties){
+        return new NettyTcpServerFactory(nettyProperties);
     }
 
 }

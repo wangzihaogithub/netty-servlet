@@ -14,14 +14,10 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>1.8</java.version>
-        <!--<netty.version>5.0.0.Alpha2</netty.version>-->
-        <netty.version>4.1.25.Final</netty.version>
+
         <spring-boot.version>1.5.10.RELEASE</spring-boot.version>
+        <netty-rpc.version>1.2.0</netty-rpc.version>
         <servlet-api.version>3.1.0</servlet-api.version>
-        <javassist.version>3.19.0-GA</javassist.version>
-        <protostuff.version>1.6.0</protostuff.version>
-        <fastjson.version>1.2.49</fastjson.version>
-        <!--<javaHome>C:\Program Files\Java\jdk1.8.0_74</javaHome>-->
     </properties>
 
     <licenses>
@@ -51,7 +47,7 @@
         <dependency>
             <groupId>com.github.wangzihaogithub</groupId>
             <artifactId>netty-rpc</artifactId>
-            <version>1.2.0</version>
+            <version>${netty-rpc.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>

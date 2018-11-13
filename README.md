@@ -15,7 +15,7 @@ github地址 : https://github.com/wangzihaogithub
 
 2.单体应用,连接不复用qps达到5100+, tomcat=4600+
 
-3.单体应用,双jvm(1.servlet jvm, 2.session jvm), session会话存储分离, qps达到1300+, 
+3.单体应用,双jvm(1.servlet jvm, 2.session jvm), session会话存储分离, qps达到8000+, 
  
  tomcat底层虽然支持,但非常复杂,大家往往都用springboot-redis, 但redis与spring集成后, 无法发挥其原本的性能
 
@@ -23,7 +23,7 @@ github地址 : https://github.com/wangzihaogithub
 
 ### 使用方法
 
-#### 1.添加依赖, 在pom.xml中加入
+#### 1.添加依赖, 在pom.xml中加入 （注: 1.x.x+版本是用于springboot1.0，2.x.x+版本用于springboot2.0）
 
     <dependency>
       <groupId>com.github.wangzihaogithub</groupId>
@@ -32,22 +32,18 @@ github地址 : https://github.com/wangzihaogithub
     </dependency>
 	
 	
-#### 2.注册进springboot容器中
+#### 2.开启netty容器
 
-    @Configuration
-    public class WebAppConfig {
+    @EnableNettyServletEmbedded//切换容器的注解
+    @SpringBootApplication
+    public class ExampleServletApplication {
     
-        /**
-         * 注册netty容器
-         * @return
-         */
-        @Bean
-        public NettyEmbeddedServletContainerFactory nettyEmbeddedServletContainerFactory(){
-            NettyEmbeddedServletContainerFactory factory = new NettyEmbeddedServletContainerFactory();
-            return factory;
+        public static void main(String[] args) {
+            SpringApplication.run(ExampleServletApplication.class, args);
         }
-     
-     }
+    }
 
-#### 3.完成! 快去启动服务看看吧
+#### 3.完成!
 
+    2018-11-13 19:21:36.230  INFO 8400 --- [           main] c.g.n.e.s.ExampleServletApplication      : Started ExampleServletApplication in 2.171 seconds (JVM running for 3.009)
+    2018-11-13 19:21:36.472  INFO 8400 --- [vletContainer@1] c.g.n.s.NettyEmbeddedServletContainer    : NettyNettyEmbeddedServletContainer@1 start [port = 10002, os = windows 10, pid = 8400]...

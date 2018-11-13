@@ -8,7 +8,7 @@ import java.lang.annotation.*;
 @Target(ElementType.TYPE)
 @Documented
 @Inherited
-@Import({NettyPropertiesAutoConfiguration.class,NettyEmbeddedAutoConfiguration.class})
+@Import({NettyEmbeddedAutoConfiguration.class,NettyPropertiesAutoConfiguration.class})
 public @interface EnableNettyServletEmbedded {
 
 }

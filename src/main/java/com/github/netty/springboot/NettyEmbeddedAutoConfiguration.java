@@ -16,8 +16,11 @@
  */
 package com.github.netty.springboot;
 
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.DependsOn;
 
 /**
  * servlet容器自动配置
@@ -26,15 +29,11 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class NettyEmbeddedAutoConfiguration {
 
-    @Bean
-    public NettyProperties nettyConfig(){
-        NettyProperties config = new NettyProperties();
-        return config;
-    }
-
-    @Bean
-    public NettyEmbeddedServletContainerFactory nettyEmbeddedServletContainerFactory(){
-        return new NettyEmbeddedServletContainerFactory(nettyConfig());
+    @Bean("nettyServerFactory")
+    @DependsOn("nettyProperties")
+    @ConditionalOnMissingBean(NettyProperties.class)
+    public NettyEmbeddedServletContainerFactory nettyEmbeddedServletContainerFactory(@Qualifier("nettyProperties") NettyProperties nettyProperties){
+        return new NettyEmbeddedServletContainerFactory(nettyProperties);
     }
 
 }

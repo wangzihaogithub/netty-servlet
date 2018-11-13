@@ -15,6 +15,7 @@ import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 /**
@@ -40,7 +41,7 @@ public class RemoteSessionServiceImpl implements SessionService {
             rpcClient.setSocketChannelCount(config.getRpcClientChannelCount());
             rpcClient.run();
             if(config.isEnablesRpcClientAutoReconnect()) {
-                rpcClient.enableAutoReconnect();
+                rpcClient.enableAutoReconnect(config.getRpcClientHeartIntervalSecond(), TimeUnit.SECONDS,null);
             }
             return rpcClient;
         }

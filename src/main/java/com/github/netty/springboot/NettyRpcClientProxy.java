@@ -12,6 +12,7 @@ import java.lang.reflect.Proxy;
 import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
  * RPC客户端 (线程安全)
@@ -85,7 +86,7 @@ public class NettyRpcClientProxy implements InvocationHandler {
             rpcClient.setWorkerCount(config.getRpcClientWorkerCount());
             rpcClient.run();
             if (config.isEnablesRpcClientAutoReconnect()) {
-                rpcClient.enableAutoReconnect();
+                rpcClient.enableAutoReconnect(config.getRpcClientHeartIntervalSecond(), TimeUnit.SECONDS,null);
             }
             rpcClientMap.put(address,rpcClient);
         }

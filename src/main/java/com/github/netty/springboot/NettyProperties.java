@@ -1,11 +1,9 @@
 package com.github.netty.springboot;
 
 import com.github.netty.core.util.ApplicationX;
-import com.github.netty.springboot.NettyRpcClient;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.io.Serializable;
-import java.net.InetSocketAddress;
 import java.util.concurrent.Executor;
 
 /**
@@ -159,6 +157,10 @@ public class NettyProperties implements Serializable{
      */
     private boolean enablesRpcClientAutoReconnect = true;
     /**
+     * session客户端 - 心跳间隔时间(秒)
+     */
+    private int rpcClientHeartIntervalSecond = 20;
+    /**
      * session远程服务 - ip地址, 注: 如果不设置就不会开启
      */
     private String sessionRemoteServerAddress;
@@ -177,6 +179,14 @@ public class NettyProperties implements Serializable{
 
     public void setApplication(ApplicationX application) {
         this.application = application;
+    }
+
+    public int getRpcClientHeartIntervalSecond() {
+        return rpcClientHeartIntervalSecond;
+    }
+
+    public void setRpcClientHeartIntervalSecond(int rpcClientHeartIntervalSecond) {
+        this.rpcClientHeartIntervalSecond = rpcClientHeartIntervalSecond;
     }
 
     public int getRpcTimeout() {

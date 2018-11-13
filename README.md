@@ -23,7 +23,7 @@ github地址 : https://github.com/wangzihaogithub
 
 ### 使用方法
 
-#### 1.添加依赖, 在pom.xml中加入 （注: 1.x.x+版本是用于springboot1.0，2.x.x+版本用于springboot2.0）
+#### 1.添加依赖, 在pom.xml中加入 （注: 1.x.x版本是用于springboot1.0，2.x.x版本用于springboot2.0）
 
     <dependency>
       <groupId>com.github.wangzihaogithub</groupId>

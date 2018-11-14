@@ -28,7 +28,7 @@
     </licenses>
 
     <scm>
-        <tag>netty-servlet-1.2.0</tag>
+        <tag>netty-servlet-2.0.0</tag>
         <connection>scm:git:https://github.com/wangzihaogithub/netty-servlet.git</connection>
         <developerConnection>scm:git:https://github.com/wangzihaogithub/netty-servlet.git</developerConnection>
         <url>https://github.com/wangzihaogithub/netty-servlet</url>

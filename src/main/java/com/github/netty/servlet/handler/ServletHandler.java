@@ -25,7 +25,7 @@ public class ServletHandler extends AbstractChannelHandler<Object> {
     private Executor dispatcherExecutor;
     private ServletContext servletContext;
     private HttpMessageToServletRunnable httpMessageToServletRunnable;
-    public static final AttributeKey<MessageToRunnable> CHANNEL_ATTR_KEY_MESSAGE_TO_RUNNABLE = AttributeKey.valueOf(MessageToRunnable.class,"Handler-TaskFactory");
+    public static final AttributeKey<MessageToRunnable> CHANNEL_ATTR_KEY_MESSAGE_TO_RUNNABLE = AttributeKey.valueOf(MessageToRunnable.class + "#Handler-MessageToRunnable");
 
     public ServletHandler(ServletContext servletContext, NettyProperties properties) {
         super(false);

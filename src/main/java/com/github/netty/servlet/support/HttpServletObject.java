@@ -30,7 +30,7 @@ public class HttpServletObject implements Recyclable{
             return new HttpServletObject();
         }
     };
-    private static final AttributeKey<ServletHttpSession> CHANNEL_ATTR_KEY_SESSION = AttributeKey.valueOf(ServletHttpSession.class,"ServletHttpSession");
+    private static final AttributeKey<ServletHttpSession> CHANNEL_ATTR_KEY_SESSION = AttributeKey.valueOf(ServletHttpSession.class + "#ServletHttpSession");
 
     private ServletHttpServletRequest httpServletRequest;
     private ServletHttpServletResponse httpServletResponse;

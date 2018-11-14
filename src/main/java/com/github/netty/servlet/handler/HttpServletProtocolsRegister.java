@@ -24,7 +24,9 @@ import javax.servlet.ServletException;
 import java.util.Map;
 
 /**
- * Created by acer01 on 2018/11/11/011.
+ * httpServlet协议注册器
+ * @author acer01
+ *  2018/11/11/011
  */
 public class HttpServletProtocolsRegister implements ProtocolsRegister {
 
@@ -60,29 +62,7 @@ public class HttpServletProtocolsRegister implements ProtocolsRegister {
 
         initFilter(servletContext);
         initServlet(servletContext);
-
-        //注入到spring对象里
-//        injectToSpringApplication();
     }
-
-    /**
-     * 注入到spring对象里
-     */
-//    protected void injectToSpringApplication(){
-//        ApplicationX application = config.getApplication();
-//        application.addInjectAnnotation(Autowired.class, Resource.class);
-//        application.addInstance(servletContext.getSessionService());
-//        application.addInstance(servletContext);
-//        application.addInstance(config);
-//        WebApplicationContext springApplication = WebApplicationContextUtils.getRequiredWebApplicationContext(servletContext);
-//        String[] beans = springApplication.getBeanDefinitionNames();
-//        for (String beanName : beans) {
-//            Object bean = springApplication.getBean(beanName);
-//            application.addInstance(beanName,bean,false);
-//        }
-//
-//        application.scanner("com.github.netty").inject();
-//    }
 
     @Override
     public void onServerStop() {
@@ -173,7 +153,7 @@ public class HttpServletProtocolsRegister implements ProtocolsRegister {
         }
 
         //HTTP编码解码
-        pipeline.addLast(HANDLER_HTTP_CODEC, new HttpServerCodec(4096, 8192, 8192, false));
+        pipeline.addLast(HANDLER_HTTP_CODEC, new HttpServerCodec(4096, 8192, 5 * 1024 * 1024, false));
 
         //HTTP请求body聚合，设置最大消息值为 5M
         pipeline.addLast(HANDLER_AGGREGATOR, new HttpObjectAggregator(5 * 1024 * 1024));

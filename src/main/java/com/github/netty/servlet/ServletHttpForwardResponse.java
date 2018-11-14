@@ -79,7 +79,7 @@ public class ServletHttpForwardResponse extends HttpServletResponseWrapper {
         if(characterEncoding != null && characterEncoding.length() > 0){
             charset = Charset.forName(characterEncoding);
         }else {
-            charset = httpServletObject.getServletContext().getDefaultCharset();
+            charset = Charset.forName(httpServletObject.getServletContext().getResponseCharacterEncoding());
         }
         writer = new ServletPrintWriter(getOutputStream(),charset);
         return writer;

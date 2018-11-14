@@ -1,19 +1,22 @@
 package com.github.netty.springboot;
 
+import com.github.netty.core.util.ApplicationX;
 import com.github.netty.core.util.StringUtil;
 import com.github.netty.servlet.ServletContext;
 import com.github.netty.servlet.handler.HttpServletProtocolsRegister;
-import com.github.netty.servlet.util.MimeMappingsX;
 import com.github.netty.session.CompositeSessionServiceImpl;
 import com.github.netty.session.SessionService;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.web.server.MimeMappings;
 import org.springframework.boot.web.server.Ssl;
 import org.springframework.boot.web.servlet.server.AbstractServletWebServerFactory;
 import org.springframework.util.ClassUtils;
-import org.springframework.web.servlet.DispatcherServlet;
+import org.springframework.web.context.WebApplicationContext;
+import org.springframework.web.context.support.WebApplicationContextUtils;
 
+import javax.annotation.Resource;
 import javax.net.ssl.SSLException;
 import java.io.File;
 import java.net.InetSocketAddress;
@@ -23,16 +26,18 @@ import java.util.Arrays;
 
 /**
  * httpServlet协议注册器 - spring版本的适配
- * Created by acer01 on 2018/11/12/012.
+ *
+ * @author acer01
+ * 2018/11/12/012
  */
 public class SpringHttpServletProtocolsRegister extends HttpServletProtocolsRegister {
 
-    public SpringHttpServletProtocolsRegister(NettyProperties properties,
-                                              ServletContext servletContext,
+    protected final ApplicationX application;
+
+    public SpringHttpServletProtocolsRegister(NettyProperties properties,ServletContext servletContext,
                                               AbstractServletWebServerFactory configurableWebServer) throws SSLException {
-        super(properties,
-                servletContext,
-                newSslContext(configurableWebServer.getSsl()));
+        super(properties,servletContext, newSslContext(configurableWebServer.getSsl()));
+        this.application = properties.getApplication();
         initServletContext(servletContext,configurableWebServer,properties);
     }
 
@@ -41,26 +46,16 @@ public class SpringHttpServletProtocolsRegister extends HttpServletProtocolsRegi
      * @return
      */
     protected ServletContext initServletContext(ServletContext servletContext,AbstractServletWebServerFactory configurableWebServer, NettyProperties properties){
-        MimeMappingsX mimeMappings = new MimeMappingsX();
-        for (MimeMappings.Mapping mapping :configurableWebServer.getMimeMappings()) {
-            mimeMappings.add(mapping.getExtension(),mapping.getMimeType());
-        }
-
         servletContext.setClassLoader(new URLClassLoader(new URL[]{}, ClassUtils.getDefaultClassLoader()));
         servletContext.setContextPath(configurableWebServer.getContextPath());
         servletContext.setServerInfo(configurableWebServer.getServerHeader());
-        servletContext.setMimeMappings(mimeMappings);
 
         //session超时时间
         servletContext.setSessionTimeout((int) configurableWebServer.getSession().getTimeout().getSeconds());
         servletContext.setSessionService(newSessionService(properties));
-        servletContext.getServletEventListenerManager().setServletAddedListener(servlet -> {
-            if(servlet instanceof DispatcherServlet){
-//                return null;
-//                return new SpringDispatcherServlet();
-            }
-            return servlet;
-        });
+        for (MimeMappings.Mapping mapping :configurableWebServer.getMimeMappings()) {
+            servletContext.getMimeMappings().add(mapping.getExtension(),mapping.getMimeType());
+        }
         return servletContext;
     }
 
@@ -105,6 +100,33 @@ public class SpringHttpServletProtocolsRegister extends HttpServletProtocolsRegi
                 .protocols(ssl.getProtocol())
                 .build();
         return sslContext;
+    }
+
+    @Override
+    public void onServerStart() throws Exception {
+        super.onServerStart();
+
+        //注入到spring对象里
+        initApplication();
+    }
+
+    /**
+     *  注入到spring对象里
+     */
+    protected void initApplication(){
+        ApplicationX application = this.application;
+        ServletContext servletContext = getServletContext();
+
+        application.addInjectAnnotation(Autowired.class, Resource.class);
+        application.addInstance(servletContext.getSessionService());
+        application.addInstance(servletContext);
+        WebApplicationContext springApplication = WebApplicationContextUtils.getRequiredWebApplicationContext(servletContext);
+        String[] beans = springApplication.getBeanDefinitionNames();
+        for (String beanName : beans) {
+            Object bean = springApplication.getBean(beanName);
+            application.addInstance(beanName,bean,false);
+        }
+        application.scanner("com.github.netty").inject();
     }
 
 }

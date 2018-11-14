@@ -6,6 +6,7 @@ import com.github.netty.servlet.support.ServletEventListenerManager;
 
 import javax.servlet.*;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -24,7 +25,7 @@ public class ServletFilterChain implements FilterChain,Recyclable {
      * 考虑到每个请求只有一个线程处理，而且ServletContext在每次请求时都会new 一个SimpleFilterChain对象
      * 所以这里把过滤器链的Iterator作为FilterChain的私有变量，没有线程安全问题
      */
-    private List<ServletFilterRegistration> filterRegistrationList;
+    private List<ServletFilterRegistration> filterRegistrationList = new ArrayList<>(16);
     private ServletRegistration servletRegistration;
     private ServletContext servletContext;
     private int pos;
@@ -43,10 +44,9 @@ public class ServletFilterChain implements FilterChain,Recyclable {
 
     protected ServletFilterChain(){}
 
-    public static ServletFilterChain newInstance(ServletContext servletContext, ServletRegistration servletRegistration, List<ServletFilterRegistration> filterRegistrationList) {
+    public static ServletFilterChain newInstance(ServletContext servletContext, ServletRegistration servletRegistration) {
         ServletFilterChain instance = RECYCLER.getInstance();
         instance.servletContext = servletContext;
-        instance.filterRegistrationList = filterRegistrationList;
         instance.servletRegistration = servletRegistration;
         instance.beginTime = System.currentTimeMillis();
         return instance;
@@ -102,11 +102,15 @@ public class ServletFilterChain implements FilterChain,Recyclable {
         return servletRegistration;
     }
 
+    public List<ServletFilterRegistration> getFilterRegistrationList() {
+        return filterRegistrationList;
+    }
+
     @Override
     public void recycle() {
         pos = 0;
         servletContext = null;
-        filterRegistrationList = null;
+        filterRegistrationList.clear();
         servletRegistration = null;
         RECYCLER.recycleInstance(this);
     }

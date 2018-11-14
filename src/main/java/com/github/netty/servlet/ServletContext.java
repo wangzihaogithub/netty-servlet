@@ -17,7 +17,6 @@ import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.charset.Charset;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 
@@ -33,51 +32,32 @@ public class ServletContext implements javax.servlet.ServletContext {
      * 默认20分钟,
      */
     private int sessionTimeout = 1200;
-    private Map<String,Object> attributeMap;
-    private Map<String,String> initParamMap;
+    private Map<String,Object> attributeMap = new HashMap<>(16);
+    private Map<String,String> initParamMap = new HashMap<>(16);
+    private Map<String,ServletRegistration> servletRegistrationMap = new HashMap<>(8);
+    private Map<String,ServletFilterRegistration> filterRegistrationMap = new HashMap<>(8);
+    private Set<SessionTrackingMode> defaultSessionTrackingModeSet = new HashSet<>(Arrays.asList(SessionTrackingMode.COOKIE,SessionTrackingMode.URL));
 
-    private Map<String,ServletRegistration> servletRegistrationMap;
-    private Map<String,ServletFilterRegistration> filterRegistrationMap;
+    private MimeMappingsX mimeMappings = new MimeMappingsX();
+    private ServletEventListenerManager servletEventListenerManager = new ServletEventListenerManager();
+    private ServletSessionCookieConfig sessionCookieConfig = new ServletSessionCookieConfig();
+    private UrlMapper<ServletRegistration> servletUrlMapper = new UrlMapper<>(true);
+    private UrlMapper<ServletFilterRegistration> filterUrlMapper = new UrlMapper<>(false);
 
     private ExecutorService asyncExecutorService;
+    private SessionService sessionService;
     private Set<SessionTrackingMode> sessionTrackingModeSet;
 
-    private ServletEventListenerManager servletEventListenerManager;
-    private ServletSessionCookieConfig sessionCookieConfig;
-    private UrlMapper<ServletRegistration> servletUrlMapper;
-    private UrlMapper<ServletFilterRegistration> filterUrlMapper;
-    private Charset defaultCharset;
-    private InetSocketAddress servletServerAddress;
     private String serverInfo;
-    private ClassLoader classLoader;
     private String contextPath;
-
-    private SessionService sessionService;
-    private MimeMappingsX mimeMappings;
-
     private String requestCharacterEncoding;
     private String responseCharacterEncoding;
 
+    private InetSocketAddress servletServerAddress;
+    private ClassLoader classLoader;
 
     public ServletContext(InetSocketAddress socketAddress) {
-        this.sessionCookieConfig = new ServletSessionCookieConfig();
-//        this.mimeMappings = Objects.requireNonNull(mimeMappings);
-//        this.serverInfo = serverInfo == null? "netty-server/1.2.0":serverInfo;
-
-//        this.contextPath = contextPath == null? "" : contextPath;
-        this.defaultCharset = null;
-        this.asyncExecutorService = null;
-        this.sessionTrackingModeSet = null;
         this.servletServerAddress = socketAddress;
-//        this.classLoader = classLoader;
-
-        this.attributeMap = new HashMap<>(16);
-        this.initParamMap = new HashMap<>(16);
-        this.servletRegistrationMap = new HashMap<>(8);
-        this.filterRegistrationMap = new HashMap<>(8);
-        this.servletUrlMapper = new UrlMapper<>(true);
-        this.filterUrlMapper = new UrlMapper<>(false);
-        this.servletEventListenerManager = new ServletEventListenerManager();
     }
 
     public ExecutorService getAsyncExecutorService() {
@@ -92,8 +72,8 @@ public class ServletContext implements javax.servlet.ServletContext {
         return asyncExecutorService;
     }
 
-    public void setMimeMappings(MimeMappingsX mimeMappings) {
-        this.mimeMappings = mimeMappings;
+    public MimeMappingsX getMimeMappings() {
+        return mimeMappings;
     }
 
     public void setServerInfo(String serverInfo) {
@@ -147,30 +127,6 @@ public class ServletContext implements javax.servlet.ServletContext {
         return sessionService;
     }
 
-    public Charset getDefaultCharset() {
-        if(defaultCharset == null){
-            defaultCharset = HttpConstants.DEFAULT_CHARSET;
-        }
-        return defaultCharset;
-    }
-
-    private List<ServletFilterRegistration> matchFilterByPath(String path){
-        return filterUrlMapper.getMappingObjectsByUri(path);
-    }
-
-    private List<ServletFilterRegistration> matchFilterByName(String servletName){
-        List<ServletFilterRegistration> allNeedFilters = RecyclableUtil.newRecyclableList(10);
-
-        for (ServletFilterRegistration registration : filterRegistrationMap.values()) {
-            for(String name : registration.getServletNameMappings()){
-                if(servletName.equals(name)){
-                    allNeedFilters.add(registration);
-                }
-            }
-        }
-        return allNeedFilters;
-    }
-
     @Override
     public String getContextPath() {
         return contextPath;
@@ -221,7 +177,7 @@ public class ServletContext implements javax.servlet.ServletContext {
     public Set<String> getResourcePaths(String path) {
         Set<String> thePaths = new HashSet<>();
         if (!path.endsWith("/")) {
-            path += "/";
+            path += '/';
         }
         String basePath = getRealPath(path);
         if (basePath == null) {
@@ -240,7 +196,7 @@ public class ServletContext implements javax.servlet.ServletContext {
             if (testFile.isFile()) {
                 thePaths.add(path + filename);
             } else if (testFile.isDirectory()) {
-                thePaths.add(path + filename + "/");
+                thePaths.add(path + filename + '/');
             }
         }
         return thePaths;
@@ -268,43 +224,39 @@ public class ServletContext implements javax.servlet.ServletContext {
 
     @Override
     public ServletRequestDispatcher getRequestDispatcher(String path) {
-        try {
-//            Servlet servlet = ServletDefaultHttpServlet.INSTANCE;
-//            List<Filter> allNeedFilters = RecyclableUtil.newRecyclableList(0);
-
-            ServletRegistration servletRegistration = servletUrlMapper.getMappingObjectByUri(path);
-            if(servletRegistration == null){
-                return null;
-            }
-            List<ServletFilterRegistration> allNeedFilters = matchFilterByPath(path);
-
-            ServletFilterChain filterChain = ServletFilterChain.newInstance(this,servletRegistration, allNeedFilters);
-            ServletRequestDispatcher dispatcher = ServletRequestDispatcher.newInstance(filterChain);
-            dispatcher.setPath(path);
-            return dispatcher;
-        } catch (Exception e) {
-            logger.error("Throwing exception when getting Filter from ServletFilterRegistration of path " + path, e);
+        ServletRegistration servletRegistration = servletUrlMapper.getMappingObjectByUri(path);
+        if(servletRegistration == null){
             return null;
         }
+
+        ServletFilterChain filterChain = ServletFilterChain.newInstance(this,servletRegistration);
+        filterUrlMapper.getMappingObjectsByUri(path,filterChain.getFilterRegistrationList());
+
+        ServletRequestDispatcher dispatcher = ServletRequestDispatcher.newInstance(filterChain);
+        dispatcher.setPath(path);
+        return dispatcher;
     }
 
     @Override
     public ServletRequestDispatcher getNamedDispatcher(String name) {
-        try {
-            ServletRegistration servletRegistration = null == name ? null : getServletRegistration(name);
-            if (servletRegistration == null) {
-                return null;
-            }
-            List<ServletFilterRegistration> allNeedFilters = matchFilterByName(name);
-
-            ServletFilterChain filterChain = ServletFilterChain.newInstance(this,servletRegistration, allNeedFilters);
-            ServletRequestDispatcher dispatcher = ServletRequestDispatcher.newInstance(filterChain);
-            dispatcher.setName(name);
-            return dispatcher;
-        } catch (Exception e) {
-            logger.error("Throwing exception when getting Filter from ServletFilterRegistration of name " + name, e);
+        ServletRegistration servletRegistration = null == name ? null : getServletRegistration(name);
+        if (servletRegistration == null) {
             return null;
         }
+
+        ServletFilterChain filterChain = ServletFilterChain.newInstance(this,servletRegistration);
+        List<ServletFilterRegistration> filterList = filterChain.getFilterRegistrationList();
+        for (ServletFilterRegistration registration : filterRegistrationMap.values()) {
+            for(String servletName : registration.getServletNameMappings()){
+                if(servletName.equals(name)){
+                    filterList.add(registration);
+                }
+            }
+        }
+
+        ServletRequestDispatcher dispatcher = ServletRequestDispatcher.newInstance(filterChain);
+        dispatcher.setName(name);
+        return dispatcher;
     }
 
     @Override
@@ -400,14 +352,12 @@ public class ServletContext implements javax.servlet.ServletContext {
     @Override
     public void setAttribute(String name, Object object) {
         Objects.requireNonNull(name);
-
         if(object == null){
             removeAttribute(name);
             return;
         }
 
         Object oldObject = attributeMap.put(name,object);
-
         ServletEventListenerManager listenerManager = getServletEventListenerManager();
         if(listenerManager.hasServletContextAttributeListener()){
             listenerManager.onServletContextAttributeAdded(new ServletContextAttributeEvent(this,name,object));
@@ -420,7 +370,6 @@ public class ServletContext implements javax.servlet.ServletContext {
     @Override
     public void removeAttribute(String name) {
         Object oldObject = attributeMap.remove(name);
-
         ServletEventListenerManager listenerManager = getServletEventListenerManager();
         if(listenerManager.hasServletContextAttributeListener()){
             listenerManager.onServletContextAttributeRemoved(new ServletContextAttributeEvent(this,name,oldObject));
@@ -464,7 +413,6 @@ public class ServletContext implements javax.servlet.ServletContext {
         } catch (InstantiationException | IllegalAccessException e) {
             e.printStackTrace();
         }
-
         return addServlet(servletName,servlet);
     }
 
@@ -547,11 +495,14 @@ public class ServletContext implements javax.servlet.ServletContext {
 
     @Override
     public Set<SessionTrackingMode> getDefaultSessionTrackingModes() {
-        return sessionTrackingModeSet;
+        return defaultSessionTrackingModeSet;
     }
 
     @Override
     public Set<SessionTrackingMode> getEffectiveSessionTrackingModes() {
+        if(sessionTrackingModeSet == null){
+            return getDefaultSessionTrackingModes();
+        }
         return sessionTrackingModeSet;
     }
 
@@ -641,7 +592,9 @@ public class ServletContext implements javax.servlet.ServletContext {
 
     @Override
     public String getRequestCharacterEncoding() {
-        // TODO: 2018/11/11/011 getRequestCharacterEncoding
+        if(requestCharacterEncoding == null){
+            return HttpConstants.DEFAULT_CHARSET.name();
+        }
         return requestCharacterEncoding;
     }
 
@@ -652,7 +605,9 @@ public class ServletContext implements javax.servlet.ServletContext {
 
     @Override
     public String getResponseCharacterEncoding() {
-        // TODO: 2018/11/11/011 getResponseCharacterEncoding
+        if(responseCharacterEncoding == null){
+            return HttpConstants.DEFAULT_CHARSET.name();
+        }
         return responseCharacterEncoding;
     }
 
@@ -666,6 +621,5 @@ public class ServletContext implements javax.servlet.ServletContext {
         // TODO: 2018/11/11/011  addJspFile
         return null;
     }
-
 
 }

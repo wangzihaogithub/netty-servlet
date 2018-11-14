@@ -161,7 +161,7 @@ public class NettyProperties implements Serializable{
      */
     private int rpcClientHeartIntervalSecond = 20;
     /**
-     * session远程服务 - ip地址, 注: 如果不设置就不会开启
+     * session服务端的url地址, 注: 如果不设置就不会开启
      */
     private String sessionRemoteServerAddress;
     /**
@@ -271,15 +271,17 @@ public class NettyProperties implements Serializable{
 
     @Override
     public String toString() {
-        return "ContainerConfig{" +
+        return "NettyProperties{" +
                 "serverWorkerCount=" + serverWorkerCount +
-                ", serverHandlerExecutor=" + serverHandlerExecutor +
                 ", serverIoRatio=" + serverIoRatio +
-                ", clientWorkerCount=" + rpcClientWorkerCount +
-                ", clientIoRatio=" + rpcClientIoRatio +
-                ", sessionClientChannelCount=" + rpcClientChannelCount +
-                ", enablesSessionClientAutoReconnect=" + enablesRpcClientAutoReconnect +
-                ", sessionRemoteServerAddress=" + sessionRemoteServerAddress +
+                ", rpcClientWorkerCount=" + rpcClientWorkerCount +
+                ", rpcClientIoRatio=" + rpcClientIoRatio +
+                ", rpcTimeout=" + rpcTimeout +
+                ", rpcClientChannelCount=" + rpcClientChannelCount +
+                ", enablesRpcClientAutoReconnect=" + enablesRpcClientAutoReconnect +
+                ", rpcClientHeartIntervalSecond=" + rpcClientHeartIntervalSecond +
+                ", sessionRemoteServerAddress='" + sessionRemoteServerAddress + '\'' +
+                ", responseWriterChunkMaxHeapByteLength=" + responseWriterChunkMaxHeapByteLength +
                 '}';
     }
 }

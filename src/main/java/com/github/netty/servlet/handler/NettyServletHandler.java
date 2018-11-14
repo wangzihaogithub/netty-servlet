@@ -25,7 +25,7 @@ public class NettyServletHandler extends AbstractChannelHandler<Object> {
     private ServletContext servletContext;
     private NettyProperties config;
     private static final HttpTaskFactory HTTP_TASK_FACTORY = new HttpTaskFactory();
-    private static final AttributeKey<TaskFactory> CHANNEL_ATTR_KEY_TASK_FACTORY = AttributeKey.valueOf(TaskFactory.class,"Handler-TaskFactory");
+    private static final AttributeKey<TaskFactory> CHANNEL_ATTR_KEY_TASK_FACTORY = AttributeKey.valueOf(TaskFactory.class + "#Handler-TaskFactory");
 
     public NettyServletHandler(ServletContext servletContext, NettyProperties config) {
         super(false);

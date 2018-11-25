@@ -1,11 +1,11 @@
-package com.github.netty.springboot;
+package com.github.netty.register;
 
 import com.github.netty.core.util.ApplicationX;
 import com.github.netty.core.util.StringUtil;
 import com.github.netty.servlet.ServletContext;
-import com.github.netty.servlet.handler.HttpServletProtocolsRegister;
 import com.github.netty.session.CompositeSessionServiceImpl;
 import com.github.netty.session.SessionService;
+import com.github.netty.springboot.NettyProperties;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,7 +34,7 @@ public class SpringHttpServletProtocolsRegister extends HttpServletProtocolsRegi
 
     protected final ApplicationX application;
 
-    public SpringHttpServletProtocolsRegister(NettyProperties properties,ServletContext servletContext,
+    public SpringHttpServletProtocolsRegister(NettyProperties properties, ServletContext servletContext,
                                               AbstractServletWebServerFactory configurableWebServer) throws SSLException {
         super(properties,servletContext, newSslContext(configurableWebServer.getSsl()));
         this.application = properties.getApplication();

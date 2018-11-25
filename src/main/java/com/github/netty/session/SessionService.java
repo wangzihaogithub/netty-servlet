@@ -9,7 +9,7 @@ import java.util.List;
  * @author acer01
  * 2018/8/19/019
  */
-@RpcService(value = "/SessionService",timeout = 1000)
+@RpcService(value = "/hrpc/SessionService",timeout = 1000)
 public interface SessionService {
 
     /**

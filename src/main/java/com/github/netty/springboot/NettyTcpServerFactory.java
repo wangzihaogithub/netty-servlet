@@ -1,5 +1,7 @@
 package com.github.netty.springboot;
 
+import com.github.netty.register.HRpcProtocolsRegister;
+import com.github.netty.register.SpringHttpServletProtocolsRegister;
 import com.github.netty.servlet.ServletContext;
 import com.github.netty.servlet.ServletDefaultHttpServlet;
 import org.springframework.boot.web.reactive.server.ConfigurableReactiveWebServerFactory;
@@ -88,6 +90,7 @@ public class NettyTcpServerFactory
     protected void configurableTcpServer(NettyTcpServer tcpServer,ServletContext servletContext) throws Exception {
         //添加httpServlet协议注册器
         tcpServer.addProtocolsRegister(new SpringHttpServletProtocolsRegister(properties,servletContext,this));
+        tcpServer.addProtocolsRegister(new HRpcProtocolsRegister(properties.getApplication()));
     }
 
 }

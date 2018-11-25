@@ -9,7 +9,10 @@ import com.github.netty.servlet.*;
 import com.github.netty.servlet.support.HttpServletObject;
 import com.github.netty.springboot.NettyProperties;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelPipeline;
 import io.netty.handler.codec.http.FullHttpRequest;
+import io.netty.handler.codec.http.HttpRequestDecoder;
+import io.netty.handler.codec.http.HttpServerCodec;
 import io.netty.handler.stream.ChunkedWriteHandler;
 
 import javax.servlet.http.HttpServletResponse;
@@ -53,9 +56,16 @@ public class HttpMessageToServletRunnable implements MessageToRunnable {
 
         if(instance.httpServletObject.isHttpKeepAlive()){
             //分段写入, 用于流传输, 防止响应数据过大
-            if(context.channel().pipeline().get(HttpServletProtocolsRegister.HANDLER_CHUNKED_WRITE) == null) {
-                context.channel().pipeline().addAfter(
-                        HttpServletProtocolsRegister.HANDLER_HTTP_CODEC, HttpServletProtocolsRegister.HANDLER_CHUNKED_WRITE, new ChunkedWriteHandler());
+            ChannelPipeline pipeline = context.channel().pipeline();
+            if(pipeline.get(ChunkedWriteHandler.class) == null) {
+                ChannelHandlerContext httpContext = pipeline.context(HttpServerCodec.class);
+                if(httpContext == null){
+                    httpContext = pipeline.context(HttpRequestDecoder.class);
+                }
+                if(httpContext != null) {
+                    pipeline.addAfter(
+                            httpContext.name(), "ChunkedWrite",new ChunkedWriteHandler());
+                }
             }
         }
         return instance;

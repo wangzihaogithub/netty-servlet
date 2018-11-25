@@ -11,7 +11,7 @@ import org.springframework.boot.web.server.WebServer;
 import org.springframework.boot.web.server.WebServerException;
 
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -33,7 +33,7 @@ public class NettyTcpServer extends AbstractNettyServer implements WebServer {
     /**
      * 协议注册器列表
      */
-    private List<ProtocolsRegister> protocolsRegisterList = new ArrayList<>();
+    private List<ProtocolsRegister> protocolsRegisterList = new LinkedList<>();
 
     public NettyTcpServer(InetSocketAddress serverAddress, NettyProperties config){
         super(serverAddress);
@@ -95,6 +95,7 @@ public class NettyTcpServer extends AbstractNettyServer implements WebServer {
                     channel.pipeline().remove(this);
                     for(ProtocolsRegister protocolsRegister : protocolsRegisterList){
                         if(protocolsRegister.canSupport(msg)){
+                            logger.info("channel register by [{0}]",protocolsRegister.getProtocolName());
                             protocolsRegister.register(channel);
                             channel.pipeline().fireChannelRead(msg);
                             return;

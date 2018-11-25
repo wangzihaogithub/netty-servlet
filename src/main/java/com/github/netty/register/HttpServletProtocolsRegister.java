@@ -1,15 +1,18 @@
-package com.github.netty.servlet.handler;
+package com.github.netty.register;
 
 import com.github.netty.core.ProtocolsRegister;
+import com.github.netty.core.util.IOUtil;
 import com.github.netty.servlet.ServletContext;
 import com.github.netty.servlet.ServletFilterRegistration;
 import com.github.netty.servlet.ServletRegistration;
+import com.github.netty.servlet.handler.ServletHandler;
 import com.github.netty.servlet.support.ServletEventListenerManager;
 import com.github.netty.springboot.NettyProperties;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelPipeline;
+import io.netty.handler.codec.http.HttpConstants;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpServerCodec;
 import io.netty.handler.ssl.SslContext;
@@ -31,7 +34,6 @@ import java.util.Map;
 public class HttpServletProtocolsRegister implements ProtocolsRegister {
 
     public static final String HANDLER_SSL = "SSL";
-    public static final String HANDLER_CHUNKED_WRITE = "ChunkedWrite";
     public static final String HANDLER_AGGREGATOR = "Aggregator";
     public static final String HANDLER_SERVLET = "Servlet";
     public static final String HANDLER_HTTP_CODEC = "HttpCodec";
@@ -139,7 +141,18 @@ public class HttpServletProtocolsRegister implements ProtocolsRegister {
 
     @Override
     public boolean canSupport(ByteBuf msg) {
-        return true;
+        int protocolEndIndex = IOUtil.indexOf(msg, HttpConstants.LF);
+        if(protocolEndIndex < 9){
+            return false;
+        }
+
+        if((char) msg.getByte(protocolEndIndex - 9) == 'H'
+                && (char) msg.getByte(protocolEndIndex - 8) == 'T'
+                && (char) msg.getByte(protocolEndIndex - 7) == 'T'
+                &&  (char) msg.getByte(protocolEndIndex - 6) == 'P'){
+            return true;
+        }
+        return false;
     }
 
     @Override
@@ -171,7 +184,7 @@ public class HttpServletProtocolsRegister implements ProtocolsRegister {
 
     @Override
     public String getProtocolName() {
-        return "http/servlet";
+        return "http";
     }
 
     public ServletContext getServletContext() {

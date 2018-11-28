@@ -1,5 +1,7 @@
-package com.github.netty.springboot;
+package com.github.netty.springboot.client;
 
+import com.github.netty.springboot.EnableNettyRpcClients;
+import com.github.netty.springboot.NettyRpcClient;
 import org.springframework.beans.factory.BeanClassLoaderAware;
 import org.springframework.beans.factory.annotation.AnnotatedBeanDefinition;
 import org.springframework.beans.factory.config.BeanDefinition;
@@ -83,18 +85,13 @@ public class NettyRpcClientsRegistrar implements ImportBeanDefinitionRegistrar,
         definition.addPropertyValue("objectType", className);
         definition.addPropertyValue("serviceId", serviceId);
         definition.addPropertyValue("classLoader", classLoader);
-        definition.addPropertyValue("fallback", attributes.get("fallback"));
+//        definition.addPropertyValue("fallback", attributes.get("fallback"));
         definition.setAutowireMode(AbstractBeanDefinition.AUTOWIRE_BY_TYPE);
 
         beanDefinition.setPrimary((Boolean)attributes.get("primary"));
 
-        String alias = serviceId + "FeignClient";
-        String qualifier = getQualifier(attributes);
-        if (StringUtils.hasText(qualifier)) {
-            alias = qualifier;
-        }
 
-        BeanDefinitionHolder holder = new BeanDefinitionHolder(beanDefinition, className,new String[] { alias });
+        BeanDefinitionHolder holder = new BeanDefinitionHolder(beanDefinition, className);
         BeanDefinitionReaderUtils.registerBeanDefinition(holder, registry);
     }
 

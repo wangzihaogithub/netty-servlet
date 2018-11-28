@@ -1,9 +1,10 @@
-package com.github.netty.springboot;
+package com.github.netty.springboot.server;
 
 import com.github.netty.core.AbstractChannelHandler;
 import com.github.netty.core.AbstractNettyServer;
 import com.github.netty.core.ProtocolsRegister;
 import com.github.netty.core.util.NettyThreadX;
+import com.github.netty.springboot.NettyProperties;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.*;
 import io.netty.channel.socket.SocketChannel;

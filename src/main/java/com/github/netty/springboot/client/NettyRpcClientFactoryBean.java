@@ -1,8 +1,7 @@
-package com.github.netty.springboot;
+package com.github.netty.springboot.client;
 
-import com.github.netty.core.util.ReflectUtil;
-import com.github.netty.core.util.StringUtil;
 import com.github.netty.rpc.exception.RpcException;
+import com.github.netty.springboot.NettyProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
@@ -11,9 +10,9 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.util.Assert;
-import org.springframework.web.bind.annotation.RequestMapping;
 
 import java.lang.reflect.Proxy;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * RPC客户端工厂类
@@ -25,45 +24,41 @@ public class NettyRpcClientFactoryBean implements FactoryBean<Object>, Initializ
     private Class<?> objectType;
     private Class<?> fallback;
     private ApplicationContext applicationContext;
+    /**
+     * 是从NettyRpcClient.serviceId 字段获取的
+     */
     private String serviceId;
     private ClassLoader classLoader;
+    private static AtomicBoolean oncePingFlag = new AtomicBoolean(false);
 
     @Override
     public Object getObject() throws Exception {
         NettyProperties nettyConfig = applicationContext.getBean(NettyProperties.class);
         NettyRpcLoadBalanced loadBalanced = applicationContext.getBean(NettyRpcLoadBalanced.class);
-        String serviceName = getServiceName();
 
-        NettyRpcClientProxy nettyRpcClientProxy = new NettyRpcClientProxy(serviceId,serviceName,objectType,nettyConfig,loadBalanced);
+        NettyRpcClientProxy nettyRpcClientProxy = new NettyRpcClientProxy(serviceId,null,objectType,nettyConfig,loadBalanced);
         Object instance = Proxy.newProxyInstance(classLoader,new Class[]{objectType},nettyRpcClientProxy);
 
-        try {
-            nettyRpcClientProxy.pingOnceAfterDestroy();
-        }catch (RpcException e){
-            logger.error("无法连接至远程地址 " + e.toString());
+        if(oncePingFlag != null){
+            oncePing(nettyRpcClientProxy);
         }
         return instance;
     }
 
-    private String getServiceName(){
-        RequestMapping requestMapping = ReflectUtil.findAnnotation(objectType,RequestMapping.class);
-        String serviceName = null;
-        if(requestMapping != null) {
-            String[] serviceNames = requestMapping.value();
-            if(serviceNames.length > 0){
-                serviceName = serviceNames[0];
-            }
-            if(serviceName == null || serviceName.isEmpty()){
-                serviceNames = requestMapping.path();
-            }
-            if(serviceNames.length > 0){
-                serviceName = serviceNames[0];
+    /**
+     * ping一次远程
+     * @param nettyRpcClientProxy
+     */
+    private void oncePing(NettyRpcClientProxy nettyRpcClientProxy){
+        if(oncePingFlag.compareAndSet(false,true)){
+            try {
+                nettyRpcClientProxy.pingOnceAfterDestroy();
+            }catch (RpcException e){
+                logger.error("无法连接至远程地址 " + e.toString());
+            }finally {
+                oncePingFlag = null;
             }
         }
-        if(serviceName == null || serviceName.isEmpty()){
-            serviceName = "/"+StringUtil.firstLowerCase(objectType.getSimpleName());
-        }
-        return serviceName;
     }
 
     @Override

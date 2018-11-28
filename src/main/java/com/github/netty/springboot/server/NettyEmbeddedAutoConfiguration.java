@@ -1,5 +1,6 @@
-package com.github.netty.springboot;
+package com.github.netty.springboot.server;
 
+import com.github.netty.springboot.NettyProperties;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;

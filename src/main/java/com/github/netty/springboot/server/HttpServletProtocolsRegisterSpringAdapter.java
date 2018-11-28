@@ -1,7 +1,8 @@
-package com.github.netty.register;
+package com.github.netty.springboot.server;
 
 import com.github.netty.core.util.ApplicationX;
 import com.github.netty.core.util.StringUtil;
+import com.github.netty.register.HttpServletProtocolsRegister;
 import com.github.netty.servlet.ServletContext;
 import com.github.netty.session.CompositeSessionServiceImpl;
 import com.github.netty.session.SessionService;
@@ -25,17 +26,17 @@ import java.net.URLClassLoader;
 import java.util.Arrays;
 
 /**
- * httpServlet协议注册器 - spring版本的适配
+ * httpServlet协议注册器 （适配spring）
  *
  * @author acer01
  * 2018/11/12/012
  */
-public class SpringHttpServletProtocolsRegister extends HttpServletProtocolsRegister {
+public class HttpServletProtocolsRegisterSpringAdapter extends HttpServletProtocolsRegister {
 
     protected final ApplicationX application;
 
-    public SpringHttpServletProtocolsRegister(NettyProperties properties, ServletContext servletContext,
-                                              AbstractServletWebServerFactory configurableWebServer) throws SSLException {
+    public HttpServletProtocolsRegisterSpringAdapter(NettyProperties properties, ServletContext servletContext,
+                                                     AbstractServletWebServerFactory configurableWebServer) throws SSLException {
         super(properties,servletContext, newSslContext(configurableWebServer.getSsl()));
         this.application = properties.getApplication();
         initServletContext(servletContext,configurableWebServer,properties);

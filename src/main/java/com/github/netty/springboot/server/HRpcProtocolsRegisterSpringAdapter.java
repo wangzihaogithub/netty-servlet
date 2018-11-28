@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.function.Function;
 
@@ -29,7 +30,7 @@ public class HRpcProtocolsRegisterSpringAdapter extends HRpcProtocolsRegister {
     @Override
     public void onServerStart() throws Exception {
         ApplicationX application = getApplication();
-        List list = application.getBeanForAnnotation(RpcService.class);
+        Collection list = application.getBeanForAnnotation(RpcService.class);
         for(Object serviceImpl : list){
             if(existInstance(serviceImpl)){
                 continue;

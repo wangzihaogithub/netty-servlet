@@ -32,6 +32,7 @@ import java.util.Map;
  *  2018/11/11/011
  */
 public class HttpServletProtocolsRegister implements ProtocolsRegister {
+    public static final int ORDER = 100;
 
     public static final String HANDLER_SSL = "SSL";
     public static final String HANDLER_AGGREGATOR = "Aggregator";
@@ -180,6 +181,11 @@ public class HttpServletProtocolsRegister implements ProtocolsRegister {
 
         //业务调度器, 让对应的Servlet处理请求
         pipeline.addLast(HANDLER_SERVLET, servletHandler);
+    }
+
+    @Override
+    public int order() {
+        return ORDER;
     }
 
     @Override

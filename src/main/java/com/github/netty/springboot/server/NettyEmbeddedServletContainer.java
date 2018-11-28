@@ -12,8 +12,7 @@ import org.springframework.boot.context.embedded.EmbeddedServletContainer;
 import org.springframework.boot.context.embedded.EmbeddedServletContainerException;
 
 import java.net.InetSocketAddress;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 /**
  * netty容器
@@ -49,6 +48,15 @@ public class NettyEmbeddedServletContainer extends AbstractNettyServer implement
             for(ProtocolsRegister protocolsRegister : protocolsRegisterList){
                 protocolsRegister.onServerStart();
             }
+
+            List<ProtocolsRegister> inApplicationProtocolsRegisterList = new ArrayList<>(config.getApplication().findBeanForType(ProtocolsRegister.class));
+            inApplicationProtocolsRegisterList.sort(Comparator.comparing(ProtocolsRegister::order));
+            for(ProtocolsRegister protocolsRegister : inApplicationProtocolsRegisterList){
+                protocolsRegister.onServerStart();
+                protocolsRegisterList.add(protocolsRegister);
+            }
+
+            protocolsRegisterList.sort(Comparator.comparing(ProtocolsRegister::order));
         } catch (Exception e) {
             throw new EmbeddedServletContainerException(e.getMessage(),e);
         }

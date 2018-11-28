@@ -16,7 +16,7 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelPipeline;
 
 import java.lang.reflect.Method;
-import java.util.List;
+import java.util.Collection;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -27,6 +27,8 @@ import java.util.function.Supplier;
  * 2018/11/25/025
  */
 public class HRpcProtocolsRegister implements ProtocolsRegister {
+    public static final int ORDER = 200;
+
     private RpcEncoder rpcEncoder = new RpcEncoder(RpcResponse.class);
     private RpcServerHandler rpcServerHandler = new RpcServerHandler();
     private Supplier rpcRequestSupplier = RpcRequest::new;
@@ -69,9 +71,14 @@ public class HRpcProtocolsRegister implements ProtocolsRegister {
     }
 
     @Override
+    public int order() {
+        return ORDER;
+    }
+
+    @Override
     public void onServerStart() throws Exception {
         //用户的服务
-        List list = application.getBeanForAnnotation(RpcService.class);
+        Collection list = application.getBeanForAnnotation(RpcService.class);
         for(Object serviceImpl : list){
             if(existInstance(serviceImpl)){
                 continue;

@@ -12,6 +12,7 @@ import org.springframework.boot.web.server.WebServer;
 import org.springframework.boot.web.server.WebServerException;
 
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -48,6 +49,12 @@ public class NettyTcpServer extends AbstractNettyServer implements WebServer {
             super.setIoThreadCount(config.getServerIoThreads());
             for(ProtocolsRegister protocolsRegister : protocolsRegisterList){
                 protocolsRegister.onServerStart();
+            }
+
+            List<ProtocolsRegister> inApplicationProtocolsRegisterList = new ArrayList<>(config.getApplication().findBeanForType(ProtocolsRegister.class));
+            for(ProtocolsRegister protocolsRegister : inApplicationProtocolsRegisterList){
+                protocolsRegister.onServerStart();
+                protocolsRegisterList.add(protocolsRegister);
             }
         } catch (Exception e) {
             throw new WebServerException(e.getMessage(),e);

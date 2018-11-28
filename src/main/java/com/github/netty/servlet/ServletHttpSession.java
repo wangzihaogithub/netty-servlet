@@ -18,7 +18,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  *  2018/7/15/015
  */
 @sun.misc.Contended
-public class ServletHttpSession implements HttpSession,Wrapper<Session>{
+public class ServletHttpSession implements HttpSession,Wrapper<Session> {
 
     private ServletContext servletContext;
     private String id;

@@ -1,13 +1,13 @@
 package com.github.netty.servlet.support;
 
-import com.github.netty.springboot.NettyProperties;
 import com.github.netty.core.util.AbstractRecycler;
-import com.github.netty.core.util.Recyclable;
 import com.github.netty.core.util.HttpHeaderUtil;
+import com.github.netty.core.util.Recyclable;
 import com.github.netty.servlet.ServletContext;
 import com.github.netty.servlet.ServletHttpServletRequest;
 import com.github.netty.servlet.ServletHttpServletResponse;
 import com.github.netty.servlet.ServletHttpSession;
+import com.github.netty.springboot.NettyProperties;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.util.Attribute;
@@ -22,7 +22,7 @@ import java.net.SocketAddress;
  * @author acer01
  *  2018/8/1/001
  */
-public class HttpServletObject implements Recyclable{
+public class HttpServletObject implements Recyclable {
 
     private static final AbstractRecycler<HttpServletObject> RECYCLER = new AbstractRecycler<HttpServletObject>() {
         @Override

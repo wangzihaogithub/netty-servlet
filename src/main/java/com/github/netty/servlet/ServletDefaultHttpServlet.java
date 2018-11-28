@@ -15,8 +15,6 @@ import java.io.IOException;
  */
 public class ServletDefaultHttpServlet extends HttpServlet {
 
-    public static final ServletDefaultHttpServlet INSTANCE = new ServletDefaultHttpServlet();
-
     @Override
     protected void service(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         AsyncContext context = request.startAsync();

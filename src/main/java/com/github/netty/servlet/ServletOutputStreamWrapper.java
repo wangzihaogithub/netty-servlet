@@ -4,7 +4,7 @@ import com.github.netty.core.util.Recyclable;
 import com.github.netty.core.util.Wrapper;
 import io.netty.channel.ChannelFutureListener;
 
-import javax.servlet.*;
+import javax.servlet.WriteListener;
 import java.io.IOException;
 
 /**
@@ -15,7 +15,7 @@ import java.io.IOException;
  */
 @sun.misc.Contended
 public class ServletOutputStreamWrapper extends javax.servlet.ServletOutputStream
-        implements Wrapper<ServletOutputStream>,Recyclable{
+        implements Wrapper<ServletOutputStream>,Recyclable {
 
     /**
      * 源数据

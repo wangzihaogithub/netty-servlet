@@ -1,16 +1,13 @@
 package com.github.netty.servlet;
 
-import com.github.netty.springboot.NettyProperties;
 import com.github.netty.core.NettyHttpCookie;
 import com.github.netty.core.NettyHttpResponse;
 import com.github.netty.core.constants.HttpConstants;
 import com.github.netty.core.constants.HttpHeaderConstants;
-import com.github.netty.core.util.AbstractRecycler;
-import com.github.netty.core.util.CompositeByteBufX;
-import com.github.netty.core.util.Recyclable;
 import com.github.netty.core.util.*;
 import com.github.netty.servlet.support.HttpServletObject;
 import com.github.netty.servlet.util.ServletUtil;
+import com.github.netty.springboot.NettyProperties;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.ChannelFuture;
@@ -38,7 +35,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * @author 84215
  */
 @sun.misc.Contended
-public class ServletOutputStream extends javax.servlet.ServletOutputStream implements Recyclable  {
+public class ServletOutputStream extends javax.servlet.ServletOutputStream implements Recyclable {
 
     protected AtomicBoolean isEmpty = new AtomicBoolean(true);
     protected AtomicBoolean isClosed = new AtomicBoolean(false);
@@ -348,7 +345,7 @@ public class ServletOutputStream extends javax.servlet.ServletOutputStream imple
      * @param finishListener
      */
     private static void writeResponseToChannel(boolean isCloseChannel, ChannelHandlerContext channel,
-                                        NettyHttpResponse nettyResponse, ChannelFutureListener finishListener) {
+                                               NettyHttpResponse nettyResponse, ChannelFutureListener finishListener) {
         ChannelPromise promise;
         //如果需要关闭管道 或者需要回调
         if(isCloseChannel || finishListener != null) {
@@ -377,8 +374,8 @@ public class ServletOutputStream extends javax.servlet.ServletOutputStream imple
      * @param sessionCookieConfig sessionCookie配置
      */
     private static void settingResponseHeader(boolean isKeepAlive, NettyHttpResponse nettyResponse,
-                                       ServletHttpServletRequest servletRequest, ServletHttpServletResponse servletResponse,
-                                       ServletSessionCookieConfig sessionCookieConfig) {
+                                              ServletHttpServletRequest servletRequest, ServletHttpServletResponse servletResponse,
+                                              ServletSessionCookieConfig sessionCookieConfig) {
         HttpHeaderUtil.setKeepAlive(nettyResponse, isKeepAlive);
 
         if (

@@ -1,6 +1,7 @@
 package com.github.netty.springboot;
 
 import com.github.netty.core.util.ApplicationX;
+import com.github.netty.rpc.annotation.RpcService;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.io.Serializable;
@@ -147,7 +148,7 @@ public class NettyProperties implements Serializable{
     /**
      * 客户端-RPC同步调用超时时间
      */
-    private int rpcTimeout = NettyRpcClient.DEFAULT_TIME_OUT;
+    private int rpcTimeout = RpcService.DEFAULT_TIME_OUT;
     /**
      * session客户端 - 保持的连接数
      */
@@ -161,7 +162,7 @@ public class NettyProperties implements Serializable{
      */
     private int rpcClientHeartIntervalSecond = 20;
     /**
-     * session远程服务 - ip地址, 注: 如果不设置就不会开启
+     * session服务端的url地址, 注: 如果不设置就不会开启
      */
     private String sessionRemoteServerAddress;
     /**
@@ -271,15 +272,17 @@ public class NettyProperties implements Serializable{
 
     @Override
     public String toString() {
-        return "ContainerConfig{" +
+        return "NettyProperties{" +
                 "serverWorkerCount=" + serverWorkerCount +
-                ", serverHandlerExecutor=" + serverHandlerExecutor +
                 ", serverIoRatio=" + serverIoRatio +
-                ", clientWorkerCount=" + rpcClientWorkerCount +
-                ", clientIoRatio=" + rpcClientIoRatio +
-                ", sessionClientChannelCount=" + rpcClientChannelCount +
-                ", enablesSessionClientAutoReconnect=" + enablesRpcClientAutoReconnect +
-                ", sessionRemoteServerAddress=" + sessionRemoteServerAddress +
+                ", rpcClientWorkerCount=" + rpcClientWorkerCount +
+                ", rpcClientIoRatio=" + rpcClientIoRatio +
+                ", rpcTimeout=" + rpcTimeout +
+                ", rpcClientChannelCount=" + rpcClientChannelCount +
+                ", enablesRpcClientAutoReconnect=" + enablesRpcClientAutoReconnect +
+                ", rpcClientHeartIntervalSecond=" + rpcClientHeartIntervalSecond +
+                ", sessionRemoteServerAddress='" + sessionRemoteServerAddress + '\'' +
+                ", responseWriterChunkMaxHeapByteLength=" + responseWriterChunkMaxHeapByteLength +
                 '}';
     }
 }

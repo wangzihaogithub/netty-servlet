@@ -1,7 +1,5 @@
 package com.github.netty.servlet.util;
 
-import com.github.netty.core.util.RecyclableUtil;
-
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -51,7 +49,6 @@ import java.util.Objects;
 public class UrlMapper<T> {
 
     private final boolean singlePattern;
-
     private List<Element> elementList = new ArrayList<>();
     private AntPathMatcher antPathMatcher = new AntPathMatcher();
 
@@ -125,8 +122,7 @@ public class UrlMapper<T> {
      * @param absoluteUri 绝对路径
      * @return
      */
-    public List<T> getMappingObjectsByUri(String absoluteUri) {
-        List<T> list = RecyclableUtil.newRecyclableList(10);
+    public List<T> getMappingObjectsByUri(String absoluteUri,List<T> list) {
         int size = elementList.size();
         for(int i=0; i<size; i++){
             Element element = elementList.get(i);

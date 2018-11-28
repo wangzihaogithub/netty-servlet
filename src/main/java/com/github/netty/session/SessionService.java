@@ -1,5 +1,6 @@
 package com.github.netty.session;
 
+import com.github.netty.rpc.annotation.RpcParam;
 import com.github.netty.rpc.annotation.RpcService;
 
 import java.util.List;
@@ -9,7 +10,7 @@ import java.util.List;
  * @author acer01
  * 2018/8/19/019
  */
-@RpcService(value = "/SessionService",timeout = 1000)
+@RpcService(value = "/hrpc/sessionService",timeout = 1000)
 public interface SessionService {
 
     /**
@@ -17,32 +18,32 @@ public interface SessionService {
      * @param sessionId
      * @return
      */
-    Session getSession(String sessionId);
+    Session getSession(@RpcParam("sessionId") String sessionId);
 
     /**
      * 保存session
      * @param session
      */
-    void saveSession(Session session);
+    void saveSession(@RpcParam("session") Session session);
 
     /**
      * 删除session
      * @param sessionId
      */
-    void removeSession(String sessionId);
+    void removeSession(@RpcParam("sessionId") String sessionId);
 
     /**
      * 删除session (批量)
      * @param sessionIdList
      */
-    void removeSessionBatch(List<String> sessionIdList);
+    void removeSessionBatch(@RpcParam("sessionIdList") List<String> sessionIdList);
 
     /**
      * 改变sessionId
      * @param oldSessionId
      * @param newSessionId
      */
-    void changeSessionId(String oldSessionId,String newSessionId);
+    void changeSessionId(@RpcParam("oldSessionId") String oldSessionId, @RpcParam("newSessionId") String newSessionId);
 
     /**
      * 获取session数量

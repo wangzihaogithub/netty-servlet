@@ -1,10 +1,11 @@
 package com.github.netty.servlet.handler;
 
-import com.github.netty.springboot.NettyProperties;
 import com.github.netty.core.AbstractChannelHandler;
+import com.github.netty.core.MessageToRunnable;
 import com.github.netty.servlet.ServletContext;
 import com.github.netty.servlet.ServletHttpSession;
 import com.github.netty.servlet.support.HttpServletObject;
+import com.github.netty.springboot.NettyProperties;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
@@ -19,26 +20,29 @@ import java.util.concurrent.Executor;
  *  2018/7/1/001
  */
 @ChannelHandler.Sharable
-public class NettyServletHandler extends AbstractChannelHandler<Object> {
+public class ServletHandler extends AbstractChannelHandler<Object> {
 
     private Executor dispatcherExecutor;
     private ServletContext servletContext;
-    private NettyProperties config;
-    private static final HttpTaskFactory HTTP_TASK_FACTORY = new HttpTaskFactory();
-    private static final AttributeKey<TaskFactory> CHANNEL_ATTR_KEY_TASK_FACTORY = AttributeKey.valueOf(TaskFactory.class + "#Handler-TaskFactory");
+    private HttpMessageToServletRunnable httpMessageToServletRunnable;
+    public static final AttributeKey<MessageToRunnable> CHANNEL_ATTR_KEY_MESSAGE_TO_RUNNABLE = AttributeKey.valueOf(MessageToRunnable.class + "#Handler-MessageToRunnable");
 
-    public NettyServletHandler(ServletContext servletContext, NettyProperties config) {
+    public ServletHandler(ServletContext servletContext, NettyProperties properties) {
         super(false);
         this.servletContext = Objects.requireNonNull(servletContext);
-        this.config = Objects.requireNonNull(config);
-        this.dispatcherExecutor = config.getServerHandlerExecutor();
+        this.httpMessageToServletRunnable = new HttpMessageToServletRunnable(servletContext,properties);
+        this.dispatcherExecutor = properties.getServerHandlerExecutor();
     }
 
     @Override
     protected void onMessageReceived(ChannelHandlerContext context, Object msg) throws Exception {
-        TaskFactory taskFactory = getTaskFactory(context.channel());
-        Runnable task = taskFactory.newTask(servletContext,config,context,msg);
+        MessageToRunnable messageToRunnable = getMessageToRunnable(context.channel());
+        if(messageToRunnable == null){
+            messageToRunnable = httpMessageToServletRunnable;
+            setMessageToRunnable(context.channel(),messageToRunnable);
+        }
 
+        Runnable task = messageToRunnable.newRunnable(context,msg);
         if(dispatcherExecutor != null){
             dispatcherExecutor.execute(task);
         }else {
@@ -79,10 +83,10 @@ public class NettyServletHandler extends AbstractChannelHandler<Object> {
     /**
      * 把IO任务包工厂类 放到这个连接上
      * @param channel
-     * @param taskFactory
+     * @param messageToRunnable
      */
-    public static void setTaskFactory(Channel channel, TaskFactory taskFactory){
-        channel.attr(CHANNEL_ATTR_KEY_TASK_FACTORY).set(taskFactory);
+    public static void setMessageToRunnable(Channel channel, MessageToRunnable messageToRunnable){
+        channel.attr(CHANNEL_ATTR_KEY_MESSAGE_TO_RUNNABLE).set(messageToRunnable);
     }
 
     /**
@@ -90,9 +94,9 @@ public class NettyServletHandler extends AbstractChannelHandler<Object> {
      * @param channel
      * @return
      */
-    public static TaskFactory getTaskFactory(Channel channel){
-        TaskFactory taskFactory = channel.attr(CHANNEL_ATTR_KEY_TASK_FACTORY).get();
-        return taskFactory == null? HTTP_TASK_FACTORY : taskFactory;
+    public static MessageToRunnable getMessageToRunnable(Channel channel){
+        MessageToRunnable taskFactory = channel.attr(CHANNEL_ATTR_KEY_MESSAGE_TO_RUNNABLE).get();
+        return taskFactory;
     }
 
 }

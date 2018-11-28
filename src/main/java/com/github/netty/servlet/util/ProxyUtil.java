@@ -79,7 +79,7 @@ public class ProxyUtil {
     }
 
     public static <T>T newProxyByCglib(Class<T> sourceClass, Class[]argTypes, Object[] args){
-        return newProxyByCglib(sourceClass,NamespaceUtil.newIdName(sourceClass),true,argTypes,args);
+        return newProxyByCglib(sourceClass, NamespaceUtil.newIdName(sourceClass),true,argTypes,args);
     }
 
     public static void setCglibDebugClassWriterPath(String path){
@@ -99,7 +99,7 @@ public class ProxyUtil {
         }
     }
     public static <T>T newProxyByJdk(T source){
-        return newProxyByJdk(source,source.toString(),true,ReflectUtil.getInterfaces(source.getClass()));
+        return newProxyByJdk(source,source.toString(),true, ReflectUtil.getInterfaces(source.getClass()));
     }
 
     public static <T>T newProxyByJdk(T source, String logName,boolean isEnableLog,Class[] interfaces){

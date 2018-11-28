@@ -4,8 +4,8 @@ import com.github.netty.core.NettyHttpRequest;
 import com.github.netty.core.constants.HttpConstants;
 import com.github.netty.core.constants.HttpHeaderConstants;
 import com.github.netty.core.util.AbstractRecycler;
-import com.github.netty.core.util.Recyclable;
 import com.github.netty.core.util.HttpHeaderUtil;
+import com.github.netty.core.util.Recyclable;
 import com.github.netty.core.util.StringUtil;
 import com.github.netty.servlet.support.HttpServletObject;
 import com.github.netty.servlet.support.ServletEventListenerManager;
@@ -63,7 +63,7 @@ public class ServletHttpServletRequest implements javax.servlet.http.HttpServlet
     private String requestURI;
     private String characterEncoding;
     private String sessionId;
-    private int sessionIdSource;
+    private SessionTrackingMode sessionIdSource;
 
     private boolean decodePathsFlag = false;
     private boolean decodeCookieFlag = false;
@@ -151,8 +151,7 @@ public class ServletHttpServletRequest implements javax.servlet.http.HttpServlet
     private void decodeCharacterEncoding() {
         String characterEncoding = ServletUtil.decodeCharacterEncoding(getContentType());
         if (characterEncoding == null) {
-            ServletContext servletContext = getServletContext();
-            characterEncoding = servletContext.getDefaultCharset().name();
+            characterEncoding = getServletContext().getRequestCharacterEncoding();
         }
        this.characterEncoding = characterEncoding;
     }
@@ -519,14 +518,14 @@ public class ServletHttpServletRequest implements javax.servlet.http.HttpServlet
     @Override
     public boolean isRequestedSessionIdValid() {
         getRequestedSessionId();
-        return sessionIdSource == HttpConstants.SESSION_ID_SOURCE_COOKIE ||
-                sessionIdSource == HttpConstants.SESSION_ID_SOURCE_URL;
+        return sessionIdSource == SessionTrackingMode.COOKIE ||
+                sessionIdSource == SessionTrackingMode.URL;
     }
 
     @Override
     public boolean isRequestedSessionIdFromCookie() {
         getRequestedSessionId();
-        return sessionIdSource == HttpConstants.SESSION_ID_SOURCE_COOKIE;
+        return sessionIdSource == SessionTrackingMode.COOKIE;
     }
 
     @Override
@@ -537,7 +536,7 @@ public class ServletHttpServletRequest implements javax.servlet.http.HttpServlet
     @Override
     public boolean isRequestedSessionIdFromUrl() {
         getRequestedSessionId();
-        return sessionIdSource == HttpConstants.SESSION_ID_SOURCE_URL;
+        return sessionIdSource == SessionTrackingMode.URL;
     }
 
     @Override
@@ -553,15 +552,15 @@ public class ServletHttpServletRequest implements javax.servlet.http.HttpServlet
         //寻找sessionCookie的值, 优先从cookie里找, 找不到再从url参数头上找
         String sessionId = ServletUtil.getCookieValue(getCookies(),cookieSessionName);
         if(StringUtil.isNotEmpty(sessionId)){
-            sessionIdSource = HttpConstants.SESSION_ID_SOURCE_COOKIE;
+            sessionIdSource = SessionTrackingMode.COOKIE;
         }else {
             String queryString = getQueryString();
             boolean isUrlCookie = queryString != null && queryString.contains(HttpConstants.JSESSION_ID_URL);
             if(isUrlCookie) {
-                sessionIdSource = HttpConstants.SESSION_ID_SOURCE_URL;
+                sessionIdSource = SessionTrackingMode.URL;
                 sessionId = getParameter(HttpConstants.JSESSION_ID_URL);
             }else {
-                sessionIdSource = HttpConstants.SESSION_ID_SOURCE_UNKNOWN;
+                sessionIdSource = null;
                 sessionId = newSessionId();
             }
         }
@@ -945,7 +944,7 @@ public class ServletHttpServletRequest implements javax.servlet.http.HttpServlet
         this.decodeParameterByBodyFlag = false;
         this.decodeCookieFlag = false;
         this.decodePathsFlag = false;
-        this.sessionIdSource = 0;
+        this.sessionIdSource = null;
         this.protocol = null;
         this.scheme = null;
         this.servletPath = null;

@@ -21,7 +21,7 @@ import java.util.*;
  *  2018/7/15/015
  */
 @sun.misc.Contended
-public class ServletHttpIncludeRequest extends HttpServletRequestWrapper{
+public class ServletHttpIncludeRequest extends HttpServletRequestWrapper {
 
     private String pathInfo = null;
     private String queryString = null;

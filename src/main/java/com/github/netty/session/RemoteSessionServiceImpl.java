@@ -62,9 +62,9 @@ public class RemoteSessionServiceImpl implements SessionService {
                 @Override
                 public void run() {
                     if (expireSecond > 0) {
-                        getRpcDBService().put(session.getId(), bytes, (int) expireSecond,SESSION_GROUP);
+                        getRpcDBService().put4(session.getId(), bytes, (int) expireSecond,SESSION_GROUP);
                     } else {
-                        getRpcDBService().remove(session.getId(),SESSION_GROUP);
+                        getRpcDBService().remove2(session.getId(),SESSION_GROUP);
                     }
                 };
             });
@@ -73,20 +73,20 @@ public class RemoteSessionServiceImpl implements SessionService {
 
 
         if (expireSecond > 0) {
-            getRpcDBService().put(session.getId(), bytes, (int) expireSecond,SESSION_GROUP);
+            getRpcDBService().put4(session.getId(), bytes, (int) expireSecond,SESSION_GROUP);
         } else {
-            getRpcDBService().remove(session.getId(),SESSION_GROUP);
+            getRpcDBService().remove2(session.getId(),SESSION_GROUP);
         }
     }
 
     @Override
     public void removeSession(String sessionId) {
-        getRpcDBService().remove(sessionId,SESSION_GROUP);
+        getRpcDBService().remove2(sessionId,SESSION_GROUP);
     }
 
     @Override
     public void removeSessionBatch(List<String> sessionIdList) {
-        getRpcDBService().removeBatch(sessionIdList,SESSION_GROUP);
+        getRpcDBService().removeBatch2(sessionIdList,SESSION_GROUP);
     }
 
     @Override
@@ -95,21 +95,21 @@ public class RemoteSessionServiceImpl implements SessionService {
             return CoreConstants.holdExecute(new Supplier<Session>() {
                 @Override
                 public Session get() {
-                    byte[] bytes = getRpcDBService().get(sessionId,SESSION_GROUP);
+                    byte[] bytes = getRpcDBService().get2(sessionId,SESSION_GROUP);
                     Session session = decode(bytes);
                     return session;
                 }
             });
         }
 
-        byte[] bytes = getRpcDBService().get(sessionId,SESSION_GROUP);
+        byte[] bytes = getRpcDBService().get2(sessionId,SESSION_GROUP);
         Session session = decode(bytes);
         return session;
     }
 
     @Override
     public void changeSessionId(String oldSessionId, String newSessionId) {
-        getRpcDBService().changeKey(oldSessionId,newSessionId,SESSION_GROUP);;
+        getRpcDBService().changeKey3(oldSessionId,newSessionId,SESSION_GROUP);;
     }
 
     @Override

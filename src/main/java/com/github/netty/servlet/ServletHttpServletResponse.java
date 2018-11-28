@@ -3,11 +3,7 @@ package com.github.netty.servlet;
 import com.github.netty.core.NettyHttpResponse;
 import com.github.netty.core.constants.HttpConstants;
 import com.github.netty.core.constants.HttpHeaderConstants;
-import com.github.netty.core.util.AbstractRecycler;
-import com.github.netty.core.util.CompositeByteBufX;
-import com.github.netty.core.util.Recyclable;
-import com.github.netty.core.util.HttpHeaderUtil;
-import com.github.netty.core.util.RecyclableUtil;
+import com.github.netty.core.util.*;
 import com.github.netty.servlet.support.HttpServletObject;
 import com.github.netty.servlet.util.MediaType;
 import io.netty.channel.ChannelFuture;
@@ -386,7 +382,7 @@ public class ServletHttpServletResponse implements javax.servlet.http.HttpServle
         if(characterEncoding != null && characterEncoding.length() > 0){
             charset = Charset.forName(characterEncoding);
         }else {
-            charset = httpServletObject.getServletContext().getDefaultCharset();
+            charset = Charset.forName(httpServletObject.getServletContext().getResponseCharacterEncoding());
         }
         writer = new ServletPrintWriter(getOutputStream(),charset);
         return writer;

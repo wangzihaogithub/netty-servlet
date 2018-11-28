@@ -21,7 +21,7 @@ import java.util.*;
  *  2018/7/15/015
  */
 @sun.misc.Contended
-public class ServletHttpAsyncRequest extends HttpServletRequestWrapper{
+public class ServletHttpAsyncRequest extends HttpServletRequestWrapper {
 
     private String pathInfo = null;
     private String queryString = null;
@@ -55,7 +55,7 @@ public class ServletHttpAsyncRequest extends HttpServletRequestWrapper{
 
     private ServletAsyncContext servletAsyncContext;
 
-    public ServletHttpAsyncRequest(HttpServletRequest source,ServletAsyncContext servletAsyncContext) {
+    public ServletHttpAsyncRequest(HttpServletRequest source, ServletAsyncContext servletAsyncContext) {
         super(source);
         this.servletAsyncContext = servletAsyncContext;
     }

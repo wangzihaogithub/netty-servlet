@@ -1,9 +1,9 @@
 package com.github.netty.session;
 
-import com.github.netty.springboot.NettyProperties;
 import com.github.netty.core.util.LoggerFactoryX;
 import com.github.netty.core.util.LoggerX;
 import com.github.netty.core.util.NamespaceUtil;
+import com.github.netty.springboot.NettyProperties;
 
 import java.net.InetSocketAddress;
 import java.util.List;

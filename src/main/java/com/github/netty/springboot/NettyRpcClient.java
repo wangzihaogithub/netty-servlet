@@ -18,7 +18,7 @@ public @interface NettyRpcClient {
      */
     String serviceId() default "";
 
-    Class<?> fallback() default void.class;
+//    Class<?> fallback() default void.class;
     boolean primary() default true;
     String qualifier() default "";
 
@@ -26,10 +26,6 @@ public @interface NettyRpcClient {
      * 超时时间 (毫秒)
      * @return
      */
-    int timeout() default DEFAULT_TIME_OUT;
+//    int timeout() default RpcService.DEFAULT_TIME_OUT;
 
-    /**
-     * 默认超时时间
-     */
-    int DEFAULT_TIME_OUT = 1000;
 }

@@ -122,9 +122,9 @@ public class NettyProperties implements Serializable{
     private static final long serialVersionUID = 1L;
 
     /**
-     * 服务端-工作线程数  注: (0 = cpu核数 * 2 )
+     * 服务端-IO线程数  注: (0 = cpu核数 * 2 )
      */
-    private int serverWorkerCount = 0;
+    private int serverIoThreads = 0;
 
     /**
      * 服务端 - servlet线程执行器
@@ -137,38 +137,50 @@ public class NettyProperties implements Serializable{
     private int serverIoRatio = 100;
 
     /**
-     * 客户端-工作线程数   注: (0 = cpu核数 * 2 )
+     * RPC客户端-工作线程数   注: (0 = cpu核数 * 2 )
      */
-    private int rpcClientWorkerCount = 1;
+    private int rpcClientIoThreads = 1;
 
     /**
-     * 客户端-io线程执行调度与执行io事件的百分比. 注:(100=每次只执行一次调度工作, 其他都执行io事件), 并发高的时候可以设置最大
+     * RPC客户端-IO线程执行调度与执行io事件的百分比. 注:(100=每次只执行一次调度工作, 其他都执行io事件), 并发高的时候可以设置最大
      */
     private int rpcClientIoRatio = 100;
+
     /**
-     * 客户端-RPC同步调用超时时间
+     * RPC客户端-RPC同步调用超时时间
      */
     private int rpcTimeout = RpcService.DEFAULT_TIME_OUT;
+
     /**
-     * session客户端 - 保持的连接数
+     * RPC客户端 - 保持的连接数
      */
-    private int rpcClientChannelCount = 1;
+    private int rpcClientChannels = 1;
+
     /**
-     * session客户端 - 自动重连
+     * RPC客户端-是否RPC开启心跳日志
+     */
+    private boolean enableRpcHeartLog = false;
+
+    /**
+     * RPC客户端 - 自动重连
      */
     private boolean enablesRpcClientAutoReconnect = true;
+
     /**
-     * session客户端 - 心跳间隔时间(秒)
+     * RPC客户端 - 心跳间隔时间(秒)
      */
     private int rpcClientHeartIntervalSecond = 20;
+
     /**
-     * session服务端的url地址, 注: 如果不设置就不会开启
+     * session远程存储的url地址, 注: 如果不设置就不会开启
      */
     private String sessionRemoteServerAddress;
+
     /**
      * 每次调用servlet的 OutputStream.Writer()方法写入的最大堆字节,超出后用堆外内存
      */
     private int responseWriterChunkMaxHeapByteLength = 4096;
+
     /**
      * 全局对象
      */
@@ -206,20 +218,20 @@ public class NettyProperties implements Serializable{
         this.responseWriterChunkMaxHeapByteLength = responseWriterChunkMaxHeapByteLength;
     }
 
-    public int getRpcClientWorkerCount() {
-        return rpcClientWorkerCount;
+    public int getRpcClientIoThreads() {
+        return rpcClientIoThreads;
     }
 
-    public void setRpcClientWorkerCount(int rpcClientWorkerCount) {
-        this.rpcClientWorkerCount = rpcClientWorkerCount;
+    public void setRpcClientIoThreads(int rpcClientIoThreads) {
+        this.rpcClientIoThreads = rpcClientIoThreads;
     }
 
-    public int getServerWorkerCount() {
-        return serverWorkerCount;
+    public int getServerIoThreads() {
+        return serverIoThreads;
     }
 
-    public void setServerWorkerCount(int serverWorkerCount) {
-        this.serverWorkerCount = serverWorkerCount;
+    public void setServerIoThreads(int serverIoThreads) {
+        this.serverIoThreads = serverIoThreads;
     }
 
     public int getServerIoRatio() {
@@ -238,12 +250,12 @@ public class NettyProperties implements Serializable{
         this.rpcClientIoRatio = rpcClientIoRatio;
     }
 
-    public int getRpcClientChannelCount() {
-        return rpcClientChannelCount;
+    public int getRpcClientChannels() {
+        return rpcClientChannels;
     }
 
-    public void setRpcClientChannelCount(int rpcClientChannelCount) {
-        this.rpcClientChannelCount = rpcClientChannelCount;
+    public void setRpcClientChannels(int rpcClientChannels) {
+        this.rpcClientChannels = rpcClientChannels;
     }
 
     public boolean isEnablesRpcClientAutoReconnect() {
@@ -270,15 +282,23 @@ public class NettyProperties implements Serializable{
         this.sessionRemoteServerAddress = sessionRemoteServerAddress;
     }
 
+    public boolean isEnableRpcHeartLog() {
+        return enableRpcHeartLog;
+    }
+
+    public void setEnableRpcHeartLog(boolean enableRpcHeartLog) {
+        this.enableRpcHeartLog = enableRpcHeartLog;
+    }
+
     @Override
     public String toString() {
         return "NettyProperties{" +
-                "serverWorkerCount=" + serverWorkerCount +
+                "serverWorkerCount=" + serverIoThreads +
                 ", serverIoRatio=" + serverIoRatio +
-                ", rpcClientWorkerCount=" + rpcClientWorkerCount +
+                ", rpcClientWorkerCount=" + rpcClientIoThreads +
                 ", rpcClientIoRatio=" + rpcClientIoRatio +
                 ", rpcTimeout=" + rpcTimeout +
-                ", rpcClientChannelCount=" + rpcClientChannelCount +
+                ", rpcClientChannelCount=" + rpcClientChannels +
                 ", enablesRpcClientAutoReconnect=" + enablesRpcClientAutoReconnect +
                 ", rpcClientHeartIntervalSecond=" + rpcClientHeartIntervalSecond +
                 ", sessionRemoteServerAddress='" + sessionRemoteServerAddress + '\'' +

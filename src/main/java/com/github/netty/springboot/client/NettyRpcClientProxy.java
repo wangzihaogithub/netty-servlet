@@ -102,10 +102,10 @@ public class NettyRpcClientProxy implements InvocationHandler {
         if(rpcClient == null) {
             rpcClient = new RpcClient(address);
             rpcClient.setSocketChannelCount(1);
-            rpcClient.setWorkerCount(config.getRpcClientWorkerCount());
+            rpcClient.setIoThreadCount(config.getRpcClientIoThreads());
             rpcClient.run();
             if (config.isEnablesRpcClientAutoReconnect()) {
-                rpcClient.enableAutoReconnect(config.getRpcClientHeartIntervalSecond(), TimeUnit.SECONDS,null);
+                rpcClient.enableAutoReconnect(config.getRpcClientHeartIntervalSecond(), TimeUnit.SECONDS,null,config.isEnableRpcHeartLog());
             }
             rpcClientMap.put(address,rpcClient);
         }
@@ -121,7 +121,7 @@ public class NettyRpcClientProxy implements InvocationHandler {
         InetSocketAddress address = chooseAddress(requestThreadLocal.get());
         RpcClient rpcClient = new RpcClient("Ping-",address);
         rpcClient.setSocketChannelCount(1);
-        rpcClient.setWorkerCount(1);
+        rpcClient.setIoThreadCount(1);
         rpcClient.run();
 
         try {

@@ -45,7 +45,7 @@ public class NettyTcpServer extends AbstractNettyServer implements WebServer {
     public void start() throws WebServerException {
         try{
             super.setIoRatio(config.getServerIoRatio());
-            super.setWorkerCount(config.getServerWorkerCount());
+            super.setIoThreadCount(config.getServerIoThreads());
             for(ProtocolsRegister protocolsRegister : protocolsRegisterList){
                 protocolsRegister.onServerStart();
             }

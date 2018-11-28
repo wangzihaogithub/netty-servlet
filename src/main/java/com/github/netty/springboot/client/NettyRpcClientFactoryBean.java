@@ -1,5 +1,6 @@
 package com.github.netty.springboot.client;
 
+import com.github.netty.core.util.ThreadPoolX;
 import com.github.netty.rpc.exception.RpcException;
 import com.github.netty.springboot.NettyProperties;
 import org.slf4j.Logger;
@@ -39,9 +40,7 @@ public class NettyRpcClientFactoryBean implements FactoryBean<Object>, Initializ
         NettyRpcClientProxy nettyRpcClientProxy = new NettyRpcClientProxy(serviceId,null,objectType,nettyConfig,loadBalanced);
         Object instance = Proxy.newProxyInstance(classLoader,new Class[]{objectType},nettyRpcClientProxy);
 
-        if(oncePingFlag != null){
-            oncePing(nettyRpcClientProxy);
-        }
+        oncePing(nettyRpcClientProxy);
         return instance;
     }
 
@@ -50,14 +49,16 @@ public class NettyRpcClientFactoryBean implements FactoryBean<Object>, Initializ
      * @param nettyRpcClientProxy
      */
     private void oncePing(NettyRpcClientProxy nettyRpcClientProxy){
-        if(oncePingFlag.compareAndSet(false,true)){
-            try {
-                nettyRpcClientProxy.pingOnceAfterDestroy();
-            }catch (RpcException e){
-                logger.error("无法连接至远程地址 " + e.toString());
-            }finally {
-                oncePingFlag = null;
-            }
+        if(oncePingFlag != null && oncePingFlag.compareAndSet(false,true)){
+            ThreadPoolX.getDefaultInstance().execute(()->{
+                try {
+                    nettyRpcClientProxy.pingOnceAfterDestroy();
+                }catch (RpcException e){
+                    logger.error("无法连接至远程地址 " + e.toString());
+                }finally {
+                    oncePingFlag = null;
+                }
+            });
         }
     }
 

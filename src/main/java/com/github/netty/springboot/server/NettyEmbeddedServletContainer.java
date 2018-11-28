@@ -45,7 +45,7 @@ public class NettyEmbeddedServletContainer extends AbstractNettyServer implement
     public void start() throws EmbeddedServletContainerException {
         try{
             super.setIoRatio(config.getServerIoRatio());
-            super.setWorkerCount(config.getServerWorkerCount());
+            super.setIoThreadCount(config.getServerIoThreads());
             for(ProtocolsRegister protocolsRegister : protocolsRegisterList){
                 protocolsRegister.onServerStart();
             }

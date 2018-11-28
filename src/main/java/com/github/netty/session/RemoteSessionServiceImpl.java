@@ -37,11 +37,11 @@ public class RemoteSessionServiceImpl implements SessionService {
         protected RpcClient initialValue() throws Exception {
             RpcClient rpcClient = new RpcClient("Session",address);
             rpcClient.setIoRatio(config.getRpcClientIoRatio());
-            rpcClient.setWorkerCount(config.getRpcClientWorkerCount());
-            rpcClient.setSocketChannelCount(config.getRpcClientChannelCount());
+            rpcClient.setIoThreadCount(config.getRpcClientIoThreads());
+            rpcClient.setSocketChannelCount(config.getRpcClientChannels());
             rpcClient.run();
             if(config.isEnablesRpcClientAutoReconnect()) {
-                rpcClient.enableAutoReconnect(config.getRpcClientHeartIntervalSecond(), TimeUnit.SECONDS,null);
+                rpcClient.enableAutoReconnect(config.getRpcClientHeartIntervalSecond(), TimeUnit.SECONDS,null,config.isEnableRpcHeartLog());
             }
             return rpcClient;
         }

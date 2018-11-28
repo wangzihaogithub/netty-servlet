@@ -16,7 +16,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -102,11 +101,11 @@ public class NettyRpcClientProxy implements InvocationHandler {
         RpcClient rpcClient = rpcClientMap.get(address);
         if(rpcClient == null) {
             rpcClient = new RpcClient(address);
-            rpcClient.setSocketChannelCount(1);
-            rpcClient.setWorkerCount(config.getRpcClientWorkerCount());
+            rpcClient.setSocketChannelCount(config.getRpcClientChannels());
+            rpcClient.setIoThreadCount(config.getRpcClientIoThreads());
             rpcClient.run();
             if (config.isEnablesRpcClientAutoReconnect()) {
-                rpcClient.enableAutoReconnect(config.getRpcClientHeartIntervalSecond(), TimeUnit.SECONDS,null);
+                rpcClient.enableAutoReconnect(config.getRpcClientHeartIntervalSecond(), TimeUnit.SECONDS,null,config.isEnableRpcHeartLog());
             }
             rpcClientMap.put(address,rpcClient);
         }
@@ -122,7 +121,7 @@ public class NettyRpcClientProxy implements InvocationHandler {
         InetSocketAddress address = chooseAddress(requestThreadLocal.get());
         RpcClient rpcClient = new RpcClient("Ping-",address);
         rpcClient.setSocketChannelCount(1);
-        rpcClient.setWorkerCount(1);
+        rpcClient.setIoThreadCount(1);
         rpcClient.run();
 
         try {

@@ -17,6 +17,7 @@ import javax.servlet.http.HttpSessionAttributeListener;
 import javax.servlet.http.HttpSessionIdListener;
 import javax.servlet.http.HttpSessionListener;
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.net.MalformedURLException;
@@ -209,22 +210,21 @@ public class ServletContext implements javax.servlet.ServletContext {
 
     @Override
     public URL getResource(String path) throws MalformedURLException {
-        if (!path.startsWith("/")) {
+        if (path.isEmpty() || path.charAt(0) != '/') {
             throw new MalformedURLException("Path '" + path + "' does not start with '/'");
         }
         URL url = new URL(getClassLoader().getResource(""), path.substring(1));
-        try {
-            url.openStream();
-        } catch (Throwable t) {
-            logger.warn("Throwing exception when getting InputStream of " + path + " in /");
-            url = null;
-        }
         return url;
     }
 
     @Override
     public InputStream getResourceAsStream(String path) {
-        return getClassLoader().getResourceAsStream(path);
+        try {
+            return getResource(path).openStream();
+        } catch (IOException e) {
+            logger.warn("Throwing exception when getResourceAsStream of {0}, case {1} ",path,e.getMessage());
+            return null;
+        }
     }
 
     @Override

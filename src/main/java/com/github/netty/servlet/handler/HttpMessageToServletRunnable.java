@@ -3,10 +3,11 @@ package com.github.netty.servlet.handler;
 import com.github.netty.core.MessageToRunnable;
 import com.github.netty.core.util.AbstractRecycler;
 import com.github.netty.core.util.ByteBufAllocatorX;
-import com.github.netty.core.util.ExceptionUtil;
 import com.github.netty.core.util.Recyclable;
 import com.github.netty.servlet.*;
 import com.github.netty.servlet.support.HttpServletObject;
+import com.github.netty.servlet.support.ServletErrorPage;
+import com.github.netty.servlet.support.ServletErrorPageManager;
 import com.github.netty.springboot.NettyProperties;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPipeline;
@@ -15,6 +16,8 @@ import io.netty.handler.codec.http.HttpRequestDecoder;
 import io.netty.handler.codec.http.HttpServerCodec;
 import io.netty.handler.stream.ChunkedWriteHandler;
 
+import javax.servlet.RequestDispatcher;
+import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -81,6 +84,7 @@ public class HttpMessageToServletRunnable implements MessageToRunnable {
         public void run() {
             ServletHttpServletRequest httpServletRequest = httpServletObject.getHttpServletRequest();
             ServletHttpServletResponse httpServletResponse = httpServletObject.getHttpServletResponse();
+            Throwable realThrowable = null;
 
             long beginTime = System.currentTimeMillis();
             try {
@@ -92,10 +96,37 @@ public class HttpMessageToServletRunnable implements MessageToRunnable {
                 dispatcher.dispatch(httpServletRequest, httpServletResponse);
 
             }catch (Throwable throwable){
-                ExceptionUtil.printRootCauseStackTrace(throwable);
+                realThrowable = throwable;
+                if(throwable instanceof ServletException){
+                    realThrowable = ((ServletException) throwable).getRootCause();
+                }
             }finally {
                 long totalTime = System.currentTimeMillis() - beginTime;
                 SERVLET_AND_FILTER_TIME.addAndGet(totalTime);
+
+                /*
+                 * 错误页的获取依据有两种 1.依据异常类型 2.依据状态码
+                 */
+                if(realThrowable == null) {
+                    realThrowable = (Throwable) httpServletRequest.getAttribute(RequestDispatcher.ERROR_EXCEPTION);
+                }
+                ServletErrorPage errorPage = null;
+                ServletErrorPageManager errorPageManager = httpServletObject.getServletContext().getErrorPageManager();
+                if(realThrowable != null){
+                    errorPage = errorPageManager.find(realThrowable);
+                    if(errorPage == null) {
+                        errorPage = errorPageManager.find(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                    }
+                }else if(httpServletResponse.isError()) {
+                    errorPage = errorPageManager.find(httpServletResponse.getStatus());
+                    if(errorPage == null) {
+                        errorPage = errorPageManager.find(0);
+                    }
+                }
+                //处理错误页
+                if(errorPage != null){
+                    errorPageManager.handleErrorPage(errorPage,realThrowable,httpServletRequest,httpServletResponse);
+                }
 
                 /*
                  * 如果不是异步， 或者异步已经结束

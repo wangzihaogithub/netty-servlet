@@ -1,6 +1,7 @@
 package com.github.netty.servlet;
 
 import com.github.netty.servlet.support.HttpServletObject;
+import com.github.netty.servlet.util.MediaType;
 
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletResponseWrapper;
@@ -74,14 +75,17 @@ public class ServletHttpAsyncResponse extends HttpServletResponseWrapper {
             return writer;
         }
 
-        Charset charset;
         String characterEncoding = getCharacterEncoding();
-        if(characterEncoding != null && characterEncoding.length() > 0){
-            charset = Charset.forName(characterEncoding);
-        }else {
-            charset = Charset.forName(httpServletObject.getServletContext().getResponseCharacterEncoding());
+        if(characterEncoding == null || characterEncoding.isEmpty()){
+            if(MediaType.isHtmlType(getContentType())){
+                characterEncoding = MediaType.DEFAULT_DOCUMENT_CHARACTER_ENCODING;
+            }else {
+                characterEncoding = httpServletObject.getServletContext().getResponseCharacterEncoding();
+            }
+            setCharacterEncoding(characterEncoding);
         }
-        writer = new ServletPrintWriter(getOutputStream(),charset);
+
+        writer = new ServletPrintWriter(getOutputStream(),Charset.forName(characterEncoding));
         return writer;
     }
 

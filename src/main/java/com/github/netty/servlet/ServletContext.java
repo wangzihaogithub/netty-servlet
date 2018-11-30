@@ -1,7 +1,11 @@
 package com.github.netty.servlet;
 
 import com.github.netty.core.constants.HttpConstants;
-import com.github.netty.core.util.*;
+import com.github.netty.core.util.LoggerFactoryX;
+import com.github.netty.core.util.LoggerX;
+import com.github.netty.core.util.ThreadPoolX;
+import com.github.netty.core.util.TypeUtil;
+import com.github.netty.servlet.support.ServletErrorPageManager;
 import com.github.netty.servlet.support.ServletEventListenerManager;
 import com.github.netty.servlet.util.MimeMappingsX;
 import com.github.netty.servlet.util.UrlMapper;
@@ -38,6 +42,7 @@ public class ServletContext implements javax.servlet.ServletContext {
     private Map<String,ServletFilterRegistration> filterRegistrationMap = new HashMap<>(8);
     private Set<SessionTrackingMode> defaultSessionTrackingModeSet = new HashSet<>(Arrays.asList(SessionTrackingMode.COOKIE,SessionTrackingMode.URL));
 
+    private ServletErrorPageManager servletErrorPageManager = new ServletErrorPageManager();
     private MimeMappingsX mimeMappings = new MimeMappingsX();
     private ServletEventListenerManager servletEventListenerManager = new ServletEventListenerManager();
     private ServletSessionCookieConfig sessionCookieConfig = new ServletSessionCookieConfig();
@@ -620,6 +625,10 @@ public class ServletContext implements javax.servlet.ServletContext {
     public javax.servlet.ServletRegistration.Dynamic addJspFile(String jspName, String jspFile) {
         // TODO: 2018/11/11/011  addJspFile
         return null;
+    }
+
+    public ServletErrorPageManager getErrorPageManager() {
+        return servletErrorPageManager;
     }
 
 }

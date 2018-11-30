@@ -1,16 +1,13 @@
 package com.github.netty.servlet;
 
-import com.github.netty.springboot.NettyProperties;
 import com.github.netty.core.NettyHttpCookie;
 import com.github.netty.core.NettyHttpResponse;
 import com.github.netty.core.constants.HttpConstants;
 import com.github.netty.core.constants.HttpHeaderConstants;
-import com.github.netty.core.util.AbstractRecycler;
-import com.github.netty.core.util.CompositeByteBufX;
-import com.github.netty.core.util.Recyclable;
 import com.github.netty.core.util.*;
 import com.github.netty.servlet.support.HttpServletObject;
 import com.github.netty.servlet.util.ServletUtil;
+import com.github.netty.springboot.NettyProperties;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.ChannelFuture;
@@ -384,9 +381,14 @@ public class ServletOutputStream extends javax.servlet.ServletOutputStream imple
         if (
 //                !isKeepAlive &&
                         !HttpHeaderUtil.isContentLengthSet(nettyResponse)) {
-            ByteBuf content = nettyResponse.content();
-            if(content != null) {
-                HttpHeaderUtil.setContentLength(nettyResponse, content.readableBytes());
+            long contentLength = servletResponse.getContentLength();
+            if(contentLength >= 0){
+                HttpHeaderUtil.setContentLength(nettyResponse, contentLength);
+            }else {
+                ByteBuf content = nettyResponse.content();
+                if(content != null) {
+                    HttpHeaderUtil.setContentLength(nettyResponse, content.readableBytes());
+                }
             }
         }
 

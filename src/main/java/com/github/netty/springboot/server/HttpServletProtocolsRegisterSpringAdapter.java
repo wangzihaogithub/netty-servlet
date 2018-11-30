@@ -4,12 +4,14 @@ import com.github.netty.core.util.ApplicationX;
 import com.github.netty.core.util.StringUtil;
 import com.github.netty.register.HttpServletProtocolsRegister;
 import com.github.netty.servlet.ServletContext;
+import com.github.netty.servlet.support.ServletErrorPage;
 import com.github.netty.session.CompositeSessionServiceImpl;
 import com.github.netty.session.SessionService;
 import com.github.netty.springboot.NettyProperties;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.web.server.ErrorPage;
 import org.springframework.boot.web.server.MimeMappings;
 import org.springframework.boot.web.server.Ssl;
 import org.springframework.boot.web.servlet.server.AbstractServletWebServerFactory;
@@ -56,6 +58,12 @@ public class HttpServletProtocolsRegisterSpringAdapter extends HttpServletProtoc
         servletContext.setSessionService(newSessionService(properties));
         for (MimeMappings.Mapping mapping :configurableWebServer.getMimeMappings()) {
             servletContext.getMimeMappings().add(mapping.getExtension(),mapping.getMimeType());
+        }
+
+        //注册错误页
+        for(ErrorPage errorPage : configurableWebServer.getErrorPages()) {
+            ServletErrorPage servletErrorPage = new ServletErrorPage(errorPage.getStatusCode(),errorPage.getException(),errorPage.getPath());
+            servletContext.getErrorPageManager().add(servletErrorPage);
         }
         return servletContext;
     }

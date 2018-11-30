@@ -13,7 +13,10 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author 84215
  */
 public class MediaType {
-
+    /**
+     * 默认文档编码
+     */
+    public static final String DEFAULT_DOCUMENT_CHARACTER_ENCODING = "ISO-8859-1";
     private static MediaTypeCache MEDIA_TYPE_CACHE;
     private static final String CHARSET = "charset";
 
@@ -34,6 +37,13 @@ public class MediaType {
             cs = HttpParser.unquote(cs);
         }
         this.charset = cs;
+    }
+
+    public static boolean isHtmlType(String type){
+        if(type == null){
+            return false;
+        }
+        return type.contains("html") || type.contains("HTML");
     }
 
     public String getType() {

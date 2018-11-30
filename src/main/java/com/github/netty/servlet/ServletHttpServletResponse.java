@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.charset.Charset;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * servlet响应
@@ -43,6 +44,9 @@ public class ServletHttpServletResponse implements javax.servlet.http.HttpServle
     private Locale locale;
     private boolean commitFlag = false;
     private final ServletOutputStreamWrapper outWrapper = new ServletOutputStreamWrapper(new CloseListener());
+    private long contentLength = -1;
+    private final AtomicInteger errorState = new AtomicInteger(0);
+
 
     protected ServletHttpServletResponse() {
     }
@@ -65,6 +69,10 @@ public class ServletHttpServletResponse implements javax.servlet.http.HttpServle
 
     public NettyHttpResponse getNettyResponse() {
         return nettyResponse;
+    }
+
+    public long getContentLength() {
+        return contentLength;
     }
 
     /**
@@ -239,14 +247,20 @@ public class ServletHttpServletResponse implements javax.servlet.http.HttpServle
     public void sendError(int sc, String msg) throws IOException {
         checkCommitted();
         nettyResponse.setStatus(new HttpResponseStatus(sc, msg));
-        commitFlag = true;
+
+        resetBuffer();
+        getOutputStream().setSuspendFlag(true);
+        setError();
     }
 
     @Override
     public void sendError(int sc) throws IOException {
         checkCommitted();
         nettyResponse.setStatus(HttpResponseStatus.valueOf(sc));
-        commitFlag = true;
+
+        resetBuffer();
+        getOutputStream().setSuspendFlag(true);
+        setError();
     }
 
     @Override
@@ -377,14 +391,17 @@ public class ServletHttpServletResponse implements javax.servlet.http.HttpServle
             return writer;
         }
 
-        Charset charset;
         String characterEncoding = getCharacterEncoding();
-        if(characterEncoding != null && characterEncoding.length() > 0){
-            charset = Charset.forName(characterEncoding);
-        }else {
-            charset = Charset.forName(httpServletObject.getServletContext().getResponseCharacterEncoding());
+        if(characterEncoding == null || characterEncoding.isEmpty()){
+            if(MediaType.isHtmlType(getContentType())){
+                characterEncoding = MediaType.DEFAULT_DOCUMENT_CHARACTER_ENCODING;
+            }else {
+                characterEncoding = httpServletObject.getServletContext().getResponseCharacterEncoding();
+            }
+            setCharacterEncoding(characterEncoding);
         }
-        writer = new ServletPrintWriter(getOutputStream(),charset);
+
+        writer = new ServletPrintWriter(getOutputStream(),Charset.forName(characterEncoding));
         return writer;
     }
 
@@ -403,8 +420,7 @@ public class ServletHttpServletResponse implements javax.servlet.http.HttpServle
 
     @Override
     public void setContentLengthLong(long len) {
-        HttpHeaderUtil.setContentLength(nettyResponse, len);
-        commitFlag = true;
+        contentLength = len;
     }
 
     @Override
@@ -450,11 +466,24 @@ public class ServletHttpServletResponse implements javax.servlet.http.HttpServle
      */
     @Override
     public void resetBuffer() {
+        resetBuffer(false);
+    }
+
+    /**
+     * 是否重置打印流
+     * @param resetWriterStreamFlags true=重置打印流, false=不重置打印流
+     */
+    public void resetBuffer(boolean resetWriterStreamFlags) {
         checkCommitted();
         if(outWrapper.unwrap() == null){
             return;
         }
         outWrapper.resetBuffer();
+
+        if(resetWriterStreamFlags) {
+            writer = null;
+            characterEncoding = null;
+        }
     }
 
     @Override
@@ -473,6 +502,18 @@ public class ServletHttpServletResponse implements javax.servlet.http.HttpServle
         outWrapper.recycle();
     }
 
+    public boolean isError() {
+        return errorState.get() > 0;
+    }
+
+    public String getMessage(){
+        return nettyResponse.getStatus().reasonPhrase();
+    }
+
+    private void setError(){
+        errorState.compareAndSet(0,1);
+    }
+
     /**
      * 监听关闭流
      * 优化lambda实例数量, 减少gc次数
@@ -481,6 +522,8 @@ public class ServletHttpServletResponse implements javax.servlet.http.HttpServle
         @Override
         public void operationComplete(ChannelFuture future) throws Exception {
             nettyResponse.recycle();
+            errorState.set(0);
+            contentLength = -1;
             httpServletObject = null;
             writer = null;
             cookies = null;

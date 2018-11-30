@@ -381,9 +381,14 @@ public class ServletOutputStream extends javax.servlet.ServletOutputStream imple
         if (
 //                !isKeepAlive &&
                         !HttpHeaderUtil.isContentLengthSet(nettyResponse)) {
-            ByteBuf content = nettyResponse.content();
-            if(content != null) {
-                HttpHeaderUtil.setContentLength(nettyResponse, content.readableBytes());
+            long contentLength = servletResponse.getContentLength();
+            if(contentLength >= 0){
+                HttpHeaderUtil.setContentLength(nettyResponse, contentLength);
+            }else {
+                ByteBuf content = nettyResponse.content();
+                if(content != null) {
+                    HttpHeaderUtil.setContentLength(nettyResponse, content.readableBytes());
+                }
             }
         }
 

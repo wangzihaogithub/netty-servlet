@@ -76,7 +76,7 @@ public class ServletRequestDispatcher implements RequestDispatcher,Recyclable {
         ServletHttpForwardRequest forwardRequest = new ServletHttpForwardRequest(httpRequest);
 
         //根据名称
-        if (name != null) {
+        if (path == null) {
             forwardRequest.setForwardName(name);
             forwardRequest.setPaths(httpRequest.getPathInfo(),httpRequest.getQueryString(),httpRequest.getRequestURI(),httpRequest.getServletPath());
             forwardRequest.setParameterMap(httpRequest.getParameterMap());
@@ -114,9 +114,6 @@ public class ServletRequestDispatcher implements RequestDispatcher,Recyclable {
         if(httpRequest == null){
             throw new UnsupportedOperationException("Not found Original Request");
         }
-        if (response.isCommitted()) {
-            throw new IOException("Cannot perform this operation after response has been committed");
-        }
 
         //切换至分块传输流
         httpResponse.changeToChunkStream();
@@ -126,7 +123,7 @@ public class ServletRequestDispatcher implements RequestDispatcher,Recyclable {
         ServletHttpIncludeRequest includeRequest = new ServletHttpIncludeRequest(httpRequest);
 
         //根据名称
-        if (name != null) {
+        if (path == null) {
             includeRequest.setIncludeName(name);
             includeRequest.setPaths(httpRequest.getPathInfo(),httpRequest.getQueryString(),httpRequest.getRequestURI(),httpRequest.getServletPath());
             includeRequest.setParameterMap(httpRequest.getParameterMap());
@@ -171,6 +168,9 @@ public class ServletRequestDispatcher implements RequestDispatcher,Recyclable {
      * @return
      */
     public Runnable dispatchAsync(HttpServletRequest request, HttpServletResponse response, ServletAsyncContext asyncContext){
+        if(path == null){
+            return null;
+        }
         if(request instanceof ServletHttpAsyncRequest
                 && path.equals(request.getAttribute(AsyncContext.ASYNC_REQUEST_URI))){
             return null;
@@ -221,13 +221,19 @@ public class ServletRequestDispatcher implements RequestDispatcher,Recyclable {
         return runnable;
     }
 
-
     public void setPath(String path) {
         this.path = path;
     }
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getName() {
+        if(filterChain == null){
+            return null;
+        }
+        return filterChain.getServletRegistration().getName();
     }
 
     @Override

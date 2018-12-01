@@ -217,7 +217,7 @@ public class ServletHttpServletRequest implements javax.servlet.http.HttpServlet
         }
         String servletPath = existContextPath? sourceURI.replace(contextPath, "") : sourceURI;
         if (servletPath.isEmpty() || servletPath.charAt(0)!= '/') {
-            servletPath = '/' + servletPath;
+            servletPath = "/".concat(servletPath);
         }
 
         //解析queryString
@@ -230,7 +230,7 @@ public class ServletHttpServletRequest implements javax.servlet.http.HttpServlet
         //解析requestURI, 保证 requestURI 前缀加 /
         String requestURI;
         if(existContextPath){
-            requestURI = '/' + contextPath + servletPath;
+            requestURI = "/".concat(contextPath).concat(servletPath);
         }else {
             requestURI = servletPath;
         }

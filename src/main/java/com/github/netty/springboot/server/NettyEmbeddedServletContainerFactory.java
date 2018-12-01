@@ -7,7 +7,12 @@ import org.springframework.boot.context.embedded.AbstractEmbeddedServletContaine
 import org.springframework.boot.context.embedded.EmbeddedServletContainer;
 import org.springframework.boot.context.embedded.JspServlet;
 import org.springframework.boot.web.servlet.ServletContextInitializer;
+import org.springframework.context.ResourceLoaderAware;
+import org.springframework.core.io.ResourceLoader;
+import org.springframework.util.ClassUtils;
 
+import java.io.File;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 
 /**
@@ -19,7 +24,8 @@ import java.net.InetSocketAddress;
  * @author acer01
  *  2018/7/14/014
  */
-public class NettyEmbeddedServletContainerFactory extends AbstractEmbeddedServletContainerFactory{
+public class NettyEmbeddedServletContainerFactory extends AbstractEmbeddedServletContainerFactory implements ResourceLoaderAware {
+    protected ResourceLoader resourceLoader;
     protected NettyProperties properties;
 
     public NettyEmbeddedServletContainerFactory() {
@@ -38,12 +44,19 @@ public class NettyEmbeddedServletContainerFactory extends AbstractEmbeddedServle
     @Override
     public EmbeddedServletContainer getEmbeddedServletContainer(ServletContextInitializer... initializers) {
         try {
-            InetSocketAddress serverAddress = new InetSocketAddress(getAddress(),getPort());
-            NettyEmbeddedServletContainer container = new NettyEmbeddedServletContainer(serverAddress, properties);
+            //临时目录
+            File documentRoot = getValidDocumentRoot();
+            File docBase = documentRoot != null? documentRoot : createTempDir("nettyx-docbase");
 
-            ServletContext servletContext = new ServletContext(serverAddress);
+            //服务器端口
+            InetSocketAddress serverAddress = new InetSocketAddress(getAddress() == null? InetAddress.getLoopbackAddress():getAddress(),getPort());
+            ClassLoader classLoader = resourceLoader != null ? resourceLoader.getClassLoader() : ClassUtils.getDefaultClassLoader();
+            NettyEmbeddedServletContainer server = new NettyEmbeddedServletContainer(serverAddress, properties);
+
+            ServletContext servletContext = new ServletContext(serverAddress,classLoader,docBase.getAbsolutePath());
+
             //配置tcp服务器
-            configurableTcpServer(container,servletContext);
+            configurableTcpServer(server,servletContext);
 
             //默认 servlet
             if (isRegisterDefaultServlet()) {
@@ -63,7 +76,7 @@ public class NettyEmbeddedServletContainerFactory extends AbstractEmbeddedServle
                 initializer.onStartup(servletContext);
             }
 
-            return container;
+            return server;
         }catch (Exception e){
             throw new IllegalStateException(e.getMessage(),e);
         }
@@ -82,4 +95,8 @@ public class NettyEmbeddedServletContainerFactory extends AbstractEmbeddedServle
         tcpServer.addProtocolsRegister(new HRpcProtocolsRegisterSpringAdapter(properties.getApplication()));
     }
 
+    @Override
+    public void setResourceLoader(ResourceLoader resourceLoader) {
+        this.resourceLoader = resourceLoader;
+    }
 }

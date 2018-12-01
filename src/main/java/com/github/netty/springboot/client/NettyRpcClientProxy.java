@@ -11,14 +11,15 @@ import com.github.netty.rpc.exception.RpcConnectException;
 import com.github.netty.rpc.exception.RpcException;
 import com.github.netty.springboot.NettyProperties;
 import io.netty.util.concurrent.FastThreadLocal;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -46,7 +47,7 @@ public class NettyRpcClientProxy implements InvocationHandler {
         }
     };
 
-    NettyRpcClientProxy(String serviceId,String serviceName, Class interfaceClass, NettyProperties config, NettyRpcLoadBalanced loadBalanced) {
+    NettyRpcClientProxy(String serviceId, String serviceName, Class interfaceClass, NettyProperties config, NettyRpcLoadBalanced loadBalanced) {
         this.serviceId = serviceId;
         this.interfaceClass = interfaceClass;
         this.config = config;
@@ -64,8 +65,11 @@ public class NettyRpcClientProxy implements InvocationHandler {
         RpcClient rpcClient = getClient(address);
         RpcClientInstance rpcClientInstance = rpcClient.getRpcInstance(serviceName);
         if(rpcClientInstance == null){
+            List<Class<?extends Annotation>> parameterAnnotationClasses = Arrays.asList(
+                    RpcParam.class,RequestParam.class,RequestBody.class, RequestHeader.class,
+                    PathVariable.class,CookieValue.class, RequestPart.class);
             rpcClientInstance = rpcClient.newRpcInstance(interfaceClass,config.getRpcTimeout(),serviceName,
-                    new AnnotationMethodToParameterNamesFunction(Arrays.asList(RequestParam.class, RpcParam.class)));
+                    new AnnotationMethodToParameterNamesFunction(parameterAnnotationClasses));
         }
         return rpcClientInstance.invoke(proxy,method,args);
     }
@@ -101,7 +105,7 @@ public class NettyRpcClientProxy implements InvocationHandler {
         RpcClient rpcClient = rpcClientMap.get(address);
         if(rpcClient == null) {
             rpcClient = new RpcClient(address);
-            rpcClient.setSocketChannelCount(config.getRpcClientChannels());
+            rpcClient.setSocketChannelCount(1);
             rpcClient.setIoThreadCount(config.getRpcClientIoThreads());
             rpcClient.run();
             if (config.isEnablesRpcClientAutoReconnect()) {
@@ -117,7 +121,7 @@ public class NettyRpcClientProxy implements InvocationHandler {
      * @return ping返回的消息
      * @throws RpcException
      */
-    public byte[] pingOnceAfterDestroy() throws RpcException{
+    public byte[] pingOnceAfterDestroy() throws RpcException {
         InetSocketAddress address = chooseAddress(requestThreadLocal.get());
         RpcClient rpcClient = new RpcClient("Ping-",address);
         rpcClient.setSocketChannelCount(1);

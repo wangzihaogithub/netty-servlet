@@ -8,8 +8,7 @@ import com.github.netty.rpc.AnnotationMethodToParameterNamesFunction;
 import com.github.netty.rpc.AsmMethodToParameterNamesFunction;
 import com.github.netty.rpc.annotation.RpcParam;
 import com.github.netty.rpc.annotation.RpcService;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
@@ -46,8 +45,9 @@ public class HRpcProtocolsRegisterSpringAdapter extends HRpcProtocolsRegister {
     }
 
     private boolean addInstanceForRequestMapping(Object serviceImpl){
-        List<Class<?extends Annotation>> parameterAnnotationClasses = Arrays.asList(RequestParam.class,RpcParam.class);
-
+        List<Class<?extends Annotation>> parameterAnnotationClasses = Arrays.asList(
+                RpcParam.class,RequestParam.class,RequestBody.class, RequestHeader.class,
+                PathVariable.class,CookieValue.class, RequestPart.class);
         Class annotationOnClass = ReflectUtil.findClassByAnnotation(serviceImpl.getClass(), RequestMapping.class);
         if(annotationOnClass == null){
             return false;

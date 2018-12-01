@@ -1,12 +1,17 @@
 package com.github.netty.springboot.client;
 
 import com.github.netty.springboot.EnableNettyRpcClients;
+import com.github.netty.springboot.NettyPropertiesAutoConfiguration;
 import com.github.netty.springboot.NettyRpcClient;
 import org.springframework.beans.factory.BeanClassLoaderAware;
 import org.springframework.beans.factory.annotation.AnnotatedBeanDefinition;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.config.BeanDefinitionHolder;
-import org.springframework.beans.factory.support.*;
+import org.springframework.beans.factory.support.AbstractBeanDefinition;
+import org.springframework.beans.factory.support.BeanDefinitionBuilder;
+import org.springframework.beans.factory.support.BeanDefinitionReaderUtils;
+import org.springframework.beans.factory.support.BeanDefinitionRegistry;
+import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.context.EnvironmentAware;
 import org.springframework.context.ResourceLoaderAware;
 import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
@@ -27,6 +32,7 @@ import java.util.Set;
 /**
  * @author 84215
  */
+@AutoConfigureAfter(NettyPropertiesAutoConfiguration.class)
 public class NettyRpcClientsRegistrar implements ImportBeanDefinitionRegistrar,
         ResourceLoaderAware, BeanClassLoaderAware, EnvironmentAware {
 
@@ -90,11 +96,6 @@ public class NettyRpcClientsRegistrar implements ImportBeanDefinitionRegistrar,
 
         beanDefinition.setPrimary((Boolean)attributes.get("primary"));
 
-//        String alias = serviceId + "FeignClient";
-//        String qualifier = getQualifier(attributes);
-//        if (StringUtils.hasText(qualifier)) {
-//            alias = qualifier;
-//        }
 
         BeanDefinitionHolder holder = new BeanDefinitionHolder(beanDefinition, className);
         BeanDefinitionReaderUtils.registerBeanDefinition(holder, registry);
@@ -122,7 +123,7 @@ public class NettyRpcClientsRegistrar implements ImportBeanDefinitionRegistrar,
         return value;
     }
 
-    protected Set<String> getBasePackages(AnnotationMetadata importingClassMetadata,Map<String, Object> enableNettyRpcClientsAttributes) {
+    protected Set<String> getBasePackages(AnnotationMetadata importingClassMetadata, Map<String, Object> enableNettyRpcClientsAttributes) {
         Set<String> basePackages = new HashSet<>();
         for (String pkg : (String[]) enableNettyRpcClientsAttributes.get("value")) {
             if (StringUtils.hasText(pkg)) {

@@ -411,9 +411,9 @@ public class ServletOutputStream extends javax.servlet.ServletOutputStream imple
         // 时间日期响应头
         headers.set(HttpHeaderConstants.DATE, ServletUtil.newDateGMT());
         //服务器信息响应头
-        String serverInfo = servletRequest.getServletContext().getServerInfo();
-        if(serverInfo != null && serverInfo.length() > 0) {
-            headers.set(HttpHeaderConstants.SERVER, serverInfo);
+        String serverHeader = servletRequest.getServletContext().getServerHeader();
+        if(serverHeader != null && serverHeader.length() > 0) {
+            headers.set(HttpHeaderConstants.SERVER, serverHeader);
         }
 
         // cookies处理

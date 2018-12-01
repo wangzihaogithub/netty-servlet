@@ -1,13 +1,12 @@
 package com.github.netty.servlet;
 
 import com.github.netty.core.constants.HttpConstants;
-import com.github.netty.core.util.LoggerFactoryX;
-import com.github.netty.core.util.LoggerX;
-import com.github.netty.core.util.ThreadPoolX;
-import com.github.netty.core.util.TypeUtil;
+import com.github.netty.core.util.*;
+import com.github.netty.servlet.support.ResourceManager;
 import com.github.netty.servlet.support.ServletErrorPageManager;
 import com.github.netty.servlet.support.ServletEventListenerManager;
 import com.github.netty.servlet.util.MimeMappingsX;
+import com.github.netty.servlet.util.ServletUtil;
 import com.github.netty.servlet.util.UrlMapper;
 import com.github.netty.session.SessionService;
 
@@ -16,8 +15,6 @@ import javax.servlet.descriptor.JspConfigDescriptor;
 import javax.servlet.http.HttpSessionAttributeListener;
 import javax.servlet.http.HttpSessionIdListener;
 import javax.servlet.http.HttpSessionListener;
-import java.io.File;
-import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.net.MalformedURLException;
@@ -43,6 +40,7 @@ public class ServletContext implements javax.servlet.ServletContext {
     private Map<String,ServletFilterRegistration> filterRegistrationMap = new HashMap<>(8);
     private Set<SessionTrackingMode> defaultSessionTrackingModeSet = new HashSet<>(Arrays.asList(SessionTrackingMode.COOKIE,SessionTrackingMode.URL));
 
+//    private final PropertyChangeSupport propertyChangeSupport = new PropertyChangeSupport(this);
     private ServletErrorPageManager servletErrorPageManager = new ServletErrorPageManager();
     private MimeMappingsX mimeMappings = new MimeMappingsX();
     private ServletEventListenerManager servletEventListenerManager = new ServletEventListenerManager();
@@ -50,20 +48,23 @@ public class ServletContext implements javax.servlet.ServletContext {
     private UrlMapper<ServletRegistration> servletUrlMapper = new UrlMapper<>(true);
     private UrlMapper<ServletFilterRegistration> filterUrlMapper = new UrlMapper<>(false);
 
+    private ResourceManager resourceManager;
     private ExecutorService asyncExecutorService;
     private SessionService sessionService;
     private Set<SessionTrackingMode> sessionTrackingModeSet;
 
-    private String serverInfo;
+    private String serverHeader;
     private String contextPath;
     private String requestCharacterEncoding;
     private String responseCharacterEncoding;
-
+    private String servletContextName;
     private InetSocketAddress servletServerAddress;
-    private ClassLoader classLoader;
 
-    public ServletContext(InetSocketAddress socketAddress) {
-        this.servletServerAddress = socketAddress;
+    public ServletContext(InetSocketAddress socketAddress,ClassLoader classLoader,String docBase) {
+        this.servletServerAddress = Objects.requireNonNull(socketAddress);
+        String workspace = '/' + (HostUtil.isLocalhost(socketAddress.getHostName())? "localhost":socketAddress.getHostName());
+        this.resourceManager = new ResourceManager(docBase,workspace,classLoader);
+        this.resourceManager.mkdirs("/");
     }
 
     public ExecutorService getAsyncExecutorService() {
@@ -82,16 +83,28 @@ public class ServletContext implements javax.servlet.ServletContext {
         return mimeMappings;
     }
 
-    public void setServerInfo(String serverInfo) {
-        this.serverInfo = serverInfo;
+    public ResourceManager getResourceManager() {
+        return resourceManager;
+    }
+
+    public ServletErrorPageManager getErrorPageManager() {
+        return servletErrorPageManager;
+    }
+
+    public void setServletContextName(String servletContextName) {
+        this.servletContextName = servletContextName;
+    }
+
+    public void setServerHeader(String serverHeader) {
+        this.serverHeader = serverHeader;
+    }
+
+    public String getServerHeader() {
+        return serverHeader;
     }
 
     public void setContextPath(String contextPath) {
         this.contextPath = contextPath;
-    }
-
-    public void setClassLoader(ClassLoader classLoader) {
-        this.classLoader = classLoader;
     }
 
     public ServletEventListenerManager getServletEventListenerManager() {
@@ -110,17 +123,6 @@ public class ServletContext implements javax.servlet.ServletContext {
         }
     }
 
-    public int getSessionTimeout() {
-        return sessionTimeout;
-    }
-
-    public void setSessionTimeout(int sessionTimeout) {
-        if(sessionTimeout <= 0){
-            return;
-        }
-        this.sessionTimeout = sessionTimeout;
-    }
-
     public InetSocketAddress getServletServerAddress() {
         return servletServerAddress;
     }
@@ -131,6 +133,17 @@ public class ServletContext implements javax.servlet.ServletContext {
 
     public SessionService getSessionService() {
         return sessionService;
+    }
+
+    public int getSessionTimeout() {
+        return sessionTimeout;
+    }
+
+    public void setSessionTimeout(int sessionTimeout) {
+        if(sessionTimeout <= 0){
+            return;
+        }
+        this.sessionTimeout = sessionTimeout;
     }
 
     @Override
@@ -181,50 +194,22 @@ public class ServletContext implements javax.servlet.ServletContext {
 
     @Override
     public Set<String> getResourcePaths(String path) {
-        Set<String> thePaths = new HashSet<>();
-        if (!path.endsWith("/")) {
-            path += '/';
-        }
-        String basePath = getRealPath(path);
-        if (basePath == null) {
-            return thePaths;
-        }
-        File theBaseDir = new File(basePath);
-        if (!theBaseDir.exists() || !theBaseDir.isDirectory()) {
-            return thePaths;
-        }
-        String theFiles[] = theBaseDir.list();
-        if (theFiles == null) {
-            return thePaths;
-        }
-        for (String filename : theFiles) {
-            File testFile = new File(basePath + File.separator + filename);
-            if (testFile.isFile()) {
-                thePaths.add(path + filename);
-            } else if (testFile.isDirectory()) {
-                thePaths.add(path + filename + '/');
-            }
-        }
-        return thePaths;
+        return resourceManager.getResourcePaths(path);
     }
 
     @Override
     public URL getResource(String path) throws MalformedURLException {
-        if (path.isEmpty() || path.charAt(0) != '/') {
-            throw new MalformedURLException("Path '" + path + "' does not start with '/'");
-        }
-        URL url = new URL(getClassLoader().getResource(""), path.substring(1));
-        return url;
+        return resourceManager.getResource(path);
     }
 
     @Override
     public InputStream getResourceAsStream(String path) {
-        try {
-            return getResource(path).openStream();
-        } catch (IOException e) {
-            logger.warn("Throwing exception when getResourceAsStream of {0}, case {1} ",path,e.getMessage());
-            return null;
-        }
+        return resourceManager.getResourceAsStream(path);
+    }
+
+    @Override
+    public String getRealPath(String path) {
+        return resourceManager.getRealPath(path);
     }
 
     @Override
@@ -307,13 +292,15 @@ public class ServletContext implements javax.servlet.ServletContext {
     }
 
     @Override
-    public String getRealPath(String path) {
-        return path;
-    }
-
-    @Override
     public String getServerInfo() {
-        return serverInfo;
+        return ServletUtil.getServerInfo()
+                .concat("(JDK ")
+                .concat(ServletUtil.getJvmVersion())
+                .concat(";")
+                .concat(ServletUtil.getOsName())
+                .concat(" ")
+                .concat(ServletUtil.getArch())
+                .concat(")");
     }
 
     @Override
@@ -383,7 +370,7 @@ public class ServletContext implements javax.servlet.ServletContext {
 
     @Override
     public String getServletContextName() {
-        return getClass().getSimpleName();
+        return servletContextName;
     }
 
     @Override
@@ -556,9 +543,7 @@ public class ServletContext implements javax.servlet.ServletContext {
     public void addListener(Class<? extends EventListener> listenerClass) {
         try {
             addListener(listenerClass.newInstance());
-        } catch (InstantiationException e) {
-            e.printStackTrace();
-        } catch (IllegalAccessException e) {
+        } catch (InstantiationException | IllegalAccessException e) {
             e.printStackTrace();
         }
     }
@@ -567,9 +552,7 @@ public class ServletContext implements javax.servlet.ServletContext {
     public <T extends EventListener> T createListener(Class<T> clazz) throws ServletException {
         try {
             return clazz.newInstance();
-        } catch (InstantiationException e) {
-            e.printStackTrace();
-        } catch (IllegalAccessException e) {
+        } catch (InstantiationException | IllegalAccessException e) {
             e.printStackTrace();
         }
         return null;
@@ -582,7 +565,7 @@ public class ServletContext implements javax.servlet.ServletContext {
 
     @Override
     public ClassLoader getClassLoader() {
-        return classLoader;
+        return resourceManager.getClassLoader();
     }
 
     @Override
@@ -592,7 +575,12 @@ public class ServletContext implements javax.servlet.ServletContext {
 
     @Override
     public String getVirtualServerName() {
-        return "Netty-servlet/" + servletServerAddress.getHostString();
+        return ServletUtil.getServerInfo()
+        .concat("/")
+        .concat(servletServerAddress.getHostName())
+        .concat(" (")
+        .concat(SystemPropertyUtil.get("user.name"))
+        .concat(")");
     }
 
     @Override
@@ -625,10 +613,6 @@ public class ServletContext implements javax.servlet.ServletContext {
     public javax.servlet.ServletRegistration.Dynamic addJspFile(String jspName, String jspFile) {
         // TODO: 2018/11/11/011  addJspFile
         return null;
-    }
-
-    public ServletErrorPageManager getErrorPageManager() {
-        return servletErrorPageManager;
     }
 
 }

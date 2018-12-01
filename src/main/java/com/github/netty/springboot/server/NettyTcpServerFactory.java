@@ -9,8 +9,13 @@ import org.springframework.boot.web.servlet.ServletContextInitializer;
 import org.springframework.boot.web.servlet.server.AbstractServletWebServerFactory;
 import org.springframework.boot.web.servlet.server.ConfigurableServletWebServerFactory;
 import org.springframework.boot.web.servlet.server.Jsp;
+import org.springframework.context.ResourceLoaderAware;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.http.server.reactive.HttpHandler;
+import org.springframework.util.ClassUtils;
 
+import java.io.File;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 
 /**
@@ -24,7 +29,8 @@ import java.net.InetSocketAddress;
  */
 public class NettyTcpServerFactory
         extends AbstractServletWebServerFactory
-        implements ConfigurableReactiveWebServerFactory,ConfigurableServletWebServerFactory {
+        implements ConfigurableReactiveWebServerFactory,ConfigurableServletWebServerFactory,ResourceLoaderAware {
+    protected ResourceLoader resourceLoader;
     protected NettyProperties properties;
 
     public NettyTcpServerFactory() {
@@ -49,12 +55,19 @@ public class NettyTcpServerFactory
     @Override
     public WebServer getWebServer(ServletContextInitializer... initializers) {
         try {
-            InetSocketAddress serverAddress = new InetSocketAddress(getAddress(),getPort());
-            NettyTcpServer tcpServer = new NettyTcpServer(serverAddress, properties);
+            //临时目录
+            File documentRoot = getValidDocumentRoot();
+            File docBase = documentRoot != null? documentRoot : createTempDir("nettyx-docbase");
 
-            ServletContext servletContext = new ServletContext(serverAddress);
+            //服务器端口
+            InetSocketAddress serverAddress = new InetSocketAddress(getAddress() == null? InetAddress.getLoopbackAddress():getAddress(),getPort());
+            ClassLoader classLoader = resourceLoader != null ? resourceLoader.getClassLoader() : ClassUtils.getDefaultClassLoader();
+            NettyTcpServer server = new NettyTcpServer(serverAddress, properties);
+
+            ServletContext servletContext = new ServletContext(serverAddress,classLoader,docBase.getAbsolutePath());
+
             //配置tcp服务器
-            configurableTcpServer(tcpServer,servletContext);
+            configurableTcpServer(server,servletContext);
 
             //默认 servlet
             if (isRegisterDefaultServlet()) {
@@ -74,7 +87,7 @@ public class NettyTcpServerFactory
                 initializer.onStartup(servletContext);
             }
 
-            return tcpServer;
+            return server;
         }catch (Exception e){
             throw new IllegalStateException(e.getMessage(),e);
         }
@@ -93,4 +106,8 @@ public class NettyTcpServerFactory
         tcpServer.addProtocolsRegister(new HRpcProtocolsRegisterSpringAdapter(properties.getApplication()));
     }
 
+    @Override
+    public void setResourceLoader(ResourceLoader resourceLoader) {
+        this.resourceLoader = resourceLoader;
+    }
 }

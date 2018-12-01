@@ -115,7 +115,11 @@ public class HttpMessageToServletRunnable implements MessageToRunnable {
                 if(realThrowable != null){
                     errorPage = errorPageManager.find(realThrowable);
                     if(errorPage == null) {
+                        httpServletResponse.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                         errorPage = errorPageManager.find(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                    }
+                    if(errorPage == null) {
+                        errorPage = errorPageManager.find(0);
                     }
                 }else if(httpServletResponse.isError()) {
                     errorPage = errorPageManager.find(httpServletResponse.getStatus());

@@ -67,4 +67,12 @@ public class ServletErrorPage {
         return result;
     }
 
+    @Override
+    public String toString() {
+        return "ServletErrorPage{" +
+                "status=" + status +
+                ", exception=" + exception +
+                ", path='" + path + '\'' +
+                '}';
+    }
 }

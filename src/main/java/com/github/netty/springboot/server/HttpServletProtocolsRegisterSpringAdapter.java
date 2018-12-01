@@ -15,7 +15,6 @@ import org.springframework.boot.web.server.ErrorPage;
 import org.springframework.boot.web.server.MimeMappings;
 import org.springframework.boot.web.server.Ssl;
 import org.springframework.boot.web.servlet.server.AbstractServletWebServerFactory;
-import org.springframework.util.ClassUtils;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
 
@@ -23,8 +22,6 @@ import javax.annotation.Resource;
 import javax.net.ssl.SSLException;
 import java.io.File;
 import java.net.InetSocketAddress;
-import java.net.URL;
-import java.net.URLClassLoader;
 import java.util.Arrays;
 
 /**
@@ -49,9 +46,9 @@ public class HttpServletProtocolsRegisterSpringAdapter extends HttpServletProtoc
      * @return
      */
     protected ServletContext initServletContext(ServletContext servletContext,AbstractServletWebServerFactory configurableWebServer, NettyProperties properties){
-        servletContext.setClassLoader(new URLClassLoader(new URL[]{}, ClassUtils.getDefaultClassLoader()));
         servletContext.setContextPath(configurableWebServer.getContextPath());
-        servletContext.setServerInfo(configurableWebServer.getServerHeader());
+        servletContext.setServerHeader(configurableWebServer.getServerHeader());
+        servletContext.setServletContextName(configurableWebServer.getDisplayName());
 
         //session超时时间
         servletContext.setSessionTimeout((int) configurableWebServer.getSession().getTimeout().getSeconds());

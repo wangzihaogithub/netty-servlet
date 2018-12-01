@@ -17,6 +17,7 @@ import javax.servlet.ServletResponse;
 import javax.servlet.ServletResponseWrapper;
 import javax.servlet.http.Cookie;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.text.DateFormat;
 import java.text.ParseException;
@@ -34,7 +35,7 @@ public class ServletUtil {
     private static final Map<String,HttpDataFactory> HTTP_DATA_FACTORY_MAP = new ConcurrentHashMap<>();
 
     /**
-     * The only date format permitted when generating HTTP headers.
+     * 生成HTTP报头时允许的唯一日期格式。
      */
     private static final String RFC1123_DATE =
             "EEE, dd MMM yyyy HH:mm:ss zzz";
@@ -93,7 +94,7 @@ public class ServletUtil {
         if (contentType == null) {
             return null;
         }
-        int start = contentType.indexOf(HttpHeaderConstants.CHARSET+"=");
+        int start = contentType.indexOf(HttpHeaderConstants.CHARSET + "=");
         if (start < 0) {
             return null;
         }
@@ -291,4 +292,82 @@ public class ServletUtil {
         return null;
     }
 
+    private static final String SERVER_INFO;
+    private static final String SERVER_BUILT;
+    private static final String SERVER_NUMBER;
+    private static final String JVM_VERSION;
+    private static final String ARCH;
+    private static final String OS_NAME;
+
+    static {
+        String info = null;
+        String built = null;
+        String number = null;
+
+        Properties props = new Properties();
+        try (InputStream is = ServletUtil.class.getResourceAsStream
+                ("/server.properties")) {
+            props.load(is);
+            info = props.getProperty("server.info");
+            built = props.getProperty("server.built");
+            number = props.getProperty("server.number");
+        } catch (Throwable t) {
+            //
+        }
+        if (info == null) {
+            info = "Github NettyX/2.0.x-dev";
+        }
+        if (built == null) {
+            built = "unknown";
+        }
+        if (number == null) {
+            number = "2.0.x";
+        }
+        SERVER_INFO = info;
+        SERVER_BUILT = built;
+        SERVER_NUMBER = number;
+        OS_NAME = System.getProperty("os.name");
+        ARCH = System.getProperty("os.arch");
+        JVM_VERSION = System.getProperty("java.runtime.version");
+    }
+
+    public static String getServerInfo() {
+        return SERVER_INFO;
+    }
+
+    public static String getServerBuilt() {
+        return SERVER_BUILT;
+    }
+
+    public static String getServerNumber() {
+        return SERVER_NUMBER;
+    }
+
+    public static String getJvmVersion() {
+        return JVM_VERSION;
+    }
+
+    public static String getArch() {
+        return ARCH;
+    }
+
+    public static String getOsName() {
+        return OS_NAME;
+    }
+
+    public static void main(String args[]) {
+        System.out.println("Server version: " + getServerInfo());
+        System.out.println("Server built:   " + getServerBuilt());
+        System.out.println("Server number:  " + getServerNumber());
+        System.out.println("OS Name:        " +
+                getOsName());
+        System.out.println("OS Version:     " +
+                System.getProperty("os.version"));
+        System.out.println("Architecture:   " +
+                getArch());
+        System.out.println("JVM Version:    " +
+                getJvmVersion());
+        System.out.println("JVM Vendor:     " +
+                System.getProperty("java.vm.vendor"));
+    }
 }

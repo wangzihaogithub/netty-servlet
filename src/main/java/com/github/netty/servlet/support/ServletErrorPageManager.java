@@ -88,7 +88,7 @@ public class ServletErrorPageManager {
             httpServletRequest.setAttribute(RequestDispatcher.ERROR_SERVLET_NAME,dispatcher.getName());
             httpServletRequest.setAttribute(RequestDispatcher.ERROR_REQUEST_URI, request.getRequestURI());
             httpServletRequest.setAttribute(RequestDispatcher.ERROR_STATUS_CODE, response.getStatus());
-            httpServletRequest.setAttribute(RequestDispatcher.ERROR_MESSAGE, response.getMessage());
+//            httpServletRequest.setAttribute(RequestDispatcher.ERROR_MESSAGE, response.getMessage());
 
             if (httpServletResponse.isCommitted()) {
                 dispatcher.include(request, httpServletResponse);

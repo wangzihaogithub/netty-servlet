@@ -6,7 +6,9 @@ import com.github.netty.core.util.LoggerX;
 import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.ByteBuffer;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Objects;
 import java.util.Set;
 
@@ -37,6 +39,75 @@ public class ResourceManager {
         }
         this.workspace = workspace;
         this.classLoader = classLoader == null? getClass().getClassLoader():classLoader;
+        logger.info("ResourceManager rootPath={0},workspace={1}",rootPath,workspace);
+    }
+
+    /**
+     * 获取路径下的文件夹数量
+     * @param path 路径
+     * @return 文件夹数量
+     */
+    public int countDir(String path) {
+        Objects.requireNonNull(path);
+        if(path.isEmpty() || (path.charAt(path.length()-1) != '/')){
+            path = path.concat("/");
+        }
+        String basePath = getRealPath(path);
+        if (basePath == null) {
+            return 0;
+        }
+        File theBaseDir = new File(basePath);
+        if (!theBaseDir.exists() || !theBaseDir.isDirectory()) {
+            return 0;
+        }
+        String theFiles[] = theBaseDir.list();
+        if (theFiles == null) {
+            return 0;
+        }
+
+        int count = 0;
+        String rootPath = basePath.concat(File.separator);
+        for (String filename : theFiles) {
+            File testFile = new File(rootPath.concat(filename));
+            if (testFile.isDirectory()) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    /**
+     * 获取路径下的文件数量
+     * @param path 路径
+     * @return 文件数量
+     */
+    public int countFile(String path) {
+        Objects.requireNonNull(path);
+        if(path.isEmpty() || (path.charAt(path.length()-1) != '/')){
+            path = path.concat("/");
+        }
+        String basePath = getRealPath(path);
+        if (basePath == null) {
+            return 0;
+        }
+        File theBaseDir = new File(basePath);
+        if (!theBaseDir.exists() || !theBaseDir.isDirectory()) {
+            return 0;
+        }
+        String theFiles[] = theBaseDir.list();
+        if (theFiles == null) {
+            return 0;
+        }
+
+        int count = 0;
+        String rootPath = basePath.concat(File.separator);
+        for (String filename : theFiles) {
+            File testFile = new File(rootPath.concat(filename));
+            if (testFile.isFile()) {
+                count++;
+            }
+        }
+        return count;
     }
 
     /**
@@ -70,12 +141,12 @@ public class ResourceManager {
                 if(thePaths == null){
                     thePaths = new HashSet<>();
                 }
-                thePaths.add(path.concat(filename));
+                thePaths.add(filename);
             } else if (testFile.isDirectory()) {
                 if(thePaths == null){
                     thePaths = new HashSet<>();
                 }
-                thePaths.add(path.concat(filename).concat("/"));
+                thePaths.add(filename.concat("/"));
             }
         }
         return thePaths;
@@ -139,12 +210,28 @@ public class ResourceManager {
         if (path.length() > 0 && path.charAt(0) != '/') {
             path = File.separator.concat(path);
         }
-        String realPath = getBase().concat(path);
+        String realPath;
+        if(workspace.isEmpty()){
+            realPath = rootPath.concat(path);
+        }else {
+            realPath = rootPath.concat(workspace).concat(path);
+        }
         return realPath;
     }
 
     public ClassLoader getClassLoader() {
         return classLoader;
+    }
+
+    /**
+     * 写文件
+     * @param dataIterator 数据
+     * @param targetPath 路径
+     * @param targetFileName 文件名称
+     * @throws IOException
+     */
+    public void writeFile(Iterator<ByteBuffer> dataIterator, String targetPath, String targetFileName) throws IOException {
+        IOUtil.writeFile(dataIterator, getRealPath(targetPath),targetFileName,false);
     }
 
     /**
@@ -171,13 +258,41 @@ public class ResourceManager {
     }
 
     /**
-     * 读文件
+     * 写文件 (注:用完记得关闭)
+     * @param targetPath 路径
+     * @param targetFileName 文件名称
+     * @param append 是否拼接旧数据
+     * @throws IOException
+     */
+    public FileOutputStream writeFile(String targetPath, String targetFileName, boolean append) throws IOException {
+        return IOUtil.writeFile(getRealPath(targetPath),targetFileName,append);
+    }
+
+    /**
+     * 读文件 (注:用完记得关闭)
+     * @param sourcePath 路径
      * @param sourceFileName 文件名称
      * @return 文件流
      * @throws FileNotFoundException
      */
-    public FileInputStream readFile(String sourceFileName) throws FileNotFoundException {
-        return IOUtil.readFile(getBase(),sourceFileName);
+    public FileInputStream readFile(String sourcePath,String sourceFileName) throws FileNotFoundException {
+        return IOUtil.readFile(getRealPath(sourcePath),sourceFileName);
+    }
+
+    /**
+     * 拷贝文件
+     * @param sourcePath 源路径
+     * @param sourceFileName 源文件名称
+     * @param targetPath 目标路径
+     * @param targetFileName 目标文件名称
+     * @param buffCapacity 缓冲区大小
+     * @throws FileNotFoundException
+     * @throws IOException
+     */
+    public void copyTo(String sourcePath,String sourceFileName,
+                                    String targetPath,String targetFileName,int buffCapacity) throws FileNotFoundException,IOException {
+        IOUtil.copyTo(getRealPath(sourcePath),sourceFileName,
+                getRealPath(targetPath),targetFileName,false,buffCapacity);
     }
 
     /**
@@ -194,7 +309,7 @@ public class ResourceManager {
         if(path.charAt(0) != '/'){
             throw new IllegalArgumentException("Path '"+path+"' must start with '/'");
         }
-        return new File(getBase().concat(path)).mkdirs();
+        return new File(getRealPath(path)).mkdirs();
     }
 
     /**
@@ -209,7 +324,7 @@ public class ResourceManager {
         if(path.isEmpty() || path.charAt(0) != '/'){
             throw new IllegalArgumentException("Path '"+path+"' must start with '/'");
         }
-        return IOUtil.deleteDir(new File(getBase().concat(path)));
+        return IOUtil.deleteDir(new File(getRealPath(path)));
     }
 
     /**
@@ -224,7 +339,7 @@ public class ResourceManager {
         if(path.isEmpty() || path.charAt(0) != '/'){
             throw new IllegalArgumentException("Path '"+path+"' must start with '/'");
         }
-        IOUtil.deleteDirChild(new File(getBase().concat(path)));
+        IOUtil.deleteDirChild(new File(getRealPath(path)));
     }
 
     /**
@@ -241,18 +356,6 @@ public class ResourceManager {
      */
     public String getRootPath() {
         return rootPath;
-    }
-
-    /**
-     * 获取基础路径
-     * @return 跟路径 + 工作空间 的拼接
-     */
-    private String getBase(){
-        if(workspace.isEmpty()){
-            return rootPath;
-        }else {
-            return rootPath.concat(workspace);
-        }
     }
 
     @Override

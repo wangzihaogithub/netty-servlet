@@ -52,7 +52,7 @@ public class HttpServletProtocolsRegisterSpringAdapter extends HttpServletProtoc
 
         //session超时时间
         servletContext.setSessionTimeout((int) configurableWebServer.getSession().getTimeout().getSeconds());
-        servletContext.setSessionService(newSessionService(properties));
+        servletContext.setSessionService(newSessionService(properties,servletContext));
         for (MimeMappings.Mapping mapping :configurableWebServer.getMimeMappings()) {
             servletContext.getMimeMappings().add(mapping.getExtension(),mapping.getMimeType());
         }
@@ -69,12 +69,13 @@ public class HttpServletProtocolsRegisterSpringAdapter extends HttpServletProtoc
      * 新建会话服务
      * @return
      */
-    protected SessionService newSessionService(NettyProperties properties){
-        //组合会话
+    protected SessionService newSessionService(NettyProperties properties,ServletContext servletContext){
+        //组合会话 (默认本地存储)
         CompositeSessionServiceImpl compositeSessionService = new CompositeSessionServiceImpl();
-        String remoteSessionServerAddress = properties.getSessionRemoteServerAddress();
-        //启用远程会话管理, 利用RPC
-        if(StringUtil.isNotEmpty(remoteSessionServerAddress)) {
+
+        //启用session远程存储, 利用RPC
+        if(StringUtil.isNotEmpty(properties.getSessionRemoteServerAddress())) {
+            String remoteSessionServerAddress = properties.getSessionRemoteServerAddress();
             InetSocketAddress address;
             if(remoteSessionServerAddress.contains(":")){
                 String[] addressArr = remoteSessionServerAddress.split(":");
@@ -82,7 +83,12 @@ public class HttpServletProtocolsRegisterSpringAdapter extends HttpServletProtoc
             }else {
                 address = new InetSocketAddress(remoteSessionServerAddress,80);
             }
-            compositeSessionService.enableRemoteSession(address,properties);
+            compositeSessionService.enableRemoteRpcSession(address,properties);
+        }
+
+        //启用session文件存储
+        if(properties.isEnablesLocalFileSession()){
+            compositeSessionService.enableLocalFileSession(servletContext.getResourceManager());
         }
         return compositeSessionService;
     }

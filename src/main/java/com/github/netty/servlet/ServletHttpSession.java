@@ -70,6 +70,14 @@ public class ServletHttpSession implements HttpSession,Wrapper<Session>{
         return attributeMap;
     }
 
+    public void save(){
+        getServletContext().getSessionService().saveSession(unwrap());
+    }
+
+    public void remove(){
+        getServletContext().getSessionService().removeSession(getId());
+    }
+
     @Override
     public long getCreationTime() {
         return creationTime;

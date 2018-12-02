@@ -897,7 +897,7 @@ public class ServletHttpServletRequest implements javax.servlet.http.HttpServlet
 
     @Override
     public String getRemoteUser() {
-        Principal principal = getSession().getPrincipal();
+        Principal principal = getUserPrincipal();
         if(principal != null){
             return principal.getName();
         }
@@ -918,19 +918,16 @@ public class ServletHttpServletRequest implements javax.servlet.http.HttpServlet
 
     @Override
     public Principal getUserPrincipal() {
-        return getSession().getPrincipal();
+        return null;
     }
 
     @Override
     public void login(String username, String password) throws ServletException {
         // TODO: 10月16日/0016  身份验证接口 : 登录
-        ServletPrincipal principal = new ServletPrincipal(username,password);
-        getSession().setPrincipal(principal);
     }
 
     @Override
     public void logout() throws ServletException {
-        getSession().setPrincipal(null);
     }
 
     @Override

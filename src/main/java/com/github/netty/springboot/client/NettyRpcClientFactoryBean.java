@@ -31,16 +31,10 @@ public class NettyRpcClientFactoryBean implements FactoryBean<Object>, Initializ
     private String serviceId;
     private ClassLoader classLoader;
     private static AtomicBoolean oncePingFlag = new AtomicBoolean(false);
+    private Object instance;
 
     @Override
     public Object getObject() throws Exception {
-        NettyProperties nettyConfig = applicationContext.getBean(NettyProperties.class);
-        NettyRpcLoadBalanced loadBalanced = applicationContext.getBean(NettyRpcLoadBalanced.class);
-
-        NettyRpcClientProxy nettyRpcClientProxy = new NettyRpcClientProxy(serviceId,null,objectType,nettyConfig,loadBalanced);
-        Object instance = Proxy.newProxyInstance(classLoader,new Class[]{objectType},nettyRpcClientProxy);
-
-        oncePing(nettyRpcClientProxy);
         return instance;
     }
 
@@ -51,13 +45,15 @@ public class NettyRpcClientFactoryBean implements FactoryBean<Object>, Initializ
     private void oncePing(NettyRpcClientProxy nettyRpcClientProxy){
         if(oncePingFlag != null && oncePingFlag.compareAndSet(false,true)){
             ThreadPoolX.getDefaultInstance().execute(()->{
-                try {
-                    nettyRpcClientProxy.pingOnceAfterDestroy();
-                }catch (RpcException e){
-                    logger.error("无法连接至远程地址 " + e.toString());
-                }finally {
-                    oncePingFlag = null;
-                }
+
+                    try {
+                        nettyRpcClientProxy.pingOnceAfterDestroy();
+                    }catch (RpcException e){
+                        logger.error("无法连接至远程地址 " + e.toString());
+                    }finally {
+                        oncePingFlag = null;
+                    }
+
             });
         }
     }
@@ -80,6 +76,13 @@ public class NettyRpcClientFactoryBean implements FactoryBean<Object>, Initializ
     @Override
     public void afterPropertiesSet() throws Exception {
         Assert.isTrue(serviceId!= null && serviceId.length() > 0,"服务ID不能为空");
+        NettyProperties nettyConfig = applicationContext.getBean(NettyProperties.class);
+        NettyRpcLoadBalanced loadBalanced = applicationContext.getBean(NettyRpcLoadBalanced.class);
+
+        NettyRpcClientProxy nettyRpcClientProxy = new NettyRpcClientProxy(serviceId,null,objectType,nettyConfig,loadBalanced);
+        instance = Proxy.newProxyInstance(classLoader,new Class[]{objectType},nettyRpcClientProxy);
+
+        oncePing(nettyRpcClientProxy);
     }
 
     public Class<?> getFallback() {

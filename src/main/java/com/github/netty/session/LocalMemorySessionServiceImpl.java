@@ -10,21 +10,21 @@ import java.util.RandomAccess;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 本地会话服务
+ * 本地内存会话服务
  * @author acer01
  * 2018/8/19/019
  */
-public class LocalSessionServiceImpl implements SessionService {
+public class LocalMemorySessionServiceImpl implements SessionService {
 
     private String name = NamespaceUtil.newIdName(getClass());
     private Map<String,Session> sessionMap;
     private SessionInvalidThread sessionInvalidThread;
 
-    public LocalSessionServiceImpl() {
-        this(new ConcurrentHashMap<>(128));
+    public LocalMemorySessionServiceImpl() {
+        this(new ConcurrentHashMap<>(256));
     }
 
-    public LocalSessionServiceImpl(Map<String, Session> sessionMap) {
+    public LocalMemorySessionServiceImpl(Map<String, Session> sessionMap) {
         this.sessionMap = sessionMap;
         //20秒检查一次过期session
         this.sessionInvalidThread = new SessionInvalidThread(20 * 1000);
@@ -93,9 +93,17 @@ public class LocalSessionServiceImpl implements SessionService {
     }
 
     /**
+     * session过期检测线程
+     * @return
+     */
+    public SessionInvalidThread getSessionInvalidThread() {
+        return sessionInvalidThread;
+    }
+
+    /**
      * 超时的Session无效化，定期执行
      */
-    private class SessionInvalidThread extends Thread {
+    class SessionInvalidThread extends Thread {
         private LoggerX logger = LoggerFactoryX.getLogger(getClass());
         private final long sessionLifeCheckInter;
 
@@ -106,7 +114,7 @@ public class LocalSessionServiceImpl implements SessionService {
 
         @Override
         public void run() {
-            logger.info("Session Manager CheckInvalidSessionThread has been started...");
+            logger.info("LocalMemorySession CheckInvalidSessionThread has been started...");
             while(true){
                 try {
                     Thread.sleep(sessionLifeCheckInter);

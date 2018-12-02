@@ -23,7 +23,7 @@ import java.util.function.Supplier;
  * @author acer01
  * 2018/8/19/019
  */
-public class RemoteSessionServiceImpl implements SessionService {
+public class RemoteRpcSessionServiceImpl implements SessionService {
 
     private String name = NamespaceUtil.newIdName(getClass());
     private static final byte[] EMPTY = new byte[0];
@@ -47,7 +47,7 @@ public class RemoteSessionServiceImpl implements SessionService {
         }
     };
 
-    public RemoteSessionServiceImpl(InetSocketAddress address,NettyProperties config) {
+    public RemoteRpcSessionServiceImpl(InetSocketAddress address, NettyProperties config) {
         this.address = address;
         this.config = config;
     }

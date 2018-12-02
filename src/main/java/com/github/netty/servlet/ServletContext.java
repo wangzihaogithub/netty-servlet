@@ -576,11 +576,11 @@ public class ServletContext implements javax.servlet.ServletContext {
     @Override
     public String getVirtualServerName() {
         return ServletUtil.getServerInfo()
-        .concat("/")
-        .concat(servletServerAddress.getHostName())
-        .concat(" (")
-        .concat(SystemPropertyUtil.get("user.name"))
-        .concat(")");
+                .concat(" (")
+                .concat(servletServerAddress.getHostName())
+                .concat(":")
+                .concat(SystemPropertyUtil.get("user.name"))
+                .concat(")");
     }
 
     public String getRequestCharacterEncoding() {

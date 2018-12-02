@@ -172,7 +172,12 @@ public class NettyProperties implements Serializable{
     private int rpcClientHeartIntervalSecond = 20;
 
     /**
-     * session远程存储的url地址, 注: 如果不设置就不会开启
+     * session存储 - 是否开启本地文件存储
+     */
+    private boolean enablesLocalFileSession = false;
+
+    /**
+     * session存储 - session远程存储的url地址, 注: 如果不设置就不会开启
      */
     private String sessionRemoteServerAddress;
 
@@ -200,6 +205,14 @@ public class NettyProperties implements Serializable{
 
     public void setRpcClientHeartIntervalSecond(int rpcClientHeartIntervalSecond) {
         this.rpcClientHeartIntervalSecond = rpcClientHeartIntervalSecond;
+    }
+
+    public boolean isEnablesLocalFileSession() {
+        return enablesLocalFileSession;
+    }
+
+    public void setEnablesLocalFileSession(boolean enablesLocalFileSession) {
+        this.enablesLocalFileSession = enablesLocalFileSession;
     }
 
     public int getRpcTimeout() {

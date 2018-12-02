@@ -69,7 +69,7 @@ public class HttpServletObject implements Recyclable {
      * @return
      */
     public static ServletHttpSession getSession(ChannelHandlerContext channelHandlerContext){
-        if(isChannelActive(channelHandlerContext)) {
+        if(channelHandlerContext != null && channelHandlerContext.channel() != null) {
             Attribute<ServletHttpSession> attribute = channelHandlerContext.channel().attr(CHANNEL_ATTR_KEY_SESSION);
             if(attribute != null){
                 return attribute.get();

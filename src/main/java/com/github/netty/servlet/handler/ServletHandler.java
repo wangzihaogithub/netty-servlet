@@ -70,10 +70,10 @@ public class ServletHandler extends AbstractChannelHandler<Object> {
         ServletHttpSession httpSession = HttpServletObject.getSession(ctx);
         if(httpSession != null) {
             if (httpSession.isValid()) {
-                servletContext.getSessionService().saveSession(httpSession.unwrap());
+                httpSession.save();
                 logger.info("saveHttpSession : sessionId="+httpSession.getId());
             } else if (httpSession.getId() != null) {
-                servletContext.getSessionService().removeSession(httpSession.getId());
+                httpSession.remove();
                 logger.info("removeHttpSession : sessionId="+httpSession.getId());
             }
             httpSession.clear();

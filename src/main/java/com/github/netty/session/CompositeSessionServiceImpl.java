@@ -3,6 +3,7 @@ package com.github.netty.session;
 import com.github.netty.core.util.LoggerFactoryX;
 import com.github.netty.core.util.LoggerX;
 import com.github.netty.core.util.NamespaceUtil;
+import com.github.netty.servlet.support.ResourceManager;
 import com.github.netty.springboot.NettyProperties;
 
 import java.net.InetSocketAddress;
@@ -17,15 +18,40 @@ public class CompositeSessionServiceImpl implements SessionService {
     private LoggerX logger = LoggerFactoryX.getLogger(getClass());
     private String name = NamespaceUtil.newIdName(getClass());
 
-    private SessionService localSessionService;
-    private SessionService remoteSessionService;
+    private SessionService sessionService;
 
     public CompositeSessionServiceImpl() {
-        this.localSessionService = new LocalSessionServiceImpl();
     }
 
-    public void enableRemoteSession(InetSocketAddress address,NettyProperties config){
-        this.remoteSessionService = new RemoteSessionServiceImpl(address,config);
+    public void enableLocalMemorySession(){
+        removeSessionService();
+        this.sessionService = new LocalMemorySessionServiceImpl();
+    }
+
+    public void enableRemoteRpcSession(InetSocketAddress address, NettyProperties config){
+        removeSessionService();
+        this.sessionService = new RemoteRpcSessionServiceImpl(address,config);
+    }
+
+    public void enableLocalFileSession(ResourceManager resourceManager){
+        removeSessionService();
+        this.sessionService = new LocalFileSessionServiceImpl(resourceManager);
+    }
+
+    public void removeSessionService(){
+        if(sessionService == null){
+            return;
+        }
+        try {
+            if (sessionService instanceof LocalMemorySessionServiceImpl) {
+                ((LocalMemorySessionServiceImpl) sessionService).getSessionInvalidThread().interrupt();
+            } else if (sessionService instanceof LocalFileSessionServiceImpl) {
+                ((LocalFileSessionServiceImpl) sessionService).getSessionInvalidThread().interrupt();
+            }
+        }catch (Exception e){
+            //
+        }
+        sessionService = null;
     }
 
     @Override
@@ -69,10 +95,10 @@ public class CompositeSessionServiceImpl implements SessionService {
     }
 
     protected SessionService getSessionServiceImpl() {
-        if(remoteSessionService != null) {
-            return remoteSessionService;
+        if(sessionService == null) {
+            enableLocalMemorySession();
         }
-        return localSessionService;
+        return sessionService;
     }
 
     @Override

@@ -51,6 +51,7 @@ public class ServletHttpServletRequest implements javax.servlet.http.HttpServlet
     };
 
     private static final SnowflakeIdWorker SNOWFLAKE_ID_WORKER = new SnowflakeIdWorker();
+    private static final Locale[] DEFAULT_LOCALS = {Locale.getDefault()};
 
     private HttpServletObject httpServletObject;
     private ServletAsyncContext asyncContext;
@@ -69,7 +70,9 @@ public class ServletHttpServletRequest implements javax.servlet.http.HttpServlet
     private boolean decodeCookieFlag = false;
     private boolean decodeParameterByUrlFlag = false;
     private boolean decodeParameterByBodyFlag = false;
+    private boolean usingInputStream = false;
 
+    private BufferedReader reader;
     private NettyHttpRequest nettyRequest = new NettyHttpRequest();
     private ServletInputStream inputStream = new ServletInputStream();
     private Map<String,Object> attributeMap = new ConcurrentHashMap<>(16);
@@ -125,9 +128,9 @@ public class ServletHttpServletRequest implements javax.servlet.http.HttpServlet
         Locale[] locales;
         String headerValue = getHeader(HttpHeaderConstants.ACCEPT_LANGUAGE.toString());
         if(headerValue == null){
-            locales = new Locale[]{Locale.getDefault()};
+            locales = DEFAULT_LOCALS;
         }else {
-            String[] values = headerValue.split(HttpConstants.SP);
+            String[] values = headerValue.split(",");
             int length = values.length;
             locales = new Locale[length];
             for(int i=0; i< length; i++){
@@ -135,9 +138,9 @@ public class ServletHttpServletRequest implements javax.servlet.http.HttpServlet
                 String[] valueSp = value.split(";");
                 Locale locale;
                 if(valueSp.length > 0) {
-                    locale = new Locale(valueSp[0]);
+                    locale = Locale.forLanguageTag(valueSp[0]);
                 }else {
-                    locale = new Locale(value);
+                    locale = Locale.forLanguageTag(value);
                 }
                 locales[i] = locale;
             }
@@ -610,6 +613,10 @@ public class ServletHttpServletRequest implements javax.servlet.http.HttpServlet
 
     @Override
     public ServletInputStream getInputStream() throws IOException {
+        if(reader != null){
+            throw new IllegalStateException("getReader() has already been called for this request");
+        }
+        usingInputStream = true;
         return inputStream;
     }
 
@@ -672,7 +679,21 @@ public class ServletHttpServletRequest implements javax.servlet.http.HttpServlet
 
     @Override
     public BufferedReader getReader() throws IOException {
-        return new BufferedReader(new InputStreamReader(getInputStream(),getCharacterEncoding()));
+        if(usingInputStream){
+            throw new IllegalStateException("getInputStream() has already been called for this request");
+        }
+        if(reader == null){
+            synchronized (this){
+                if(reader == null){
+                    String charset = getCharacterEncoding();
+                    if(charset == null){
+                        charset = getServletContext().getRequestCharacterEncoding();
+                    }
+                    reader = new BufferedReader(new InputStreamReader(getInputStream(),charset));
+                }
+            }
+        }
+        return reader;
     }
 
     @Override
@@ -783,7 +804,7 @@ public class ServletHttpServletRequest implements javax.servlet.http.HttpServlet
 
     @Override
     public String getRealPath(String path) {
-        return path;
+        return getServletContext().getRealPath(path);
     }
 
     @Override
@@ -944,6 +965,8 @@ public class ServletHttpServletRequest implements javax.servlet.http.HttpServlet
         this.decodeParameterByBodyFlag = false;
         this.decodeCookieFlag = false;
         this.decodePathsFlag = false;
+        this.usingInputStream = false;
+        this.reader = null;
         this.sessionIdSource = null;
         this.protocol = null;
         this.scheme = null;
@@ -958,6 +981,7 @@ public class ServletHttpServletRequest implements javax.servlet.http.HttpServlet
         this.locales = null;
         this.asyncContext = null;
         this.httpServletObject = null;
+        this.reader = null;
 
         this.attributeMap.clear();
         RECYCLER.recycleInstance(this);

@@ -24,6 +24,7 @@ import javax.servlet.http.Cookie;
 import java.io.IOException;
 import java.nio.channels.ClosedChannelException;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -414,6 +415,12 @@ public class ServletOutputStream extends javax.servlet.ServletOutputStream imple
         String serverHeader = servletRequest.getServletContext().getServerHeader();
         if(serverHeader != null && serverHeader.length() > 0) {
             headers.set(HttpHeaderConstants.SERVER, serverHeader);
+        }
+
+        //语言
+        Locale locale = servletResponse.getLocale();
+        if(locale != null && !headers.contains(HttpHeaderConstants.CONTENT_LANGUAGE)){
+            headers.set(HttpHeaderConstants.CONTENT_LANGUAGE,locale.toLanguageTag());
         }
 
         // cookies处理

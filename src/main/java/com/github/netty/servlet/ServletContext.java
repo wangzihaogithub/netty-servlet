@@ -389,7 +389,7 @@ public class ServletContext implements javax.servlet.ServletContext {
 
         ServletRegistration servletRegistration;
         if(newServlet == null){
-            servletRegistration = new ServletRegistration(servletName,servlet,this,null);
+            servletRegistration = new ServletRegistration(servletName,servlet,this,servletUrlMapper);
         }else {
             servletRegistration = new ServletRegistration(servletName,newServlet,this,servletUrlMapper);
         }

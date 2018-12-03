@@ -13,6 +13,7 @@ import org.springframework.boot.web.server.WebServerException;
 
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -27,7 +28,7 @@ public class NettyTcpServer extends AbstractNettyServer implements WebServer {
     /**
      * 容器配置信息
      */
-    private final NettyProperties config;
+    private final NettyProperties properties;
     /**
      * servlet线程
      */
@@ -37,25 +38,28 @@ public class NettyTcpServer extends AbstractNettyServer implements WebServer {
      */
     private List<ProtocolsRegister> protocolsRegisterList = new LinkedList<>();
 
-    public NettyTcpServer(InetSocketAddress serverAddress, NettyProperties config){
+    public NettyTcpServer(InetSocketAddress serverAddress, NettyProperties properties){
         super(serverAddress);
-        this.config = config;
+        this.properties = properties;
     }
 
     @Override
     public void start() throws WebServerException {
         try{
-            super.setIoRatio(config.getServerIoRatio());
-            super.setIoThreadCount(config.getServerIoThreads());
+            super.setIoRatio(properties.getServerIoRatio());
+            super.setIoThreadCount(properties.getServerIoThreads());
             for(ProtocolsRegister protocolsRegister : protocolsRegisterList){
                 protocolsRegister.onServerStart();
             }
 
-            List<ProtocolsRegister> inApplicationProtocolsRegisterList = new ArrayList<>(config.getApplication().findBeanForType(ProtocolsRegister.class));
+            List<ProtocolsRegister> inApplicationProtocolsRegisterList = new ArrayList<>(properties.getApplication().findBeanForType(ProtocolsRegister.class));
+            inApplicationProtocolsRegisterList.sort(Comparator.comparing(ProtocolsRegister::order));
             for(ProtocolsRegister protocolsRegister : inApplicationProtocolsRegisterList){
                 protocolsRegister.onServerStart();
                 protocolsRegisterList.add(protocolsRegister);
             }
+
+            protocolsRegisterList.sort(Comparator.comparing(ProtocolsRegister::order));
         } catch (Exception e) {
             throw new WebServerException(e.getMessage(),e);
         }

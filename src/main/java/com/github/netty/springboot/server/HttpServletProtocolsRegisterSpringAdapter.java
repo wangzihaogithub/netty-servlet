@@ -8,21 +8,31 @@ import com.github.netty.servlet.support.ServletErrorPage;
 import com.github.netty.session.CompositeSessionServiceImpl;
 import com.github.netty.session.SessionService;
 import com.github.netty.springboot.NettyProperties;
-import io.netty.handler.ssl.SslContext;
-import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.ssl.*;
+import io.netty.handler.ssl.util.SelfSignedCertificate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.web.server.ErrorPage;
 import org.springframework.boot.web.server.MimeMappings;
 import org.springframework.boot.web.server.Ssl;
+import org.springframework.boot.web.server.SslStoreProvider;
 import org.springframework.boot.web.servlet.server.AbstractServletWebServerFactory;
+import org.springframework.util.ResourceUtils;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
 
 import javax.annotation.Resource;
+import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLException;
+import javax.net.ssl.TrustManagerFactory;
 import java.io.File;
 import java.net.InetSocketAddress;
+import java.net.URL;
+import java.security.KeyStore;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
+
+import static io.netty.handler.codec.http2.Http2SecurityUtil.CIPHERS;
 
 /**
  * httpServlet协议注册器 （适配spring）
@@ -35,10 +45,16 @@ public class HttpServletProtocolsRegisterSpringAdapter extends HttpServletProtoc
     protected final ApplicationX application;
 
     public HttpServletProtocolsRegisterSpringAdapter(NettyProperties properties, ServletContext servletContext,
-                                                     AbstractServletWebServerFactory configurableWebServer) throws SSLException {
-        super(properties,servletContext, newSslContext(configurableWebServer.getSsl()));
+                                                     AbstractServletWebServerFactory configurableWebServer) throws Exception {
+        super(properties,
+                servletContext,
+                configurableWebServer.getSsl() != null && configurableWebServer.getSsl().isEnabled()?
+                        SslContextBuilder.forServer(getKeyManagerFactory(configurableWebServer.getSsl(),configurableWebServer.getSslStoreProvider())):null);
         this.application = properties.getApplication();
         initServletContext(servletContext,configurableWebServer,properties);
+        if(configurableWebServer.getSsl() != null && configurableWebServer.getSsl().isEnabled()) {
+            initSslContext(configurableWebServer);
+        }
     }
 
     /**
@@ -94,24 +110,104 @@ public class HttpServletProtocolsRegisterSpringAdapter extends HttpServletProtoc
     }
 
     /**
-     * 配置 https
-     * @return
-     * @throws SSLException
+     * 初始化 HTTPS的SSL 安全配置
+     * @param configurableWebServer
+     * @return SSL上下文
+     * @throws Exception
      */
-    private static SslContext newSslContext(Ssl ssl) throws SSLException {
-        if(ssl == null || !ssl.isEnabled()){
-            return null;
+    protected SslContextBuilder initSslContext(AbstractServletWebServerFactory configurableWebServer) throws Exception {
+        SslContextBuilder builder = getSslContextBuilder();
+        Ssl ssl = configurableWebServer.getSsl();
+        SslStoreProvider sslStoreProvider = configurableWebServer.getSslStoreProvider();
+
+        builder.trustManager(getTrustManagerFactory(ssl, sslStoreProvider));
+        if (ssl.getEnabledProtocols() != null) {
+            builder.protocols(ssl.getEnabledProtocols());
+        }
+        if (ssl.getCiphers() != null) {
+            builder.ciphers(Arrays.asList(ssl.getCiphers()));
+        }
+        if (ssl.getClientAuth() == Ssl.ClientAuth.NEED) {
+            builder.clientAuth(ClientAuth.REQUIRE);
+        }
+        else if (ssl.getClientAuth() == Ssl.ClientAuth.WANT) {
+            builder.clientAuth(ClientAuth.OPTIONAL);
         }
 
-        File certChainFile = new File(ssl.getTrustStore());
-        File keyFile = new File(ssl.getKeyStore());
-        String keyPassword = ssl.getKeyPassword();
+        ApplicationProtocolConfig protocolConfig = new ApplicationProtocolConfig(
+                ApplicationProtocolConfig.Protocol.ALPN,
+                // NO_ADVERTISE is currently the only mode supported by both OpenSsl and JDK providers.
+                ApplicationProtocolConfig.SelectorFailureBehavior.NO_ADVERTISE,
+                // ACCEPT is currently the only mode supported by both OpenSsl and JDK providers.
+                ApplicationProtocolConfig.SelectedListenerFailureBehavior.ACCEPT,
+                ApplicationProtocolNames.HTTP_2,
+                ApplicationProtocolNames.HTTP_1_1);
+        builder.applicationProtocolConfig(protocolConfig);
 
-        SslContext sslContext = SslContextBuilder.forServer(certChainFile,keyFile,keyPassword)
-                .ciphers(Arrays.asList(ssl.getCiphers()))
-                .protocols(ssl.getProtocol())
-                .build();
-        return sslContext;
+        return builder;
+    }
+
+    /**
+     * 获取信任管理器，用于对安全套接字执行身份验证。
+     * @param ssl
+     * @param sslStoreProvider
+     * @return
+     * @throws Exception
+     */
+    protected TrustManagerFactory getTrustManagerFactory(Ssl ssl,SslStoreProvider sslStoreProvider) throws Exception {
+        KeyStore store;
+        if (sslStoreProvider != null) {
+            store = sslStoreProvider.getTrustStore();
+        }else {
+            store = loadKeyStore(ssl.getTrustStoreType(), ssl.getTrustStoreProvider(),ssl.getTrustStore(), ssl.getTrustStorePassword());
+        }
+        TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        trustManagerFactory.init(store);
+        return trustManagerFactory;
+    }
+
+    /**
+     * 获取密匙管理器
+     * @param ssl
+     * @param sslStoreProvider
+     * @return
+     * @throws Exception
+     */
+    private static KeyManagerFactory getKeyManagerFactory(Ssl ssl,SslStoreProvider sslStoreProvider) throws Exception {
+        KeyStore keyStore;
+        if (sslStoreProvider != null) {
+            keyStore = sslStoreProvider.getKeyStore();
+        }else {
+            keyStore = loadKeyStore(ssl.getKeyStoreType(), ssl.getKeyStoreProvider(),ssl.getKeyStore(), ssl.getKeyStorePassword());
+        }
+
+        KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+        char[] keyPassword = (ssl.getKeyPassword() != null) ? ssl.getKeyPassword().toCharArray() : null;
+        if (keyPassword == null && ssl.getKeyStorePassword() != null) {
+            keyPassword = ssl.getKeyStorePassword().toCharArray();
+        }
+        keyManagerFactory.init(keyStore, keyPassword);
+        return keyManagerFactory;
+    }
+
+    /**
+     * 加载密匙
+     * @param type
+     * @param provider
+     * @param resource
+     * @param password
+     * @return
+     * @throws Exception
+     */
+    private static KeyStore loadKeyStore(String type, String provider, String resource,String password) throws Exception {
+        if (resource == null) {
+            return null;
+        }
+        type = (type != null) ? type : "JKS";
+        KeyStore store = (provider != null) ? KeyStore.getInstance(type, provider) : KeyStore.getInstance(type);
+        URL url = ResourceUtils.getURL(resource);
+        store.load(url.openStream(), (password == null) ? null : password.toCharArray());
+        return store;
     }
 
     @Override

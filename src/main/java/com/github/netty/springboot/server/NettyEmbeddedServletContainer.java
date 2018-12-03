@@ -89,8 +89,8 @@ public class NettyEmbeddedServletContainer extends AbstractNettyServer implement
             PlatformDependent.throwException(cause);
         }
 
-        String protocols = String.join(",",protocolsRegisterList.stream().map(ProtocolsRegister::getProtocolName).collect(Collectors.toList()));
-        logger.info("{0} start [port = {1}, pid = {2}, protocol = {3}, os = {4} ]...",
+        List<String> protocols = protocolsRegisterList.stream().map(ProtocolsRegister::getProtocolName).collect(Collectors.toList());
+        logger.info("{0} start (port = {1}, pid = {2}, protocol = {3}, os = {4}) ...",
                 getName(),
                 getPort()+"",
                 HostUtil.getPid()+"",

@@ -3,11 +3,13 @@ package com.github.netty.springboot.server;
 import com.github.netty.core.AbstractChannelHandler;
 import com.github.netty.core.AbstractNettyServer;
 import com.github.netty.core.ProtocolsRegister;
+import com.github.netty.core.util.HostUtil;
 import com.github.netty.core.util.NettyThreadX;
 import com.github.netty.springboot.NettyProperties;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.*;
 import io.netty.channel.socket.SocketChannel;
+import io.netty.util.internal.PlatformDependent;
 import org.springframework.boot.web.server.WebServer;
 import org.springframework.boot.web.server.WebServerException;
 
@@ -16,6 +18,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * netty容器 tcp层面的服务器
@@ -56,7 +59,7 @@ public class NettyTcpServer extends AbstractNettyServer implements WebServer {
             inApplicationProtocolsRegisterList.sort(Comparator.comparing(ProtocolsRegister::order));
             for(ProtocolsRegister protocolsRegister : inApplicationProtocolsRegisterList){
                 protocolsRegister.onServerStart();
-                protocolsRegisterList.add(protocolsRegister);
+                addProtocolsRegister(protocolsRegister);
             }
 
             protocolsRegisterList.sort(Comparator.comparing(ProtocolsRegister::order));
@@ -80,6 +83,23 @@ public class NettyTcpServer extends AbstractNettyServer implements WebServer {
         if(servletServerThread != null) {
             servletServerThread.interrupt();
         }
+    }
+
+    @Override
+    protected void startAfter(Throwable cause) {
+        //有异常抛出
+        if(cause != null){
+            PlatformDependent.throwException(cause);
+        }
+
+        String protocols = String.join(",",protocolsRegisterList.stream().map(ProtocolsRegister::getProtocolName).collect(Collectors.toList()));
+        logger.info("{0} start [port = {1}, pid = {2}, protocol = {3}, os = {4} ]...",
+                getName(),
+                getPort()+"",
+                HostUtil.getPid()+"",
+                protocols,
+                HostUtil.getOsName()
+                );
     }
 
     @Override
@@ -107,7 +127,7 @@ public class NettyTcpServer extends AbstractNettyServer implements WebServer {
                     channel.pipeline().remove(this);
                     for(ProtocolsRegister protocolsRegister : protocolsRegisterList){
                         if(protocolsRegister.canSupport(msg)){
-                            logger.info("channel register by [{0}]",protocolsRegister.getProtocolName());
+                            logger.info("channel protocols register by [{0}]",protocolsRegister.getProtocolName());
                             protocolsRegister.register(channel);
                             channel.pipeline().fireChannelRead(msg);
                             return;
@@ -131,6 +151,7 @@ public class NettyTcpServer extends AbstractNettyServer implements WebServer {
      */
     public void addProtocolsRegister(ProtocolsRegister protocolsRegister){
         protocolsRegisterList.add(protocolsRegister);
+        logger.info("addProtocolsRegister({0})",protocolsRegister.getProtocolName());
     }
 
 }

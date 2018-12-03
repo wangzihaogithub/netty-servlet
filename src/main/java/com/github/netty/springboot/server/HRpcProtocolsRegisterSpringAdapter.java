@@ -3,7 +3,7 @@ package com.github.netty.springboot.server;
 import com.github.netty.core.util.ApplicationX;
 import com.github.netty.core.util.ReflectUtil;
 import com.github.netty.core.util.StringUtil;
-import com.github.netty.register.HRpcProtocolsRegister;
+import com.github.netty.register.NRpcProtocolsRegister;
 import com.github.netty.rpc.AnnotationMethodToParameterNamesFunction;
 import com.github.netty.rpc.AsmMethodToParameterNamesFunction;
 import com.github.netty.rpc.annotation.RpcParam;
@@ -21,7 +21,7 @@ import java.util.function.Function;
  * 内部RPC协议注册器 （适配spring）
  * @author 84215
  */
-public class HRpcProtocolsRegisterSpringAdapter extends HRpcProtocolsRegister {
+public class HRpcProtocolsRegisterSpringAdapter extends NRpcProtocolsRegister {
     public HRpcProtocolsRegisterSpringAdapter(ApplicationX application) {
         super(application);
     }

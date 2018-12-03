@@ -25,7 +25,7 @@ public class NettyEmbeddedServletContainer extends AbstractNettyServer implement
     /**
      * 容器配置信息
      */
-    private final NettyProperties config;
+    private final NettyProperties properties;
     /**
      * servlet线程
      */
@@ -35,21 +35,21 @@ public class NettyEmbeddedServletContainer extends AbstractNettyServer implement
      */
     private List<ProtocolsRegister> protocolsRegisterList = new LinkedList<>();
 
-    public NettyEmbeddedServletContainer(InetSocketAddress serverAddress, NettyProperties config){
+    public NettyEmbeddedServletContainer(InetSocketAddress serverAddress, NettyProperties properties){
         super(serverAddress);
-        this.config = config;
+        this.properties = properties;
     }
 
     @Override
     public void start() throws EmbeddedServletContainerException {
         try{
-            super.setIoRatio(config.getServerIoRatio());
-            super.setIoThreadCount(config.getServerIoThreads());
+            super.setIoRatio(properties.getServerIoRatio());
+            super.setIoThreadCount(properties.getServerIoThreads());
             for(ProtocolsRegister protocolsRegister : protocolsRegisterList){
                 protocolsRegister.onServerStart();
             }
 
-            List<ProtocolsRegister> inApplicationProtocolsRegisterList = new ArrayList<>(config.getApplication().findBeanForType(ProtocolsRegister.class));
+            List<ProtocolsRegister> inApplicationProtocolsRegisterList = new ArrayList<>(properties.getApplication().findBeanForType(ProtocolsRegister.class));
             inApplicationProtocolsRegisterList.sort(Comparator.comparing(ProtocolsRegister::order));
             for(ProtocolsRegister protocolsRegister : inApplicationProtocolsRegisterList){
                 protocolsRegister.onServerStart();

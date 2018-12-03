@@ -190,7 +190,11 @@ public class HttpServletProtocolsRegister implements ProtocolsRegister {
 
     @Override
     public String getProtocolName() {
-        return "http";
+        String name = "http";
+        if(sslContextBuilder != null){
+            name = name.concat("/https");
+        }
+        return name;
     }
 
     public ServletContext getServletContext() {

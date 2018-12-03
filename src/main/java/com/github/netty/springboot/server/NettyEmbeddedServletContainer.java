@@ -3,16 +3,19 @@ package com.github.netty.springboot.server;
 import com.github.netty.core.AbstractChannelHandler;
 import com.github.netty.core.AbstractNettyServer;
 import com.github.netty.core.ProtocolsRegister;
+import com.github.netty.core.util.HostUtil;
 import com.github.netty.core.util.NettyThreadX;
 import com.github.netty.springboot.NettyProperties;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.*;
 import io.netty.channel.socket.SocketChannel;
+import io.netty.util.internal.PlatformDependent;
 import org.springframework.boot.context.embedded.EmbeddedServletContainer;
 import org.springframework.boot.context.embedded.EmbeddedServletContainerException;
 
 import java.net.InetSocketAddress;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * netty容器
@@ -77,6 +80,23 @@ public class NettyEmbeddedServletContainer extends AbstractNettyServer implement
         if(servletServerThread != null) {
             servletServerThread.interrupt();
         }
+    }
+
+    @Override
+    protected void startAfter(Throwable cause) {
+        //有异常抛出
+        if(cause != null){
+            PlatformDependent.throwException(cause);
+        }
+
+        String protocols = String.join(",",protocolsRegisterList.stream().map(ProtocolsRegister::getProtocolName).collect(Collectors.toList()));
+        logger.info("{0} start [port = {1}, pid = {2}, protocol = {3}, os = {4} ]...",
+                getName(),
+                getPort()+"",
+                HostUtil.getPid()+"",
+                protocols,
+                HostUtil.getOsName()
+        );
     }
 
     @Override

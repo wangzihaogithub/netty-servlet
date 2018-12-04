@@ -18,8 +18,8 @@ import java.util.Random;
 public class SnowflakeIdWorker {
 
     // ==============================Fields===========================================
-    /** 开始时间截 (2015-01-01) */
-    private final long twepoch = 1420041600000L;
+    /** 开始时间截 (对象创建时间) */
+    private final long twepoch = System.currentTimeMillis();
 
     /** 机器id所占的位数 */
     private final long workerIdBits = 5L;

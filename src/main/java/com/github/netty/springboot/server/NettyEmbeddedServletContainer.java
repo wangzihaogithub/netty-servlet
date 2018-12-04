@@ -3,16 +3,19 @@ package com.github.netty.springboot.server;
 import com.github.netty.core.AbstractChannelHandler;
 import com.github.netty.core.AbstractNettyServer;
 import com.github.netty.core.ProtocolsRegister;
+import com.github.netty.core.util.HostUtil;
 import com.github.netty.core.util.NettyThreadX;
 import com.github.netty.springboot.NettyProperties;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.*;
 import io.netty.channel.socket.SocketChannel;
+import io.netty.util.internal.PlatformDependent;
 import org.springframework.boot.context.embedded.EmbeddedServletContainer;
 import org.springframework.boot.context.embedded.EmbeddedServletContainerException;
 
 import java.net.InetSocketAddress;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * netty容器
@@ -25,7 +28,7 @@ public class NettyEmbeddedServletContainer extends AbstractNettyServer implement
     /**
      * 容器配置信息
      */
-    private final NettyProperties config;
+    private final NettyProperties properties;
     /**
      * servlet线程
      */
@@ -35,21 +38,21 @@ public class NettyEmbeddedServletContainer extends AbstractNettyServer implement
      */
     private List<ProtocolsRegister> protocolsRegisterList = new LinkedList<>();
 
-    public NettyEmbeddedServletContainer(InetSocketAddress serverAddress, NettyProperties config){
+    public NettyEmbeddedServletContainer(InetSocketAddress serverAddress, NettyProperties properties){
         super(serverAddress);
-        this.config = config;
+        this.properties = properties;
     }
 
     @Override
     public void start() throws EmbeddedServletContainerException {
         try{
-            super.setIoRatio(config.getServerIoRatio());
-            super.setIoThreadCount(config.getServerIoThreads());
+            super.setIoRatio(properties.getServerIoRatio());
+            super.setIoThreadCount(properties.getServerIoThreads());
             for(ProtocolsRegister protocolsRegister : protocolsRegisterList){
                 protocolsRegister.onServerStart();
             }
 
-            List<ProtocolsRegister> inApplicationProtocolsRegisterList = new ArrayList<>(config.getApplication().findBeanForType(ProtocolsRegister.class));
+            List<ProtocolsRegister> inApplicationProtocolsRegisterList = new ArrayList<>(properties.getApplication().findBeanForType(ProtocolsRegister.class));
             inApplicationProtocolsRegisterList.sort(Comparator.comparing(ProtocolsRegister::order));
             for(ProtocolsRegister protocolsRegister : inApplicationProtocolsRegisterList){
                 protocolsRegister.onServerStart();
@@ -77,6 +80,23 @@ public class NettyEmbeddedServletContainer extends AbstractNettyServer implement
         if(servletServerThread != null) {
             servletServerThread.interrupt();
         }
+    }
+
+    @Override
+    protected void startAfter(Throwable cause) {
+        //有异常抛出
+        if(cause != null){
+            PlatformDependent.throwException(cause);
+        }
+
+        List<String> protocols = protocolsRegisterList.stream().map(ProtocolsRegister::getProtocolName).collect(Collectors.toList());
+        logger.info("{0} start (port = {1}, pid = {2}, protocol = {3}, os = {4}) ...",
+                getName(),
+                getPort()+"",
+                HostUtil.getPid()+"",
+                protocols,
+                HostUtil.getOsName()
+        );
     }
 
     @Override

@@ -26,7 +26,7 @@ import java.util.function.Supplier;
  * @author acer01
  * 2018/11/25/025
  */
-public class HRpcProtocolsRegister implements ProtocolsRegister {
+public class NRpcProtocolsRegister implements ProtocolsRegister {
     public static final int ORDER = 200;
 
     private RpcEncoder rpcEncoder = new RpcEncoder(RpcResponse.class);
@@ -35,7 +35,7 @@ public class HRpcProtocolsRegister implements ProtocolsRegister {
     private ApplicationX application;
     private AtomicBoolean addInstancePluginsFlag = new AtomicBoolean(false);
 
-    public HRpcProtocolsRegister(ApplicationX application) {
+    public NRpcProtocolsRegister(ApplicationX application) {
         this.application = application;
     }
 

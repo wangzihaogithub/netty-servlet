@@ -16,10 +16,10 @@ import io.netty.handler.codec.http.HttpConstants;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpServerCodec;
 import io.netty.handler.ssl.SslContext;
+import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslHandler;
 
 import javax.net.ssl.SSLEngine;
-import javax.net.ssl.SSLException;
 import javax.servlet.Filter;
 import javax.servlet.Servlet;
 import javax.servlet.ServletContextEvent;
@@ -44,16 +44,16 @@ public class HttpServletProtocolsRegister implements ProtocolsRegister {
      */
     private final ServletContext servletContext;
     /**
-     * https配置信息
+     * https 配置信息
      */
     private SslContext sslContext;
+    private SslContextBuilder sslContextBuilder;
     private ChannelHandler servletHandler;
 
-    public HttpServletProtocolsRegister(NettyProperties properties, ServletContext servletContext, SslContext sslContext) throws SSLException {
+    public HttpServletProtocolsRegister(NettyProperties properties, ServletContext servletContext, SslContextBuilder sslContextBuilder){
         this.servletContext = servletContext;
         this.servletHandler = new ServletHandler(servletContext,properties);
-        // TODO: 10月16日/0016   ssl没测试能不能用
-        this.sslContext = sslContext;
+        this.sslContextBuilder = sslContextBuilder;
     }
 
     @Override
@@ -160,24 +160,24 @@ public class HttpServletProtocolsRegister implements ProtocolsRegister {
     public void register(Channel ch) throws Exception {
         ChannelPipeline pipeline = ch.pipeline();
 
-        if (sslContext != null) {
+        //初始化SSL
+        if (sslContextBuilder != null) {
+            if(sslContext == null) {
+                sslContext = sslContextBuilder.build();
+            }
             SSLEngine engine = sslContext.newEngine(ch.alloc());
-            engine.setUseClientMode(false);
             pipeline.addLast(HANDLER_SSL, new SslHandler(engine,true));
         }
 
         //HTTP编码解码
         pipeline.addLast(HANDLER_HTTP_CODEC, new HttpServerCodec(4096, 8192, 5 * 1024 * 1024, false));
 
-        //HTTP请求body聚合，设置最大消息值为 5M
+        //HTTP请求聚合，设置最大消息值为 5M
         pipeline.addLast(HANDLER_AGGREGATOR, new HttpObjectAggregator(5 * 1024 * 1024));
 
         //内容压缩
 //                    pipeline.addLast("ContentCompressor", new HttpContentCompressor());
 //                pipeline.addLast("ContentDecompressor", new HttpContentDecompressor());
-
-        //分段写入, 用于流传输, 防止响应数据过大
-//                pipeline.addLast("ChunkedWrite",new ChunkedWriteHandler());
 
         //业务调度器, 让对应的Servlet处理请求
         pipeline.addLast(HANDLER_SERVLET, servletHandler);
@@ -190,10 +190,18 @@ public class HttpServletProtocolsRegister implements ProtocolsRegister {
 
     @Override
     public String getProtocolName() {
-        return "http";
+        String name = "http";
+        if(sslContextBuilder != null){
+            name = name.concat("/https");
+        }
+        return name;
     }
 
     public ServletContext getServletContext() {
         return servletContext;
+    }
+
+    public SslContextBuilder getSslContextBuilder() {
+        return sslContextBuilder;
     }
 }

@@ -191,7 +191,7 @@ public class RemoteRpcSessionServiceImpl implements SessionService {
             return EMPTY;
         }
 
-        ByteArrayOutputStream bout = new ByteArrayOutputStream(256);
+        ByteArrayOutputStream bout = new ByteArrayOutputStream(64);
         ObjectOutputStream oout = null;
         try {
             oout = new ObjectOutputStream(bout);

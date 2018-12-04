@@ -96,7 +96,11 @@ public class CompositeSessionServiceImpl implements SessionService {
 
     protected SessionService getSessionServiceImpl() {
         if(sessionService == null) {
-            enableLocalMemorySession();
+            synchronized (this) {
+                if(sessionService == null) {
+                    enableLocalMemorySession();
+                }
+            }
         }
         return sessionService;
     }

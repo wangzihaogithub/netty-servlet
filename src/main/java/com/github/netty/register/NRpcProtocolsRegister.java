@@ -34,8 +34,13 @@ public class NRpcProtocolsRegister implements ProtocolsRegister {
     private Supplier rpcRequestSupplier = RpcRequest::new;
     private ApplicationX application;
     private AtomicBoolean addInstancePluginsFlag = new AtomicBoolean(false);
+    /**
+     * 每次最大消息长度
+     */
+    private int messageMaxLength;
 
-    public NRpcProtocolsRegister(ApplicationX application) {
+    public NRpcProtocolsRegister(int messageMaxLength,ApplicationX application) {
+        this.messageMaxLength = messageMaxLength;
         this.application = application;
     }
 
@@ -53,7 +58,7 @@ public class NRpcProtocolsRegister implements ProtocolsRegister {
 
     @Override
     public String getProtocolName() {
-        return "hrpc";
+        return "nrpc";
     }
 
     @Override
@@ -65,7 +70,7 @@ public class NRpcProtocolsRegister implements ProtocolsRegister {
     public void register(Channel channel) throws Exception {
         ChannelPipeline pipeline = channel.pipeline();
 
-        pipeline.addLast(new RpcDecoder(rpcRequestSupplier));
+        pipeline.addLast(new RpcDecoder(messageMaxLength,rpcRequestSupplier));
         pipeline.addLast(rpcEncoder);
         pipeline.addLast(rpcServerHandler);
     }
@@ -108,6 +113,10 @@ public class NRpcProtocolsRegister implements ProtocolsRegister {
 
     protected ApplicationX getApplication() {
         return application;
+    }
+
+    public int getMessageMaxLength() {
+        return messageMaxLength;
     }
 
 }

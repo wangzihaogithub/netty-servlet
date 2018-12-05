@@ -14,7 +14,11 @@ import org.springframework.boot.context.embedded.EmbeddedServletContainer;
 import org.springframework.boot.context.embedded.EmbeddedServletContainerException;
 
 import java.net.InetSocketAddress;
-import java.util.*;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.stream.Collectors;
 
 /**
@@ -124,12 +128,13 @@ public class NettyEmbeddedServletContainer extends AbstractNettyServer implement
                     channel.pipeline().remove(this);
                     for(ProtocolsRegister protocolsRegister : protocolsRegisterList){
                         if(protocolsRegister.canSupport(msg)){
-                            logger.info("channel register by [{0}]",protocolsRegister.getProtocolName());
+                            logger.info("Channel protocols register by [{0}]",protocolsRegister.getProtocolName());
                             protocolsRegister.register(channel);
                             channel.pipeline().fireChannelRead(msg);
                             return;
                         }
                     }
+                    logger.info("Received no support protocols. message=[{0}]",msg.toString(Charset.forName("UTF-8")));
                 }
             }
 

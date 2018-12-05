@@ -22,8 +22,8 @@ import java.util.function.Function;
  * @author 84215
  */
 public class HRpcProtocolsRegisterSpringAdapter extends NRpcProtocolsRegister {
-    public HRpcProtocolsRegisterSpringAdapter(ApplicationX application) {
-        super(application);
+    public HRpcProtocolsRegisterSpringAdapter(int messageMaxLength,ApplicationX application) {
+        super(messageMaxLength,application);
     }
 
     @Override

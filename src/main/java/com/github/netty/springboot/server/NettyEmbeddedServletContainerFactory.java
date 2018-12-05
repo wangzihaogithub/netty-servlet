@@ -92,7 +92,7 @@ public class NettyEmbeddedServletContainerFactory extends AbstractEmbeddedServle
         //添加httpServlet协议注册器
         tcpServer.addProtocolsRegister(new HttpServletProtocolsRegisterSpringAdapter(properties,servletContext,this));
         //添加内部rpc协议注册器
-        tcpServer.addProtocolsRegister(new HRpcProtocolsRegisterSpringAdapter(properties.getApplication()));
+        tcpServer.addProtocolsRegister(new HRpcProtocolsRegisterSpringAdapter(properties.getRpcServerMessageMaxLength(),properties.getApplication()));
     }
 
     @Override

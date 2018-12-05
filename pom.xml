@@ -18,6 +18,13 @@
         <spring-boot.version>2.1.0.RELEASE</spring-boot.version>
         <netty-rpc.version>2.0.0</netty-rpc.version>
         <servlet-api.version>4.0.1</servlet-api.version>
+
+        <javax-websocket-api.version>1.1</javax-websocket-api.version>
+
+        <netty.version>4.1.25.Final</netty.version>
+        <protostuff.version>1.6.0</protostuff.version>
+        <fastjson.version>1.2.49</fastjson.version>
+        <asm.version>7.0</asm.version>
     </properties>
 
     <licenses>
@@ -45,11 +52,6 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.github.wangzihaogithub</groupId>
-            <artifactId>netty-rpc</artifactId>
-            <version>${netty-rpc.version}</version>
-        </dependency>
-        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
             <version>${spring-boot.version}</version>
@@ -60,10 +62,47 @@
             <version>${spring-boot.version}</version>
             <optional>true</optional>
         </dependency>
+
         <dependency>
             <groupId>javax.servlet</groupId>
             <artifactId>javax.servlet-api</artifactId>
             <version>${servlet-api.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-all</artifactId>
+            <version>${netty.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>fastjson</artifactId>
+            <version>${fastjson.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.protostuff</groupId>
+            <artifactId>protostuff-core</artifactId>
+            <version>${protostuff.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.protostuff</groupId>
+            <artifactId>protostuff-runtime</artifactId>
+            <version>${protostuff.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.ow2.asm</groupId>
+            <artifactId>asm</artifactId>
+            <version>${asm.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>javax.websocket</groupId>
+            <artifactId>javax.websocket-api</artifactId>
+            <version>${javax-websocket-api.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-websocket</artifactId>
+            <version>${spring-boot.version}</version>
         </dependency>
 
         <!-- https://mvnrepository.com/artifact/com.lmax/disruptor -->

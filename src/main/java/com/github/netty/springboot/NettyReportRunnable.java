@@ -6,8 +6,8 @@ import com.github.netty.core.util.LoggerX;
 import com.github.netty.core.util.ThreadPoolX;
 import com.github.netty.rpc.RpcClientInstance;
 import com.github.netty.rpc.RpcFuture;
-import com.github.netty.servlet.ServletFilterChain;
-import com.github.netty.servlet.handler.HttpMessageToServletRunnable;
+import com.github.netty.register.servlet.ServletFilterChain;
+import com.github.netty.register.servlet.NettyMessageToServletRunnable;
 
 import javax.servlet.Filter;
 import java.math.BigDecimal;
@@ -42,8 +42,8 @@ public class NettyReportRunnable implements Runnable{
 
             long totalTime = System.currentTimeMillis() - beginTime;
 
-            long servletQueryCount = HttpMessageToServletRunnable.SERVLET_QUERY_COUNT.get();
-            long servletAndFilterTime = HttpMessageToServletRunnable.SERVLET_AND_FILTER_TIME.get();
+            long servletQueryCount = NettyMessageToServletRunnable.SERVLET_QUERY_COUNT.get();
+            long servletAndFilterTime = NettyMessageToServletRunnable.SERVLET_AND_FILTER_TIME.get();
             long servletTime = ServletFilterChain.SERVLET_TIME.get();
             long filterTime = ServletFilterChain.FILTER_TIME.get();
 

@@ -2,11 +2,11 @@ package com.github.netty.register;
 
 import com.github.netty.core.ProtocolsRegister;
 import com.github.netty.core.util.IOUtil;
-import com.github.netty.servlet.ServletContext;
-import com.github.netty.servlet.ServletFilterRegistration;
-import com.github.netty.servlet.ServletRegistration;
-import com.github.netty.servlet.handler.ServletHandler;
-import com.github.netty.servlet.support.ServletEventListenerManager;
+import com.github.netty.register.servlet.ServletContext;
+import com.github.netty.register.servlet.ServletFilterRegistration;
+import com.github.netty.register.servlet.ServletRegistration;
+import com.github.netty.register.servlet.ServletChannelHandler;
+import com.github.netty.register.servlet.ServletEventListenerManager;
 import com.github.netty.springboot.NettyProperties;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
@@ -52,7 +52,7 @@ public class HttpServletProtocolsRegister implements ProtocolsRegister {
 
     public HttpServletProtocolsRegister(NettyProperties properties, ServletContext servletContext, SslContextBuilder sslContextBuilder){
         this.servletContext = servletContext;
-        this.servletHandler = new ServletHandler(servletContext,properties);
+        this.servletHandler = new ServletChannelHandler(servletContext,properties);
         this.sslContextBuilder = sslContextBuilder;
     }
 

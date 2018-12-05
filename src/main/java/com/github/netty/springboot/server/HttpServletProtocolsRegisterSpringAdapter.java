@@ -3,13 +3,15 @@ package com.github.netty.springboot.server;
 import com.github.netty.core.util.ApplicationX;
 import com.github.netty.core.util.StringUtil;
 import com.github.netty.register.HttpServletProtocolsRegister;
-import com.github.netty.servlet.ServletContext;
-import com.github.netty.servlet.support.ServletErrorPage;
-import com.github.netty.session.CompositeSessionServiceImpl;
-import com.github.netty.session.SessionService;
+import com.github.netty.register.servlet.ServletContext;
+import com.github.netty.register.servlet.ServletErrorPage;
+import com.github.netty.register.servlet.SessionCompositeServiceImpl;
+import com.github.netty.register.servlet.SessionService;
 import com.github.netty.springboot.NettyProperties;
-import io.netty.handler.ssl.*;
-import io.netty.handler.ssl.util.SelfSignedCertificate;
+import io.netty.handler.ssl.ApplicationProtocolConfig;
+import io.netty.handler.ssl.ApplicationProtocolNames;
+import io.netty.handler.ssl.ClientAuth;
+import io.netty.handler.ssl.SslContextBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.web.server.ErrorPage;
 import org.springframework.boot.web.server.MimeMappings;
@@ -22,17 +24,11 @@ import org.springframework.web.context.support.WebApplicationContextUtils;
 
 import javax.annotation.Resource;
 import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLException;
 import javax.net.ssl.TrustManagerFactory;
-import java.io.File;
 import java.net.InetSocketAddress;
 import java.net.URL;
 import java.security.KeyStore;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
-
-import static io.netty.handler.codec.http2.Http2SecurityUtil.CIPHERS;
 
 /**
  * httpServlet协议注册器 （适配spring）
@@ -87,7 +83,7 @@ public class HttpServletProtocolsRegisterSpringAdapter extends HttpServletProtoc
      */
     protected SessionService newSessionService(NettyProperties properties,ServletContext servletContext){
         //组合会话 (默认本地存储)
-        CompositeSessionServiceImpl compositeSessionService = new CompositeSessionServiceImpl();
+        SessionCompositeServiceImpl compositeSessionService = new SessionCompositeServiceImpl();
 
         //启用session远程存储, 利用RPC
         if(StringUtil.isNotEmpty(properties.getSessionRemoteServerAddress())) {

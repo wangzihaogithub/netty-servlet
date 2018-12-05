@@ -1,7 +1,7 @@
 package com.github.netty.springboot.server;
 
-import com.github.netty.servlet.ServletContext;
-import com.github.netty.servlet.ServletDefaultHttpServlet;
+import com.github.netty.register.servlet.ServletContext;
+import com.github.netty.register.servlet.ServletDefaultHttpServlet;
 import com.github.netty.springboot.NettyProperties;
 import org.springframework.boot.web.reactive.server.ConfigurableReactiveWebServerFactory;
 import org.springframework.boot.web.server.WebServer;

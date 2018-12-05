@@ -1,13 +1,8 @@
 package com.github.netty.springboot.server;
 
-import com.github.netty.core.util.ApplicationX;
-import com.github.netty.core.util.ReflectUtil;
-import com.github.netty.core.util.StringUtil;
+import com.github.netty.annotation.RegisterFor;
+import com.github.netty.core.util.*;
 import com.github.netty.register.NRpcProtocolsRegister;
-import com.github.netty.rpc.AnnotationMethodToParameterNamesFunction;
-import com.github.netty.rpc.AsmMethodToParameterNamesFunction;
-import com.github.netty.rpc.annotation.RpcParam;
-import com.github.netty.rpc.annotation.RpcService;
 import org.springframework.web.bind.annotation.*;
 
 import java.lang.annotation.Annotation;
@@ -29,7 +24,7 @@ public class HRpcProtocolsRegisterSpringAdapter extends NRpcProtocolsRegister {
     @Override
     public void onServerStart() throws Exception {
         ApplicationX application = getApplication();
-        Collection list = application.getBeanForAnnotation(RpcService.class);
+        Collection list = application.getBeanForAnnotation(RegisterFor.RpcService.class);
         for(Object serviceImpl : list){
             if(existInstance(serviceImpl)){
                 continue;
@@ -46,7 +41,7 @@ public class HRpcProtocolsRegisterSpringAdapter extends NRpcProtocolsRegister {
 
     private boolean addInstanceForRequestMapping(Object serviceImpl){
         List<Class<?extends Annotation>> parameterAnnotationClasses = Arrays.asList(
-                RpcParam.class,RequestParam.class,RequestBody.class, RequestHeader.class,
+                RegisterFor.RpcParam.class,RequestParam.class,RequestBody.class, RequestHeader.class,
                 PathVariable.class,CookieValue.class, RequestPart.class);
         Class annotationOnClass = ReflectUtil.findClassByAnnotation(serviceImpl.getClass(), RequestMapping.class);
         if(annotationOnClass == null){

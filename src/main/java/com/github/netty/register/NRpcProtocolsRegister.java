@@ -27,7 +27,7 @@ import java.util.function.Supplier;
  * 2018/11/25/025
  */
 public class NRpcProtocolsRegister implements ProtocolsRegister {
-    public static final int ORDER = 200;
+    public static final int ORDER = HttpServletProtocolsRegister.ORDER + 100;
 
     private RpcEncoder rpcEncoder = new RpcEncoder(RpcResponse.class);
     private RpcServerHandler rpcServerHandler = new RpcServerHandler();

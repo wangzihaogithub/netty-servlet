@@ -170,7 +170,10 @@ public class NettyProperties implements Serializable{
      * RPC客户端 - 心跳间隔时间(秒)
      */
     private int rpcClientHeartIntervalSecond = 20;
-
+    /**
+     * RPC服务端 - 每次消息最大长度 (默认2M)
+     */
+    private int rpcServerMessageMaxLength = 2 * 1024 * 1024;
     /**
      * session存储 - 是否开启本地文件存储
      */
@@ -303,6 +306,14 @@ public class NettyProperties implements Serializable{
         this.enableRpcHeartLog = enableRpcHeartLog;
     }
 
+    public int getRpcServerMessageMaxLength() {
+        return rpcServerMessageMaxLength;
+    }
+
+    public void setRpcServerMessageMaxLength(int rpcServerMessageMaxLength) {
+        this.rpcServerMessageMaxLength = rpcServerMessageMaxLength;
+    }
+
     @Override
     public String toString() {
         return "NettyProperties{" +
@@ -316,6 +327,7 @@ public class NettyProperties implements Serializable{
                 ", rpcClientHeartIntervalSecond=" + rpcClientHeartIntervalSecond +
                 ", sessionRemoteServerAddress='" + sessionRemoteServerAddress + '\'' +
                 ", responseWriterChunkMaxHeapByteLength=" + responseWriterChunkMaxHeapByteLength +
+                ", rpcServerMessageMaxLength=" + rpcServerMessageMaxLength +
                 '}';
     }
 }

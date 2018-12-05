@@ -14,6 +14,7 @@ import org.springframework.boot.web.server.WebServer;
 import org.springframework.boot.web.server.WebServerException;
 
 import java.net.InetSocketAddress;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedList;
@@ -127,12 +128,13 @@ public class NettyTcpServer extends AbstractNettyServer implements WebServer {
                     channel.pipeline().remove(this);
                     for(ProtocolsRegister protocolsRegister : protocolsRegisterList){
                         if(protocolsRegister.canSupport(msg)){
-                            logger.info("channel protocols register by [{0}]",protocolsRegister.getProtocolName());
+                            logger.info("Channel protocols register by [{0}]",protocolsRegister.getProtocolName());
                             protocolsRegister.register(channel);
                             channel.pipeline().fireChannelRead(msg);
                             return;
                         }
                     }
+                    logger.info("Received no support protocols. message=[{0}]",msg.toString(Charset.forName("UTF-8")));
                 }
             }
 

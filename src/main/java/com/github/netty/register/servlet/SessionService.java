@@ -1,7 +1,6 @@
 package com.github.netty.register.servlet;
 
-import com.github.netty.rpc.annotation.RpcParam;
-import com.github.netty.rpc.annotation.RpcService;
+import com.github.netty.annotation.RegisterFor;
 
 import java.util.List;
 
@@ -10,7 +9,7 @@ import java.util.List;
  * @author acer01
  * 2018/8/19/019
  */
-@RpcService(value = "/hrpc/sessionService",timeout = 1000)
+@RegisterFor.RpcService(value = "/hrpc/sessionService",timeout = 1000)
 public interface SessionService {
 
     /**
@@ -18,32 +17,32 @@ public interface SessionService {
      * @param sessionId
      * @return
      */
-    Session getSession(@RpcParam("sessionId")String sessionId);
+    Session getSession(@RegisterFor.RpcParam("sessionId")String sessionId);
 
     /**
      * 保存session
      * @param session
      */
-    void saveSession(@RpcParam("session")Session session);
+    void saveSession(@RegisterFor.RpcParam("session")Session session);
 
     /**
      * 删除session
      * @param sessionId
      */
-    void removeSession(@RpcParam("sessionId")String sessionId);
+    void removeSession(@RegisterFor.RpcParam("sessionId")String sessionId);
 
     /**
      * 删除session (批量)
      * @param sessionIdList
      */
-    void removeSessionBatch(@RpcParam("sessionIdList")List<String> sessionIdList);
+    void removeSessionBatch(@RegisterFor.RpcParam("sessionIdList")List<String> sessionIdList);
 
     /**
      * 改变sessionId
      * @param oldSessionId
      * @param newSessionId
      */
-    void changeSessionId(@RpcParam("oldSessionId")String oldSessionId,@RpcParam("newSessionId")String newSessionId);
+    void changeSessionId(@RegisterFor.RpcParam("oldSessionId")String oldSessionId,@RegisterFor.RpcParam("newSessionId")String newSessionId);
 
     /**
      * 获取session数量

@@ -1,6 +1,7 @@
 package com.github.netty.register;
 
 import com.github.netty.core.ProtocolsRegister;
+import com.github.netty.register.mqtt.MqttServerChannelHandler;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelPipeline;
@@ -14,6 +15,7 @@ public class MqttProtocolsRegister implements ProtocolsRegister {
     public static final int ORDER = NRpcProtocolsRegister.ORDER + 100;
 
     private int messageMaxLength;
+    private MqttServerChannelHandler channelHandler = new MqttServerChannelHandler();
 
     public MqttProtocolsRegister(int messageMaxLength) {
         this.messageMaxLength = messageMaxLength;
@@ -34,6 +36,7 @@ public class MqttProtocolsRegister implements ProtocolsRegister {
         ChannelPipeline pipeline = channel.pipeline();
         pipeline.addLast(MqttEncoder.INSTANCE);
         pipeline.addLast(new MqttDecoder(messageMaxLength));
+        pipeline.addLast(channelHandler);
     }
 
     @Override

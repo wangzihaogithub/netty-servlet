@@ -25,17 +25,17 @@ public class SessionCompositeServiceImpl implements SessionService {
 
     public void enableLocalMemorySession(){
         removeSessionService();
-        this.sessionService = new LocalMemorySessionServiceImpl();
+        this.sessionService = new SessionLocalMemoryServiceImpl();
     }
 
     public void enableRemoteRpcSession(InetSocketAddress address, NettyProperties config){
         removeSessionService();
-        this.sessionService = new RemoteRpcSessionServiceImpl(address,config);
+        this.sessionService = new SessionRemoteRpcServiceImpl(address,config);
     }
 
     public void enableLocalFileSession(ResourceManager resourceManager){
         removeSessionService();
-        this.sessionService = new LocalFileSessionServiceImpl(resourceManager);
+        this.sessionService = new SessionLocalFileServiceImpl(resourceManager);
     }
 
     public void removeSessionService(){
@@ -43,10 +43,10 @@ public class SessionCompositeServiceImpl implements SessionService {
             return;
         }
         try {
-            if (sessionService instanceof LocalMemorySessionServiceImpl) {
-                ((LocalMemorySessionServiceImpl) sessionService).getSessionInvalidThread().interrupt();
-            } else if (sessionService instanceof LocalFileSessionServiceImpl) {
-                ((LocalFileSessionServiceImpl) sessionService).getSessionInvalidThread().interrupt();
+            if (sessionService instanceof SessionLocalMemoryServiceImpl) {
+                ((SessionLocalMemoryServiceImpl) sessionService).getSessionInvalidThread().interrupt();
+            } else if (sessionService instanceof SessionLocalFileServiceImpl) {
+                ((SessionLocalFileServiceImpl) sessionService).getSessionInvalidThread().interrupt();
             }
         }catch (Exception e){
             //

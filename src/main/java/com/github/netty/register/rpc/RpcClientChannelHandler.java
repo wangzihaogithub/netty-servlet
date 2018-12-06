@@ -19,7 +19,7 @@ import java.util.function.Supplier;
  * @author 84215
  */
 @ChannelHandler.Sharable
-public class RpcClientHandler extends AbstractChannelHandler<RpcResponse> {
+public class RpcClientChannelHandler extends AbstractChannelHandler<RpcResponse> {
 
     /**
      * 请求锁
@@ -34,11 +34,11 @@ public class RpcClientHandler extends AbstractChannelHandler<RpcResponse> {
      */
     private DataCodec dataCodec;
 
-    public RpcClientHandler(Supplier<SocketChannel> channelSupplier) {
+    public RpcClientChannelHandler(Supplier<SocketChannel> channelSupplier) {
         this(channelSupplier, new JsonDataCodec());
     }
 
-    public RpcClientHandler(Supplier<SocketChannel> channelSupplier, DataCodec dataCodec) {
+    public RpcClientChannelHandler(Supplier<SocketChannel> channelSupplier, DataCodec dataCodec) {
         this.channelSupplier = Objects.requireNonNull(channelSupplier);
         this.dataCodec = dataCodec;
         try {

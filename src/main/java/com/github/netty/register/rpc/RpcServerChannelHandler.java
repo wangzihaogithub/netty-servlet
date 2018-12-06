@@ -22,7 +22,7 @@ import java.util.function.Function;
  *  2018/9/16/016
  */
 @ChannelHandler.Sharable
-public class RpcServerHandler extends AbstractChannelHandler<RpcRequest> {
+public class RpcServerChannelHandler extends AbstractChannelHandler<RpcRequest> {
 
     /**
      * 数据编码解码器
@@ -31,11 +31,11 @@ public class RpcServerHandler extends AbstractChannelHandler<RpcRequest> {
     private final Map<String,RpcServerInstance> serviceInstanceMap = new HashMap<>();
     private Map<String,Channel> channelMap = new ConcurrentHashMap<>();
 
-    public RpcServerHandler() {
+    public RpcServerChannelHandler() {
         this(new JsonDataCodec());
     }
 
-    public RpcServerHandler(DataCodec dataCodec) {
+    public RpcServerChannelHandler(DataCodec dataCodec) {
         super(false);
         this.dataCodec = dataCodec;
     }

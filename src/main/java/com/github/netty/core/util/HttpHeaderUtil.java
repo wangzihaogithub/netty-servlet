@@ -2,7 +2,7 @@ package com.github.netty.core.util;
 
 import com.github.netty.register.servlet.NettyHttpRequest;
 import com.github.netty.register.servlet.NettyHttpResponse;
-import com.github.netty.core.constants.HttpHeaderConstants;
+import com.github.netty.register.servlet.util.HttpHeaderConstants;
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.*;
 

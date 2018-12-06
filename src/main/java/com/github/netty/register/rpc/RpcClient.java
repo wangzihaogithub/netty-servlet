@@ -36,7 +36,7 @@ public class RpcClient extends AbstractNettyClient{
     /**
      * rpc客户端处理器
      */
-    private RpcClientHandler rpcClientHandler = new RpcClientHandler(this::getSocketChannel);
+    private RpcClientChannelHandler rpcClientHandler = new RpcClientChannelHandler(this::getSocketChannel);
     private RpcEncoder rpcEncoder = new RpcEncoder(RpcRequest.class);
     private Supplier rpcResponseSupplier = RpcResponse::new;
     /**

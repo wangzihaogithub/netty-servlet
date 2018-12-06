@@ -1,16 +1,11 @@
 package com.github.netty.register;
 
+import com.github.netty.annotation.RegisterFor;
 import com.github.netty.core.ProtocolsRegister;
 import com.github.netty.core.util.ApplicationX;
-import com.github.netty.rpc.RpcRequest;
-import com.github.netty.rpc.RpcResponse;
-import com.github.netty.rpc.RpcServerHandler;
-import com.github.netty.rpc.RpcUtil;
-import com.github.netty.rpc.annotation.RpcService;
-import com.github.netty.rpc.codec.RpcDecoder;
-import com.github.netty.rpc.codec.RpcEncoder;
-import com.github.netty.rpc.service.RpcCommandServiceImpl;
-import com.github.netty.rpc.service.RpcDBServiceImpl;
+import com.github.netty.register.rpc.*;
+import com.github.netty.register.rpc.service.RpcCommandServiceImpl;
+import com.github.netty.register.rpc.service.RpcDBServiceImpl;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelPipeline;
@@ -30,7 +25,7 @@ public class NRpcProtocolsRegister implements ProtocolsRegister {
     public static final int ORDER = HttpServletProtocolsRegister.ORDER + 100;
 
     private RpcEncoder rpcEncoder = new RpcEncoder(RpcResponse.class);
-    private RpcServerHandler rpcServerHandler = new RpcServerHandler();
+    private RpcServerChannelHandler rpcServerHandler = new RpcServerChannelHandler();
     private Supplier rpcRequestSupplier = RpcRequest::new;
     private ApplicationX application;
     private AtomicBoolean addInstancePluginsFlag = new AtomicBoolean(false);
@@ -83,7 +78,7 @@ public class NRpcProtocolsRegister implements ProtocolsRegister {
     @Override
     public void onServerStart() throws Exception {
         //用户的服务
-        Collection list = application.getBeanForAnnotation(RpcService.class);
+        Collection list = application.getBeanForAnnotation(RegisterFor.RpcService.class);
         for(Object serviceImpl : list){
             if(existInstance(serviceImpl)){
                 continue;

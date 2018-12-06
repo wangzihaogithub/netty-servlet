@@ -18,7 +18,7 @@ import io.netty.handler.codec.mqtt.MqttMessageType;
      disconnect：断开这个TCP/IP协议。
  * Created by acer01 on 2018/12/5/005.
  */
-public class MqttMessageHandler extends AbstractChannelHandler<MqttMessage> {
+public class MqttClientChannelHandler extends AbstractChannelHandler<MqttMessage> {
     @Override
     protected void onMessageReceived(ChannelHandlerContext ctx, MqttMessage msg) throws Exception {
         MqttMessageType messageType = msg.fixedHeader().messageType();

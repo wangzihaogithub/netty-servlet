@@ -2,9 +2,9 @@ package com.github.netty.register.servlet;
 
 import com.github.netty.core.constants.CoreConstants;
 import com.github.netty.core.util.NamespaceUtil;
-import com.github.netty.rpc.RpcClient;
-import com.github.netty.rpc.exception.RpcDecodeException;
-import com.github.netty.rpc.service.RpcDBService;
+import com.github.netty.register.rpc.RpcClient;
+import com.github.netty.register.rpc.exception.RpcDecodeException;
+import com.github.netty.register.rpc.service.RpcDBService;
 import com.github.netty.springboot.NettyProperties;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.Unpooled;

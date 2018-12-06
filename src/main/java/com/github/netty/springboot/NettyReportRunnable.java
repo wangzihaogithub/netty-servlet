@@ -4,8 +4,8 @@ import com.github.netty.core.util.AbstractRecycler;
 import com.github.netty.core.util.LoggerFactoryX;
 import com.github.netty.core.util.LoggerX;
 import com.github.netty.core.util.ThreadPoolX;
-import com.github.netty.rpc.RpcClientInstance;
-import com.github.netty.rpc.RpcFuture;
+import com.github.netty.register.rpc.RpcClientInstance;
+import com.github.netty.register.rpc.RpcFuture;
 import com.github.netty.register.servlet.ServletFilterChain;
 import com.github.netty.register.servlet.NettyMessageToServletRunnable;
 

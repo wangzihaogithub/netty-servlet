@@ -20,7 +20,7 @@ public class RpcServer extends AbstractNettyServer{
     /**
      * rpc服务端处理器
      */
-    private RpcServerHandler rpcServerHandler = new RpcServerHandler();
+    private RpcServerChannelHandler rpcServerHandler = new RpcServerChannelHandler();
     private Supplier rpcRequestSupplier = RpcRequest::new;
     private RpcEncoder rpcEncoder = new RpcEncoder(RpcResponse.class);
 

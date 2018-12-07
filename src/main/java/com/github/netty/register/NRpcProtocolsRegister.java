@@ -4,7 +4,7 @@ import com.github.netty.core.ProtocolsRegister;
 import com.github.netty.core.util.ApplicationX;
 import com.github.netty.rpc.RpcRequest;
 import com.github.netty.rpc.RpcResponse;
-import com.github.netty.rpc.RpcServerHandler;
+import com.github.netty.rpc.RpcServerChannelHandler;
 import com.github.netty.rpc.RpcUtil;
 import com.github.netty.rpc.annotation.RpcService;
 import com.github.netty.rpc.codec.RpcDecoder;
@@ -30,7 +30,7 @@ public class NRpcProtocolsRegister implements ProtocolsRegister {
     public static final int ORDER = 200;
 
     private RpcEncoder rpcEncoder = new RpcEncoder(RpcResponse.class);
-    private RpcServerHandler rpcServerHandler = new RpcServerHandler();
+    private RpcServerChannelHandler rpcServerHandler = new RpcServerChannelHandler();
     private Supplier rpcRequestSupplier = RpcRequest::new;
     private ApplicationX application;
     private AtomicBoolean addInstancePluginsFlag = new AtomicBoolean(false);

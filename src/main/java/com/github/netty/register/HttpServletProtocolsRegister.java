@@ -5,7 +5,7 @@ import com.github.netty.core.util.IOUtil;
 import com.github.netty.servlet.ServletContext;
 import com.github.netty.servlet.ServletFilterRegistration;
 import com.github.netty.servlet.ServletRegistration;
-import com.github.netty.servlet.handler.ServletHandler;
+import com.github.netty.servlet.handler.ServletChannelHandler;
 import com.github.netty.servlet.support.ServletEventListenerManager;
 import com.github.netty.springboot.NettyProperties;
 import io.netty.buffer.ByteBuf;
@@ -52,7 +52,7 @@ public class HttpServletProtocolsRegister implements ProtocolsRegister {
 
     public HttpServletProtocolsRegister(NettyProperties properties, ServletContext servletContext, SslContextBuilder sslContextBuilder){
         this.servletContext = servletContext;
-        this.servletHandler = new ServletHandler(servletContext,properties);
+        this.servletHandler = new ServletChannelHandler(servletContext,properties);
         this.sslContextBuilder = sslContextBuilder;
     }
 

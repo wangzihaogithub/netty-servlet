@@ -91,8 +91,6 @@ public class NettyEmbeddedServletContainerFactory extends AbstractEmbeddedServle
     protected void configurableTcpServer(NettyEmbeddedServletContainer tcpServer,ServletContext servletContext) throws Exception {
         //添加httpServlet协议注册器
         tcpServer.addProtocolsRegister(new HttpServletProtocolsRegisterSpringAdapter(properties,servletContext,this));
-        //添加内部rpc协议注册器
-        tcpServer.addProtocolsRegister(new HRpcProtocolsRegisterSpringAdapter(properties.getRpcServerMessageMaxLength(),properties.getApplication()));
     }
 
     @Override

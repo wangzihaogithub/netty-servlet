@@ -2,7 +2,7 @@ package com.github.netty.springboot.server;
 
 import com.github.netty.core.util.ApplicationX;
 import com.github.netty.core.util.StringUtil;
-import com.github.netty.register.HttpServletProtocolsRegister;
+import com.github.netty.protocol.HttpServletProtocolsRegister;
 import com.github.netty.servlet.ServletContext;
 import com.github.netty.servlet.support.ServletErrorPage;
 import com.github.netty.session.CompositeSessionServiceImpl;

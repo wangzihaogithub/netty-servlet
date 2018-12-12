@@ -4,7 +4,7 @@ import com.github.netty.annotation.Protocol;
 import com.github.netty.core.util.ApplicationX;
 import com.github.netty.core.util.ReflectUtil;
 import com.github.netty.core.util.StringUtil;
-import com.github.netty.register.NRpcProtocolsRegister;
+import com.github.netty.protocol.NRpcProtocolsRegister;
 import com.github.netty.rpc.AnnotationMethodToParameterNamesFunction;
 import com.github.netty.rpc.AsmMethodToParameterNamesFunction;
 import org.springframework.web.bind.annotation.*;

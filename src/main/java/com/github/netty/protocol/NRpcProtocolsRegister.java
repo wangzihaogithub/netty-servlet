@@ -1,4 +1,4 @@
-package com.github.netty.register;
+package com.github.netty.protocol;
 
 import com.github.netty.core.ProtocolsRegister;
 import com.github.netty.core.util.ApplicationX;

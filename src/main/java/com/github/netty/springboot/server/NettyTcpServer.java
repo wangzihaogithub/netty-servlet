@@ -3,8 +3,10 @@ package com.github.netty.springboot.server;
 import com.github.netty.core.AbstractChannelHandler;
 import com.github.netty.core.AbstractNettyServer;
 import com.github.netty.core.ProtocolsRegister;
+import com.github.netty.core.util.ApplicationX;
 import com.github.netty.core.util.HostUtil;
 import com.github.netty.core.util.NettyThreadX;
+import com.github.netty.protocol.NRpcProtocolsRegister;
 import com.github.netty.springboot.NettyProperties;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.*;
@@ -54,6 +56,12 @@ public class NettyTcpServer extends AbstractNettyServer implements WebServer {
             super.setIoThreadCount(properties.getServerIoThreads());
             for(ProtocolsRegister protocolsRegister : protocolsRegisterList){
                 protocolsRegister.onServerStart();
+            }
+
+            ApplicationX application = properties.getApplication();
+            //添加内部rpc协议注册器
+            if(application.getBean(NRpcProtocolsRegister.class) == null){
+                application.addInstance(new HRpcProtocolsRegisterSpringAdapter(properties.getRpcServerMessageMaxLength(),application));
             }
 
             List<ProtocolsRegister> inApplicationProtocolsRegisterList = new ArrayList<>(properties.getApplication().findBeanForType(ProtocolsRegister.class));

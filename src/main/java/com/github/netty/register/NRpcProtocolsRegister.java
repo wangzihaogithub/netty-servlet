@@ -1,12 +1,12 @@
 package com.github.netty.register;
 
+import com.github.netty.annotation.Protocol;
 import com.github.netty.core.ProtocolsRegister;
 import com.github.netty.core.util.ApplicationX;
 import com.github.netty.rpc.RpcRequest;
 import com.github.netty.rpc.RpcResponse;
 import com.github.netty.rpc.RpcServerChannelHandler;
 import com.github.netty.rpc.RpcUtil;
-import com.github.netty.rpc.annotation.RpcService;
 import com.github.netty.rpc.codec.RpcDecoder;
 import com.github.netty.rpc.codec.RpcEncoder;
 import com.github.netty.rpc.service.RpcCommandServiceImpl;
@@ -83,7 +83,7 @@ public class NRpcProtocolsRegister implements ProtocolsRegister {
     @Override
     public void onServerStart() throws Exception {
         //用户的服务
-        Collection list = application.getBeanForAnnotation(RpcService.class);
+        Collection list = application.getBeanForAnnotation(Protocol.RpcService.class);
         for(Object serviceImpl : list){
             if(existInstance(serviceImpl)){
                 continue;

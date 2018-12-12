@@ -1,7 +1,6 @@
 package com.github.netty.springboot;
 
 import com.github.netty.core.util.ApplicationX;
-import com.github.netty.rpc.annotation.RpcService;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.io.Serializable;
@@ -149,7 +148,7 @@ public class NettyProperties implements Serializable{
     /**
      * RPC客户端-RPC同步调用超时时间
      */
-    private int rpcTimeout = RpcService.DEFAULT_TIME_OUT;
+    private int rpcTimeout = 1000;
 
     /**
      * RPC客户端 - 保持的连接数

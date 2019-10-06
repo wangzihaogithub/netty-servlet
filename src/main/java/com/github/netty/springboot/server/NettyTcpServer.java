@@ -1,52 +1,41 @@
 package com.github.netty.springboot.server;
 
-import com.github.netty.core.AbstractChannelHandler;
 import com.github.netty.core.AbstractNettyServer;
-import com.github.netty.core.ProtocolsRegister;
-import com.github.netty.core.util.ApplicationX;
+import com.github.netty.core.ProtocolHandler;
+import com.github.netty.core.ServerListener;
 import com.github.netty.core.util.HostUtil;
-import com.github.netty.core.util.NettyThreadX;
-import com.github.netty.protocol.NRpcProtocolsRegister;
+import com.github.netty.protocol.DynamicProtocolChannelHandler;
 import com.github.netty.springboot.NettyProperties;
-import io.netty.buffer.ByteBuf;
-import io.netty.channel.*;
-import io.netty.channel.socket.SocketChannel;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelHandler;
+import io.netty.util.concurrent.Future;
 import io.netty.util.internal.PlatformDependent;
 import org.springframework.boot.web.server.WebServer;
 import org.springframework.boot.web.server.WebServerException;
 
 import java.net.InetSocketAddress;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Collection;
 
 /**
- * netty容器 tcp层面的服务器
- *
- * @author acer01
+ * Netty container TCP layer server
+ * @author wangzihao
  *  2018/7/14/014
  */
 public class NettyTcpServer extends AbstractNettyServer implements WebServer {
-
     /**
-     * 容器配置信息
+     * Container configuration information
      */
     private final NettyProperties properties;
-    /**
-     * servlet线程
-     */
-    private Thread servletServerThread;
-    /**
-     * 协议注册器列表
-     */
-    private List<ProtocolsRegister> protocolsRegisterList = new LinkedList<>();
+    private Collection<ProtocolHandler> protocolHandlers;
+    private Collection<ServerListener> serverListeners;
 
-    public NettyTcpServer(InetSocketAddress serverAddress, NettyProperties properties){
+    public NettyTcpServer(InetSocketAddress serverAddress, NettyProperties properties,
+                          Collection<ProtocolHandler> protocolHandlers,
+                          Collection<ServerListener> serverListeners){
         super(serverAddress);
         this.properties = properties;
+        this.protocolHandlers = protocolHandlers;
+        this.serverListeners = serverListeners;
     }
 
     @Override
@@ -54,114 +43,72 @@ public class NettyTcpServer extends AbstractNettyServer implements WebServer {
         try{
             super.setIoRatio(properties.getServerIoRatio());
             super.setIoThreadCount(properties.getServerIoThreads());
-            for(ProtocolsRegister protocolsRegister : protocolsRegisterList){
-                protocolsRegister.onServerStart();
+            for(ServerListener serverListener : serverListeners){
+                serverListener.onServerStart();
             }
-
-            ApplicationX application = properties.getApplication();
-            //添加内部rpc协议注册器
-            if(application.getBean(NRpcProtocolsRegister.class) == null){
-                application.addInstance(new HRpcProtocolsRegisterSpringAdapter(properties.getRpcServerMessageMaxLength(),application));
-            }
-
-            List<ProtocolsRegister> inApplicationProtocolsRegisterList = new ArrayList<>(properties.getApplication().findBeanForType(ProtocolsRegister.class));
-            inApplicationProtocolsRegisterList.sort(Comparator.comparing(ProtocolsRegister::order));
-            for(ProtocolsRegister protocolsRegister : inApplicationProtocolsRegisterList){
-                protocolsRegister.onServerStart();
-                addProtocolsRegister(protocolsRegister);
-            }
-
-            protocolsRegisterList.sort(Comparator.comparing(ProtocolsRegister::order));
+            super.run();
         } catch (Exception e) {
             throw new WebServerException(e.getMessage(),e);
         }
-        servletServerThread = new NettyThreadX(this,getName());
-        servletServerThread.start();
     }
 
     @Override
     public void stop() throws WebServerException {
-        try{
-            for(ProtocolsRegister protocolsRegister : protocolsRegisterList){
-                protocolsRegister.onServerStop();
+        for(ServerListener serverListener : serverListeners){
+            try {
+	            serverListener.onServerStop();
+            }catch (Throwable t){
+                logger.error("case by stop event [" + t.getMessage()+"]",t);
             }
+        }
+
+        try{
+            super.stop();
         } catch (Exception e) {
             throw new WebServerException(e.getMessage(),e);
-        }
-        super.stop();
-        if(servletServerThread != null) {
-            servletServerThread.interrupt();
         }
     }
 
     @Override
-    protected void startAfter(Throwable cause) {
-        //有异常抛出
+    protected void startAfter(ChannelFuture future){
+        //Exception thrown
+        Throwable cause = future.cause();
         if(cause != null){
             PlatformDependent.throwException(cause);
         }
 
-        List<String> protocols = protocolsRegisterList.stream().map(ProtocolsRegister::getProtocolName).collect(Collectors.toList());
-        logger.info("{0} start (port = {1}, pid = {2}, protocol = {3}, os = {4}) ...",
+        logger.info("{} start (port = {}, pid = {}, protocol = {}, os = {}) ...",
                 getName(),
                 getPort()+"",
                 HostUtil.getPid()+"",
-                protocols,
+                protocolHandlers,
                 HostUtil.getOsName()
                 );
     }
 
+    /**
+     * Initializes the IO executor
+     * @return DynamicProtocolChannelHandler
+     */
     @Override
-    public int getPort() {
-        return super.getPort();
+    protected ChannelHandler newWorkerChannelHandler() {
+        //Dynamic protocol processor
+        return new DynamicProtocolChannelHandler(protocolHandlers,properties.isEnableTcpPackageLog(),properties.getTcpPackageLogLevel(),properties.getMaxConnections());
     }
 
     /**
-     * 初始化 IO执行器
-     * @return
+     * Gets the protocol registry list
+     * @return protocolHandlers
      */
-    @Override
-    protected ChannelInitializer<? extends Channel> newInitializerChannelHandler() {
-        return new ChannelInitializer<SocketChannel>() {
-            ChannelHandler dynamicProtocolHandler = new DynamicProtocolChannelHandler();
-            @ChannelHandler.Sharable
-            class DynamicProtocolChannelHandler extends AbstractChannelHandler<ByteBuf> {
-                private DynamicProtocolChannelHandler() {
-                    super(false);
-                }
-
-                @Override
-                protected void onMessageReceived(ChannelHandlerContext ctx, ByteBuf msg) throws Exception {
-                    Channel channel = ctx.channel();
-                    channel.pipeline().remove(this);
-                    for(ProtocolsRegister protocolsRegister : protocolsRegisterList){
-                        if(protocolsRegister.canSupport(msg)){
-                            logger.info("Channel protocols register by [{0}]",protocolsRegister.getProtocolName());
-                            protocolsRegister.register(channel);
-                            channel.pipeline().fireChannelRead(msg);
-                            return;
-                        }
-                    }
-                    logger.info("Received no support protocols. message=[{0}]",msg.toString(Charset.forName("UTF-8")));
-                }
-            }
-
-            @Override
-            protected void initChannel(SocketChannel ch) throws Exception {
-                ChannelPipeline pipeline = ch.pipeline();
-                //HTTP编码解码
-                pipeline.addLast("DynamicProtocolHandler", dynamicProtocolHandler);
-            }
-        };
+    public Collection<ProtocolHandler> getProtocolHandlers(){
+        return protocolHandlers;
     }
 
     /**
-     * 添加协议注册器
-     * @param protocolsRegister
+     * Gets the server listener list
+     * @return serverListeners
      */
-    public void addProtocolsRegister(ProtocolsRegister protocolsRegister){
-        protocolsRegisterList.add(protocolsRegister);
-        logger.info("addProtocolsRegister({0})",protocolsRegister.getProtocolName());
+    public Collection<ServerListener> getServerListeners() {
+        return serverListeners;
     }
-
 }

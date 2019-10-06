@@ -1,7 +1,11 @@
 package com.github.netty.springboot.server;
 
-import com.github.netty.servlet.ServletContext;
-import com.github.netty.servlet.ServletDefaultHttpServlet;
+import com.github.netty.core.ProtocolHandler;
+import com.github.netty.core.ServerListener;
+import com.github.netty.protocol.HttpServletProtocol;
+import com.github.netty.protocol.servlet.ServletContext;
+import com.github.netty.protocol.servlet.ServletDefaultHttpServlet;
+import com.github.netty.protocol.servlet.ServletRegistration;
 import com.github.netty.springboot.NettyProperties;
 import org.springframework.boot.web.reactive.server.ConfigurableReactiveWebServerFactory;
 import org.springframework.boot.web.server.WebServer;
@@ -9,103 +13,145 @@ import org.springframework.boot.web.servlet.ServletContextInitializer;
 import org.springframework.boot.web.servlet.server.AbstractServletWebServerFactory;
 import org.springframework.boot.web.servlet.server.ConfigurableServletWebServerFactory;
 import org.springframework.boot.web.servlet.server.Jsp;
-import org.springframework.context.ResourceLoaderAware;
-import org.springframework.core.io.ResourceLoader;
 import org.springframework.http.server.reactive.HttpHandler;
-import org.springframework.util.ClassUtils;
+import org.springframework.http.server.reactive.ServletHttpHandlerAdapter;
 
 import java.io.File;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.UnknownHostException;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Objects;
 
 /**
- * netty容器工厂 tcp层面的服务器工厂
+ * Netty container factory TCP layer server factory
  *
  * EmbeddedWebApplicationContext - createEmbeddedServletContainer
  * ImportAwareBeanPostProcessor
  *
- * @author acer01
+ * @author wangzihao
  *  2018/7/14/014
  */
 public class NettyTcpServerFactory
         extends AbstractServletWebServerFactory
-        implements ConfigurableReactiveWebServerFactory,ConfigurableServletWebServerFactory,ResourceLoaderAware {
-    protected ResourceLoader resourceLoader;
+        implements ConfigurableReactiveWebServerFactory,ConfigurableServletWebServerFactory {
     protected NettyProperties properties;
+    private Collection<ProtocolHandler> protocolHandlers;
+    private Collection<ServerListener> serverListeners;
 
     public NettyTcpServerFactory() {
-        this(new NettyProperties());
+        this(new NettyProperties(),Collections.emptyList(),Collections.emptyList());
     }
 
-    public NettyTcpServerFactory(NettyProperties properties) {
+    public NettyTcpServerFactory(NettyProperties properties,
+                                 Collection<ProtocolHandler> protocolHandlers,
+                                 Collection<ServerListener> serverListeners) {
         this.properties = properties;
-    }
-
-    // TODO: 2018/11/12/012  getWebServer(HttpHandler httpHandler)
-    @Override
-    public WebServer getWebServer(HttpHandler httpHandler) {
-        return null;
+        this.protocolHandlers = Objects.requireNonNull(protocolHandlers);
+        this.serverListeners = Objects.requireNonNull(serverListeners);
     }
 
     /**
-     * 获取servlet容器
-     * @param initializers 初始化
-     * @return
+     * Reactive container (temporarily replaced by servlets)
+     * @param httpHandler httpHandler
+     * @return NettyTcpServer
      */
     @Override
-    public WebServer getWebServer(ServletContextInitializer... initializers) {
+    public WebServer getWebServer(HttpHandler httpHandler) {
         try {
-            //临时目录
-            File documentRoot = getValidDocumentRoot();
-            File docBase = documentRoot != null? documentRoot : createTempDir("nettyx-docbase");
-
-            //服务器端口
-            InetSocketAddress serverAddress = new InetSocketAddress(getAddress() == null? InetAddress.getLoopbackAddress():getAddress(),getPort());
-            ClassLoader classLoader = resourceLoader != null ? resourceLoader.getClassLoader() : ClassUtils.getDefaultClassLoader();
-            NettyTcpServer server = new NettyTcpServer(serverAddress, properties);
-
-            ServletContext servletContext = new ServletContext(serverAddress,classLoader,docBase.getAbsolutePath());
-
-            //配置tcp服务器
-            configurableTcpServer(server,servletContext);
-
-            //默认 servlet
-            if (isRegisterDefaultServlet()) {
-                ServletDefaultHttpServlet defaultServlet = new ServletDefaultHttpServlet();
-                servletContext.addServlet("default",defaultServlet).addMapping("/");
+            ServletContext servletContext = getServletContext();
+            if(servletContext != null) {
+                ServletRegistration.Dynamic servletRegistration = servletContext.addServlet("default", new ServletHttpHandlerAdapter(httpHandler));
+                servletRegistration.setAsyncSupported(true);
+                servletRegistration.addMapping("/");
             }
 
-            //jsp
-            Jsp jsp = getJsp();
-            if(shouldRegisterJspServlet()){
-                //
-            }
-
-            //初始化
-            ServletContextInitializer[] servletContextInitializers = mergeInitializers(initializers);
-            for (ServletContextInitializer initializer : servletContextInitializers) {
-                initializer.onStartup(servletContext);
-            }
-
-            return server;
+            //Server port
+            InetSocketAddress serverAddress = getServerSocketAddress(getAddress(),getPort());
+            return new NettyTcpServer(serverAddress, properties, protocolHandlers,serverListeners);
         }catch (Exception e){
             throw new IllegalStateException(e.getMessage(),e);
         }
     }
 
     /**
-     * 配置tpc服务器
-     * @param tcpServer
-     * @param servletContext
-     * @throws Exception
+     * Get servlet container
+     * @param initializers Initialize the
+     * @return NettyTcpServer
      */
-    protected void configurableTcpServer(NettyTcpServer tcpServer,ServletContext servletContext) throws Exception {
-        //添加httpServlet协议注册器
-        tcpServer.addProtocolsRegister(new HttpServletProtocolsRegisterSpringAdapter(properties,servletContext,this));
+    @Override
+    public WebServer getWebServer(ServletContextInitializer... initializers) {
+        ServletContext servletContext = Objects.requireNonNull(getServletContext());
+        try {
+            //The default servlet
+            if (super.isRegisterDefaultServlet()) {
+                servletContext.addServlet("default",new ServletDefaultHttpServlet())
+                        .addMapping("/");
+            }
+
+            //JSP is not supported
+            if(super.shouldRegisterJspServlet()){
+                Jsp jsp = getJsp();
+            }
+
+            //Initialize the
+            for (ServletContextInitializer initializer : super.mergeInitializers(initializers)) {
+                initializer.onStartup(servletContext);
+            }
+
+            //Server port
+            InetSocketAddress serverAddress = getServerSocketAddress(getAddress(),getPort());
+            return new NettyTcpServer(serverAddress, properties, protocolHandlers,serverListeners);
+        }catch (Exception e){
+            throw new IllegalStateException(e.getMessage(),e);
+        }
     }
 
     @Override
-    public void setResourceLoader(ResourceLoader resourceLoader) {
-        this.resourceLoader = resourceLoader;
+    public File getDocumentRoot() {
+        File dir = properties.getHttpServlet().getBasedir();
+        if(dir == null){
+            dir = super.getDocumentRoot();
+        }
+        if(dir == null){
+            //The temporary directory
+            dir = super.createTempDir("netty-docbase");
+        }
+        return dir;
+    }
+
+    public ServletContext getServletContext(){
+        for(ProtocolHandler protocolHandler : protocolHandlers){
+            if(protocolHandler instanceof HttpServletProtocol){
+                return ((HttpServletProtocol) protocolHandler).getServletContext();
+            }
+        }
+        return null;
+    }
+
+    public Collection<ProtocolHandler> getProtocolHandlers() {
+        return protocolHandlers;
+    }
+
+    public Collection<ServerListener> getServerListeners() {
+        return serverListeners;
+    }
+
+    public static InetSocketAddress getServerSocketAddress(InetAddress address,int port) {
+        if(address == null) {
+            try {
+                address = InetAddress.getByAddress(new byte[]{0,0,0,0});
+                if(!address.isAnyLocalAddress()){
+                    address = InetAddress.getByName("::1");
+                }
+                if(!address.isAnyLocalAddress()){
+                    address = new InetSocketAddress(port).getAddress();
+                }
+            } catch (UnknownHostException e) {
+                address = new InetSocketAddress(port).getAddress();
+            }
+        }
+        return new InetSocketAddress(address,port);
     }
 }

@@ -1,31 +1,27 @@
 package com.github.netty.springboot;
 
+import org.springframework.stereotype.Component;
+
 import java.lang.annotation.*;
 
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
 @Documented
+@Component
 public @interface NettyRpcClient {
-
-	/**
-	 * 服务ID 同 serviceId
-	 * @return
-	 */
-	String value() default "";
     /**
-     * 服务ID 同 value
-     * @return
+     * The serviceName is the same as serviceName
+     * example value "service-provider"
+     * @return serviceName
      */
-    String serviceId() default "";
+    String serviceImplName();
 
 //    Class<?> fallback() default void.class;
-    boolean primary() default true;
-    String qualifier() default "";
 
     /**
-     * 超时时间 (毫秒)
-     * @return
+     * Timeout time (milliseconds)
+     * @return timeout
      */
-//    int timeout() default RpcService.DEFAULT_TIME_OUT;
+    int timeout() default 2000;
 
 }

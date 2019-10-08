@@ -18,7 +18,7 @@ public class ServletHttpForwardResponse extends HttpServletResponseWrapper {
     private ServletOutputStreamWrapper outWrapper = new ServletOutputStreamWrapper(null);
     private PrintWriter writer;
 
-    public ServletHttpForwardResponse(ServletHttpServletResponse response, ServletOutputStream outputStream) {
+    public ServletHttpForwardResponse(ServletHttpServletResponse response,ServletOutputStream outputStream) {
         super(response);
         this.servletHttpExchange = response.getServletHttpExchange();
         this.outWrapper.wrap(outputStream);
@@ -79,7 +79,7 @@ public class ServletHttpForwardResponse extends HttpServletResponseWrapper {
             setCharacterEncoding(characterEncoding);
         }
 
-        writer = new ServletPrintWriter(getOutputStream(), Charset.forName(characterEncoding));
+        writer = new ServletPrintWriter(getOutputStream(),Charset.forName(characterEncoding));
         return writer;
     }
 

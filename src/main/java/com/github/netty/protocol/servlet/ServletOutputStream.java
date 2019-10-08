@@ -6,8 +6,12 @@ import com.github.netty.protocol.servlet.util.HttpHeaderConstants;
 import com.github.netty.protocol.servlet.util.ServletUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
-import io.netty.channel.*;
-import io.netty.handler.codec.http.*;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.handler.codec.http.DefaultLastHttpContent;
+import io.netty.handler.codec.http.HttpHeaders;
+import io.netty.handler.codec.http.LastHttpContent;
 import io.netty.util.concurrent.FastThreadLocal;
 
 import javax.servlet.WriteListener;
@@ -26,7 +30,7 @@ import java.util.function.Consumer;
  * Servlet OutputStream
  * @author wangzihao
  */
-public class ServletOutputStream extends javax.servlet.ServletOutputStream implements Recyclable  {
+public class ServletOutputStream extends javax.servlet.ServletOutputStream implements Recyclable {
     private static final FastThreadLocal<DateFormat> DATE_FORMAT_GMT_LOCAL = new FastThreadLocal<DateFormat>() {
         private TimeZone timeZone = TimeZone.getTimeZone("GMT");
         @Override
@@ -328,8 +332,8 @@ public class ServletOutputStream extends javax.servlet.ServletOutputStream imple
      * @param sessionCookieConfig sessionCookieConfig
      */
     private static void settingResponseHeader(boolean isKeepAlive, NettyHttpResponse nettyResponse,
-                                       ServletHttpServletRequest servletRequest, ServletHttpServletResponse servletResponse,
-                                       ServletSessionCookieConfig sessionCookieConfig) {
+                                              ServletHttpServletRequest servletRequest, ServletHttpServletResponse servletResponse,
+                                              ServletSessionCookieConfig sessionCookieConfig) {
         HttpHeaderUtil.setKeepAlive(nettyResponse, isKeepAlive);
         HttpHeaders headers = nettyResponse.headers();
 
@@ -389,7 +393,7 @@ public class ServletOutputStream extends javax.servlet.ServletOutputStream imple
                 sessionCookiePath = HttpConstants.DEFAULT_SESSION_COOKIE_PATH;
             }
             String sessionCookieText = ServletUtil.encodeCookie(sessionCookieName,servletRequest.getRequestedSessionId(), -1,
-                    sessionCookiePath,sessionCookieConfig.getDomain(),sessionCookieConfig.isSecure(), Boolean.TRUE);
+                    sessionCookiePath,sessionCookieConfig.getDomain(),sessionCookieConfig.isSecure(),Boolean.TRUE);
             headers.add(HttpHeaderConstants.SET_COOKIE, sessionCookieText);
 
             httpSession.setNewSessionFlag(false);

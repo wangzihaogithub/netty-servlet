@@ -6,7 +6,10 @@ import com.github.netty.core.util.Recyclable;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.*;
-import io.netty.handler.codec.http.*;
+import io.netty.handler.codec.http.DefaultLastHttpContent;
+import io.netty.handler.codec.http.HttpRequestDecoder;
+import io.netty.handler.codec.http.HttpServerCodec;
+import io.netty.handler.codec.http.LastHttpContent;
 import io.netty.handler.stream.ChunkedInput;
 import io.netty.handler.stream.ChunkedWriteHandler;
 
@@ -186,9 +189,12 @@ public class ServletOutputChunkedStream extends ServletOutputStream {
                     //Trailer does not support the removal of the head of field
                     HttpHeaderUtil.removeHeaderUnSupportTrailer(lastHttpContent);
                     if(byteBuf != null){
-                        lastHttpContent.content().writeBytes(byteBuf);
+                        DefaultLastHttpContent lastHttpContentCopy = new DefaultLastHttpContent(byteBuf, false);
+                        lastHttpContentCopy.trailingHeaders().set(lastHttpContent.trailingHeaders());
+                        result = lastHttpContentCopy;
+                    }else {
+                        result = lastHttpContent;
                     }
-                    result = lastHttpContent;
                 }else if(byteBuf != null){
                     result = new DefaultLastHttpContent(byteBuf);
                 }else {

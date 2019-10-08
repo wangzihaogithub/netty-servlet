@@ -31,7 +31,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author wangzihao
  *  2018/7/15/015
  */
-public class ServletHttpServletRequest implements HttpServletRequest,Recyclable {
+public class ServletHttpServletRequest implements HttpServletRequest, Recyclable {
     private static final Recycler<ServletHttpServletRequest> RECYCLER = new Recycler<>(ServletHttpServletRequest::new);
     private static final Locale[] DEFAULT_LOCALS = {Locale.getDefault()};
     private static final String RFC1123_DATE = "EEE, dd MMM yyyy HH:mm:ss zzz";
@@ -40,7 +40,7 @@ public class ServletHttpServletRequest implements HttpServletRequest,Recyclable 
             new SimpleDateFormat("EEEEEE, dd-MMM-yy HH:mm:ss zzz", Locale.ENGLISH),
             new SimpleDateFormat("EEE MMMM d HH:mm:ss yyyy", Locale.ENGLISH)
     };
-    private static final Map<String,ResourceManager> RESOURCE_MANAGER_MAP = new HashMap<>(2);
+    private static final Map<String, ResourceManager> RESOURCE_MANAGER_MAP = new HashMap<>(2);
 	private SnowflakeIdWorker snowflakeIdWorker = new SnowflakeIdWorker();
     private ServletHttpExchange servletHttpExchange;
     private ServletAsyncContext asyncContext;
@@ -67,9 +67,9 @@ public class ServletHttpServletRequest implements HttpServletRequest,Recyclable 
     private BufferedReader reader;
     private FullHttpRequest nettyRequest;
     private ServletInputStreamWrapper inputStream = new ServletInputStreamWrapper();
-    private Map<String, Object> attributeMap = new ConcurrentHashMap<>(16);
-    private LinkedMultiValueMap<String, String> parameterMap = new LinkedMultiValueMap<>(16);
-    private Map<String, String[]> unmodifiableParameterMap = new AbstractMap<String, String[]>() {
+    private Map<String,Object> attributeMap = new ConcurrentHashMap<>(16);
+    private LinkedMultiValueMap<String,String> parameterMap = new LinkedMultiValueMap<>(16);
+    private Map<String,String[]> unmodifiableParameterMap = new AbstractMap<String, String[]>() {
 	    @Override
 	    public Set<Entry<String, String[]>> entrySet() {
 	    	if(isEmpty()){
@@ -77,10 +77,10 @@ public class ServletHttpServletRequest implements HttpServletRequest,Recyclable 
 		    }
 		    HashSet<Entry<String, String[]>> result = new HashSet<>(6);
 		    Set<Entry<String, List<String>>> entries = parameterMap.entrySet();
-		    for (Entry<String, List<String>> entry : entries) {
+		    for (Entry<String,List<String>> entry : entries) {
 			    List<String> value = entry.getValue();
 			    String[] valueArr = value != null? value.toArray(new String[value.size()]): null;
-			    result.add(new AbstractMap.SimpleImmutableEntry<>(entry.getKey(),valueArr));
+			    result.add(new SimpleImmutableEntry<>(entry.getKey(),valueArr));
 		    }
 		    return result;
 	    }
@@ -430,7 +430,7 @@ public class ServletHttpServletRequest implements HttpServletRequest,Recyclable 
     @Override
     public String getHeader(String name) {
        Object value = getNettyHeaders().get((CharSequence) name);
-        return value == null? null : String.valueOf(value);
+        return value == null? null :String.valueOf(value);
     }
 
     @Override

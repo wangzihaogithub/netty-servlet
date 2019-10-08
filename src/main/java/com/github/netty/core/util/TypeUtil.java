@@ -35,10 +35,10 @@ public class TypeUtil {
     public static boolean   compatibleWithFieldName      = false;
     
     private static boolean  oracleTimestampMethodInited = false;
-    private static Method oracleTimestampMethod;
+    private static Method   oracleTimestampMethod;
 
     private static boolean  oracleDateMethodInited      = false;
-    private static Method oracleDateMethod;
+    private static Method   oracleDateMethod;
 
     static {
         try {
@@ -49,9 +49,25 @@ public class TypeUtil {
         }
     }
 
+    public static boolean isPrimitive(Class<?> clazz) {
+        if (clazz.isPrimitive()) {
+            return true;
+        }
+        if(clazz.equals(Boolean.class) ||
+                clazz.equals(Byte.class) ||
+                clazz.equals(Character.class) ||
+                clazz.equals(Double.class) ||
+                clazz.equals(Float.class) ||
+                clazz.equals(Integer.class) ||
+                clazz.equals(Long.class) ||
+                clazz.equals(Short.class)) {
+            return true;
+        }
+        return false;
+    }
 
     public static <T> TypeResult getGenericType(Class<T> type,
-                                                Class<? extends T> clazz) {
+                                                 Class<? extends T> clazz) {
 
         // Look to see if this class implements the interface of interest
 
@@ -612,7 +628,7 @@ public class TypeUtil {
         return null;
     }
 
-    public static int castToInt(Object value, int def) {
+    public static int castToInt(Object value,int def) {
         Integer ret;
         try {
             ret = castToInt(value);

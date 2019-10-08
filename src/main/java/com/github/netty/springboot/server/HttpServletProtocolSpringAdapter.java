@@ -46,7 +46,7 @@ public class HttpServletProtocolSpringAdapter extends HttpServletProtocol implem
     @Autowired
     private ListableBeanFactory listableBeanFactory;
 
-    public HttpServletProtocolSpringAdapter(NettyProperties properties, Supplier<Executor> serverHandlerExecutor,ClassLoader classLoader) {
+    public HttpServletProtocolSpringAdapter(NettyProperties properties, Supplier<Executor> serverHandlerExecutor, ClassLoader classLoader) {
         super(serverHandlerExecutor,new ServletContext(classLoader == null? ClassUtils.getDefaultClassLoader():classLoader));
         this.properties = properties;
         this.application = properties.getApplication();
@@ -134,7 +134,7 @@ public class HttpServletProtocolSpringAdapter extends HttpServletProtocol implem
      * @param servletContext servletContext
      * @return SessionService
      */
-    protected SessionService newSessionService(NettyProperties properties,ServletContext servletContext){
+    protected SessionService newSessionService(NettyProperties properties, ServletContext servletContext){
         //Composite session (default local storage)
         SessionCompositeServiceImpl compositeSessionService = new SessionCompositeServiceImpl();
 

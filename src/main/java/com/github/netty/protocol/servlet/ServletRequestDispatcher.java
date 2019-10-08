@@ -15,7 +15,7 @@ import java.io.IOException;
  * @author wangzihao
  *  2018/7/14/014
  */
-public class ServletRequestDispatcher implements RequestDispatcher,Recyclable {
+public class ServletRequestDispatcher implements RequestDispatcher, Recyclable {
     /**
      * Scheduling path (mutually exclusive with name field)
      */

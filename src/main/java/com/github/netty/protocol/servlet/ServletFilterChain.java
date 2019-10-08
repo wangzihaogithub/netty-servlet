@@ -16,7 +16,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * The servlet filter chain
  * @author wangzihao
  */
-public class ServletFilterChain implements FilterChain,Recyclable {
+public class ServletFilterChain implements FilterChain, Recyclable {
 
     /**
      * Consider that each request is handled by only one thread, and that the ServletContext will create a new SimpleFilterChain object on each request

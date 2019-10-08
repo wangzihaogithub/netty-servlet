@@ -16,7 +16,7 @@ import java.util.function.Supplier;
  *  2018/7/1/001
  */
 @ChannelHandler.Sharable
-public class ServletChannelHandler extends AbstractChannelHandler<Object, Object> {
+public class ServletChannelHandler extends AbstractChannelHandler<Object,Object> {
     private Supplier<Executor> dispatcherExecutor;
     private NettyMessageToServletRunnable httpMessageToServletRunnable;
     public static final AttributeKey<MessageToRunnable> CHANNEL_ATTR_KEY_MESSAGE_TO_RUNNABLE = AttributeKey.valueOf(MessageToRunnable.class + "#MessageToRunnable");

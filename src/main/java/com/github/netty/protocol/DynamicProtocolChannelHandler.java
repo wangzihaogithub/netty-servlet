@@ -21,7 +21,7 @@ import java.util.concurrent.Semaphore;
  * Created by wangzihao on 2018/12/9/009.
  */
 @ChannelHandler.Sharable
-public class DynamicProtocolChannelHandler extends AbstractChannelHandler<ByteBuf, Object> {
+public class DynamicProtocolChannelHandler extends AbstractChannelHandler<ByteBuf,Object> {
     public static final AttributeKey<Boolean> CONNECTION_OVERLOAD_ATTR = AttributeKey.valueOf("connectionOverload");
     /**
      * Protocol registry list, dynamic protocol will find a suitable protocol to supportPipeline on the new link

@@ -181,7 +181,7 @@ public class UrlMapper<T> {
         String servletPath;
         String rootPath;
         boolean wildcardPatternFlag;
-        Element(String rootPath, String originalPattern, T object, String objectName) {
+        Element(String rootPath,String originalPattern, T object, String objectName) {
         	if(rootPath != null){
                 this.pattern = rootPath.concat(originalPattern);
 	        }else {

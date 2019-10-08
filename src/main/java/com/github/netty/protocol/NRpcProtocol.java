@@ -48,7 +48,7 @@ public class NRpcProtocol extends AbstractProtocol {
         rpcServerHandler.addInstance(instance);
     }
 
-    public void addInstance(Object instance, String requestMappingName, Function<Method, String[]> methodToParameterNamesFunction){
+    public void addInstance(Object instance,String requestMappingName,Function<Method,String[]> methodToParameterNamesFunction){
         rpcServerHandler.addInstance(instance,requestMappingName,methodToParameterNamesFunction);
     }
 

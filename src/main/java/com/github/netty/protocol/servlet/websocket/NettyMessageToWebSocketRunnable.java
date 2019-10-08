@@ -42,7 +42,7 @@ public class NettyMessageToWebSocketRunnable implements MessageToRunnable {
     /**
      * Websocket task
      */
-    public static class WebsocketRunnable implements Runnable,Recyclable {
+    public static class WebsocketRunnable implements Runnable, Recyclable {
         private ChannelHandlerContext context;
         private WebSocketFrame frame;
 

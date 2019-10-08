@@ -23,9 +23,9 @@ import java.util.Map;
 public class ServletTextPart implements Part {
     private Attribute attribute;
     private ResourceManager resourceManager;
-    private Map<String, String> headerMap;
+    private Map<String,String> headerMap;
 
-    public ServletTextPart(Attribute attribute,ResourceManager resourceManager) {
+    public ServletTextPart(Attribute attribute, ResourceManager resourceManager) {
         this.attribute = attribute;
         this.resourceManager = resourceManager;
     }
@@ -94,9 +94,9 @@ public class ServletTextPart implements Part {
         return getHeaderMap().keySet();
     }
 
-    private Map<String, String> getHeaderMap(){
+    private Map<String,String> getHeaderMap(){
         if(headerMap == null) {
-            Map<String, String> headerMap = new CaseInsensitiveKeyMap<>(2);
+            Map<String,String> headerMap = new CaseInsensitiveKeyMap<>(2);
             headerMap.put(HttpHeaderConstants.CONTENT_DISPOSITION.toString(),
                     HttpHeaderConstants.FORM_DATA + "; " + HttpHeaderConstants.NAME + "=\"" + getName() + "\"; ");
             headerMap.put(HttpHeaderConstants.CONTENT_LENGTH.toString(), attribute.length() + "");

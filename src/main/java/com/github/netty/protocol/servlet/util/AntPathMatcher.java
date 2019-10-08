@@ -169,7 +169,7 @@ public class AntPathMatcher {
         return (path.indexOf('*') != -1 || path.indexOf('?') != -1);
     }
 
-    public boolean match(String pattern, String path, String allToken) {
+    public boolean match(String pattern, String path,String allToken) {
         return doMatch(pattern, path, true, null,allToken);
     }
 
@@ -585,7 +585,7 @@ public class AntPathMatcher {
     /**
      * Given a full path, returns a {@link Comparator} suitable for sorting patterns in order of
      * explicitness.
-     * <p>This{@code Comparator} will {@linkplain java.util.Collections#sort(List, Comparator) sort}
+     * <p>This{@code Comparator} will {@linkplain Collections#sort(List, Comparator) sort}
      * a list so that more specific patterns (without uri templates or wild cards) come before
      * generic patterns. So given a list with the following patterns:
      * <ol>

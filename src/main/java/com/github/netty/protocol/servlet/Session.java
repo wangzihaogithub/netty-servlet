@@ -8,11 +8,11 @@ import java.util.Map;
  * @author wangzihao
  *  2018/8/18/018
  */
-public class Session implements Serializable {
+public class Session implements Serializable{
     private static final long serialVersionUID = 1L;
 
     private String id;
-    private Map<String, Object> attributeMap;
+    private Map<String,Object> attributeMap;
     private long creationTime;
     private long lastAccessedTime;
     /**

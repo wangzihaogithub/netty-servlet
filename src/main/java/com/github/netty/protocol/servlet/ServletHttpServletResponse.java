@@ -1,6 +1,9 @@
 package com.github.netty.protocol.servlet;
 
-import com.github.netty.core.util.*;
+import com.github.netty.core.util.CompositeByteBufX;
+import com.github.netty.core.util.HttpHeaderUtil;
+import com.github.netty.core.util.Recyclable;
+import com.github.netty.core.util.Recycler;
 import com.github.netty.protocol.servlet.util.HttpConstants;
 import com.github.netty.protocol.servlet.util.HttpHeaderConstants;
 import com.github.netty.protocol.servlet.util.MediaType;
@@ -22,7 +25,7 @@ import java.util.function.Consumer;
  * @author wangzihao
  *  2018/7/15/015
  */
-public class ServletHttpServletResponse implements javax.servlet.http.HttpServletResponse,Recyclable {
+public class ServletHttpServletResponse implements javax.servlet.http.HttpServletResponse, Recyclable {
     private static final Recycler<ServletHttpServletResponse> RECYCLER = new Recycler<>(ServletHttpServletResponse::new);
 
     private ServletHttpExchange servletHttpExchange;
@@ -381,7 +384,7 @@ public class ServletHttpServletResponse implements javax.servlet.http.HttpServle
             setCharacterEncoding(characterEncoding);
         }
 
-        writer = new ServletPrintWriter(getOutputStream(), Charset.forName(characterEncoding));
+        writer = new ServletPrintWriter(getOutputStream(),Charset.forName(characterEncoding));
         return writer;
     }
 

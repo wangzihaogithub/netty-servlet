@@ -12,11 +12,11 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author wangzihao
  *  2018/7/15/015
  */
-public class ServletHttpSession implements HttpSession,Wrapper<Session>{
+public class ServletHttpSession implements HttpSession, Wrapper<Session> {
     private ServletContext servletContext;
     private String id;
 
-    private Map<String, Object> attributeMap;
+    private Map<String,Object> attributeMap;
     private long creationTime;
     private long currAccessedTime;
     private long lastAccessedTime;

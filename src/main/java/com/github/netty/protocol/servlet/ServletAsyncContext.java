@@ -22,7 +22,7 @@ import java.util.function.Consumer;
  * @author wangzihao
  *  2018/7/15/015
  */
-public class ServletAsyncContext implements AsyncContext,Recyclable {
+public class ServletAsyncContext implements AsyncContext, Recyclable {
     private static final int STATUS_INIT = 0;
     private static final int STATUS_START = 1;
     private static final int STATUS_RUNNING = 2;
@@ -56,8 +56,8 @@ public class ServletAsyncContext implements AsyncContext,Recyclable {
         this.servletHttpExchange = Objects.requireNonNull(servletHttpExchange);
         this.servletContext = Objects.requireNonNull(servletContext);
         this.executorService = Objects.requireNonNull(executorService);
-        this.httpServletRequest = (HttpServletRequest) Objects.requireNonNull(httpServletRequest);
-        this.httpServletResponse = (HttpServletResponse) Objects.requireNonNull(httpServletResponse);
+        this.httpServletRequest = (HttpServletRequest)Objects.requireNonNull(httpServletRequest);
+        this.httpServletResponse = (HttpServletResponse)Objects.requireNonNull(httpServletResponse);
     }
 
     public Throwable getThrowable() {
@@ -275,7 +275,7 @@ public class ServletAsyncContext implements AsyncContext,Recyclable {
         }
     }
 
-    public static class AsyncRuntimeException extends RuntimeException {
+    public static class AsyncRuntimeException extends RuntimeException{
         private Throwable cause;
         AsyncRuntimeException(Throwable cause) {
             super(cause.getMessage(),cause,true,false);

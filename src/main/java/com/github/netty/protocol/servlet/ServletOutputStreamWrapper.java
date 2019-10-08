@@ -13,7 +13,7 @@ import java.util.function.Consumer;
  * @author wangzihao
  */
 public class ServletOutputStreamWrapper extends javax.servlet.ServletOutputStream
-        implements Wrapper<ServletOutputStream>,Recyclable{
+        implements Wrapper<ServletOutputStream>, Recyclable {
     /**
      * The source data
      */

@@ -20,7 +20,7 @@ import java.net.InetSocketAddress;
  * An abstract netty server
  * @author wangzihao
  */
-public abstract class AbstractNettyServer implements Runnable {
+public abstract class AbstractNettyServer implements Runnable{
     protected LoggerX logger = LoggerFactoryX.getLogger(getClass());
     private String name;
 
@@ -40,7 +40,7 @@ public abstract class AbstractNettyServer implements Runnable {
         this("", address);
     }
 
-    public AbstractNettyServer(String preName, InetSocketAddress address) {
+    public AbstractNettyServer(String preName,InetSocketAddress address) {
         super();
         this.enableEpoll = Epoll.isAvailable();
         this.serverAddress = address;

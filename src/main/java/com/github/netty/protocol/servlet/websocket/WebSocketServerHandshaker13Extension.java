@@ -21,7 +21,7 @@ public class WebSocketServerHandshaker13Extension extends WebSocketServerHandsha
     private static final char EXTENSION_SEPARATOR = ',';
     private static final char PARAMETER_SEPARATOR = ';';
     private static final char PARAMETER_EQUAL = '=';
-
+    private int rsv = 0;
     private String httpDecoderContextName;
     private Channel channel;
 
@@ -64,7 +64,7 @@ public class WebSocketServerHandshaker13Extension extends WebSocketServerHandsha
      * @param responseHeaderValue responseHeaderValue
      * @return responseHeaderValue
      */
-    private String handshakeExtension(String requestHeaderValue, String responseHeaderValue){
+    private String handshakeExtension(String requestHeaderValue,String responseHeaderValue){
         List<WebSocketServerExtension> validExtensions = getWebSocketServerExtension(requestHeaderValue);
         if(validExtensions != null) {
             for (WebSocketServerExtension extension : validExtensions) {
@@ -99,7 +99,7 @@ public class WebSocketServerHandshaker13Extension extends WebSocketServerHandsha
         List<WebSocketServerExtension> validExtensions = null;
         if (extensionsHeader != null) {
             List<WebSocketExtensionData> extensions = WebSocketExtensionUtil.extractExtensions(extensionsHeader);
-            int rsv = 0;
+
 
             for (WebSocketExtensionData extensionData : extensions) {
                 Iterator<WebSocketServerExtensionHandshaker> extensionHandshakersIterator =
@@ -123,6 +123,10 @@ public class WebSocketServerHandshaker13Extension extends WebSocketServerHandsha
         return validExtensions;
     }
 
+    public int getRsv() {
+        return rsv;
+    }
+
     /**
      * Concatenate the extended string for the response header
      * @param currentHeaderValue currentHeaderValue
@@ -130,7 +134,7 @@ public class WebSocketServerHandshaker13Extension extends WebSocketServerHandsha
      * @param extensionParameters extensionParameters
      * @return extensionHeaderValue
      */
-    private static String appendExtension(String currentHeaderValue, String extensionName, Map<String, String> extensionParameters) {
+    private static String appendExtension(String currentHeaderValue, String extensionName,Map<String, String> extensionParameters) {
         StringBuilder newHeaderValue = new StringBuilder(
                 currentHeaderValue != null ? currentHeaderValue.length() : extensionName.length() + 1);
         if (currentHeaderValue != null && !currentHeaderValue.trim().isEmpty()) {

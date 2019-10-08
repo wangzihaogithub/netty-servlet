@@ -181,7 +181,7 @@ public class SessionRemoteRpcServiceImpl implements SessionService {
             oout.writeInt(session.getMaxInactiveInterval());
             oout.writeInt(session.getAccessCount());
 
-            Map<String, Object> attributeMap = session.getAttributeMap();
+            Map<String,Object> attributeMap = session.getAttributeMap();
 
             int attributeSize = 0;
             if(attributeMap != null) {
@@ -196,7 +196,7 @@ public class SessionRemoteRpcServiceImpl implements SessionService {
 
             oout.writeInt(attributeSize);
             if(attributeSize > 0) {
-                for (Map.Entry<String, Object> entry : attributeMap.entrySet()){
+                for (Map.Entry<String,Object> entry : attributeMap.entrySet()){
                     Object value = entry.getValue();
                     if (value instanceof Serializable) {
                         String key = entry.getKey();

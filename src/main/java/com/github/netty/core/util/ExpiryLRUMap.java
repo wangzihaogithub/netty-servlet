@@ -20,7 +20,7 @@ public class ExpiryLRUMap<K, V> extends AbstractMap<K, V> {
     private long defaultExpiryTime;
     private Collection<V> values;
     private EntrySet entrySet;
-    private Function<Entry<K,Node<V>>, Boolean> removeEldestEntryFunction = this::removeEldestEntry;
+    private Function<Entry<K,Node<V>>,Boolean> removeEldestEntryFunction = this::removeEldestEntry;
     private final transient LongAdder missCount = new LongAdder();
     private final transient LongAdder hitCount = new LongAdder();
 
@@ -191,7 +191,7 @@ public class ExpiryLRUMap<K, V> extends AbstractMap<K, V> {
         return es;
     }
 
-    class Values extends AbstractCollection<V> {
+    class Values extends AbstractCollection<V>{
         private Collection<Node<V>> values;
         Values(Collection<Node<V>> values) {
             this.values = values;
@@ -218,7 +218,7 @@ public class ExpiryLRUMap<K, V> extends AbstractMap<K, V> {
         }
     }
 
-    class EntrySet extends AbstractSet<Entry<K,V>> {
+    class EntrySet extends AbstractSet<Entry<K,V>>{
         private Set<Entry<K, Node<V>>> entries;
         EntrySet(Set<Entry<K, Node<V>>> entries) {
             this.entries = entries;
@@ -263,7 +263,7 @@ public class ExpiryLRUMap<K, V> extends AbstractMap<K, V> {
                             if (this == o) {
                                 return true;
                             }
-                            if (!(o instanceof Map.Entry)) {
+                            if (!(o instanceof Entry)) {
                                 return false;
                             }
                             Entry node = (Entry) o;

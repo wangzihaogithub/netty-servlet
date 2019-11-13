@@ -29,7 +29,7 @@ public class NettyProperties implements Serializable{
     /**
      * 服务端 - tcp数据包日志等级(需要先开启tcp数据包日志)
      */
-    private LogLevel tcpPackageLogLevel = LogLevel.DEBUG;
+    private io.netty.handler.logging.LogLevel tcpPackageLogLevel = io.netty.handler.logging.LogLevel.DEBUG;
 
     /**
      * 服务端-IO线程数  注: (0 = cpu核数 * 2 )

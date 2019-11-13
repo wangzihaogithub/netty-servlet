@@ -47,9 +47,9 @@ public class ServletContext implements javax.servlet.ServletContext {
     private Map<String,String> initParamMap = new HashMap<>(16);
     private Map<String, ServletRegistration> servletRegistrationMap = new HashMap<>(8);
     private Map<String, ServletFilterRegistration> filterRegistrationMap = new HashMap<>(8);
-    private FastThreadLocal<Map<Charset,HttpDataFactory>> httpDataFactoryThreadLocal = new FastThreadLocal<Map<Charset,HttpDataFactory>>(){
+    private FastThreadLocal<Map<Charset, HttpDataFactory>> httpDataFactoryThreadLocal = new FastThreadLocal<Map<Charset, HttpDataFactory>>(){
         @Override
-        protected Map<Charset,HttpDataFactory> initialValue() throws Exception {
+        protected Map<Charset, HttpDataFactory> initialValue() throws Exception {
             return new HashMap<>(5);
         }
     };
@@ -108,7 +108,7 @@ public class ServletContext implements javax.servlet.ServletContext {
     }
 
     public HttpDataFactory getHttpDataFactory(Charset charset){
-        Map<Charset,HttpDataFactory> httpDataFactoryMap = httpDataFactoryThreadLocal.get();
+        Map<Charset, HttpDataFactory> httpDataFactoryMap = httpDataFactoryThreadLocal.get();
         HttpDataFactory factory = httpDataFactoryMap.get(charset);
         if(factory == null){
             factory = new DefaultHttpDataFactory(uploadMinSize,charset);

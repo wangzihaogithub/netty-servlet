@@ -11,7 +11,7 @@ public class RpcTimeoutException extends RpcException {
         super(message, null, false, false);
     }
 
-    public RpcTimeoutException(String message, boolean writableStackTrace) {
+    public RpcTimeoutException(String message,boolean writableStackTrace) {
         super(message, null, false, writableStackTrace);
     }
 

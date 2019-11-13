@@ -27,7 +27,7 @@ public class ServletFilterRegistration implements FilterRegistration,FilterRegis
     private Set<String> servletNameMappingSet = new HashSet<>();
     private AtomicBoolean initFilter = new AtomicBoolean();
 
-    public ServletFilterRegistration(String filterName, Filter servlet,ServletContext servletContext,UrlMapper<ServletFilterRegistration> urlMapper) {
+    public ServletFilterRegistration(String filterName, Filter servlet, ServletContext servletContext, UrlMapper<ServletFilterRegistration> urlMapper) {
         this.filterName = filterName;
         this.filter = servlet;
         this.servletContext = servletContext;

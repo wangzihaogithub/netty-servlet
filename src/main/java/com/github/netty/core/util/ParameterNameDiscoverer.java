@@ -1,4 +1,4 @@
-//package com.github.netty.core.util;
+package com.github.netty.core.util;//package com.github.netty.core.util;
 //
 //import org.objectweb.asm.*;
 //
@@ -287,7 +287,7 @@
 //        return result;
 //    }
 //
-//    public static void doWithMethods(Class<?> clazz, Consumer<Method> mc, Function<Method, Boolean> mf) {
+//    public static void doWithMethods(Class<?> clazz, Consumer<Method> mc, Function<Method,Boolean> mf) {
 //        // Keep backing up the inheritance hierarchy.
 //        Method[] methods = getDeclaredMethods(clazz);
 //        for (Method method : methods) {
@@ -416,7 +416,7 @@
 //
 //    public static void main(String[] args) {
 //        ParameterNameDiscoverer parameterNameDiscoverer = new ParameterNameDiscoverer();
-//        Map<Member, String[]> memberMap = parameterNameDiscoverer.inspectClass(ClassFileMethodToParameterNamesFunction.class);
+//        Map<java.lang.reflect.Member, String[]> memberMap = parameterNameDiscoverer.inspectClass(ClassFileMethodToParameterNamesFunction.class);
 //        System.out.println("memberMap = " + memberMap);
 //    }
 //}

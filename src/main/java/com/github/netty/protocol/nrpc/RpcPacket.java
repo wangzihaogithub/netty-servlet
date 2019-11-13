@@ -8,7 +8,7 @@ import java.util.StringJoiner;
 /**
  * 2019/3/17/017.
  *
- * @author acer01
+ * @author wangzihao
  */
 public class RpcPacket implements Recyclable {
     public static final byte TYPE_REQUEST = 1;
@@ -26,9 +26,18 @@ public class RpcPacket implements Recyclable {
      */
     private byte ack = ACK_NO;
     private byte[] data;
+    private long packetLength;
 
     public RpcPacket(int packetType){
         this.packetType = packetType;
+    }
+
+    public long getPacketLength() {
+        return packetLength;
+    }
+
+    public void setPacketLength(long packetLength) {
+        this.packetLength = packetLength;
     }
 
     public int getAck() {
@@ -112,7 +121,7 @@ public class RpcPacket implements Recyclable {
 
         @Override
         public void recycle() {
-            RECYCLER.recycleInstance(this);
+//            RECYCLER.recycleInstance(this);
         }
 
         @Override
@@ -184,10 +193,10 @@ public class RpcPacket implements Recyclable {
 
         @Override
         public void recycle() {
-            this.message = null;
-            this.encode = null;
-            this.setData(null);
-            RECYCLER.recycleInstance(this);
+//            this.message = null;
+//            this.encode = null;
+//            this.setData(null);
+//            RECYCLER.recycleInstance(this);
         }
         @Override
         public void toStringAppend(StringJoiner joiner) {

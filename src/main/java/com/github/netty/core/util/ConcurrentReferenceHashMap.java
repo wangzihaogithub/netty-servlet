@@ -1077,7 +1077,7 @@ public class ConcurrentReferenceHashMap<K, V> extends AbstractMap<K, V> implemen
         return obj.hashCode();
     }
 
-    public static boolean nullSafeEquals(Object o1, Object o2) {
+    public static boolean nullSafeEquals( Object o1,  Object o2) {
         if (o1 == o2) {
             return true;
         }

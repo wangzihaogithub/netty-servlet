@@ -136,7 +136,7 @@ public class ServletHttpExchange implements Recyclable {
         return null;
     }
 
-    public static <T> T getAttribute(ChannelHandlerContext channelHandlerContext,AttributeKey<T> key){
+    public static <T> T getAttribute(ChannelHandlerContext channelHandlerContext, AttributeKey<T> key){
         if(channelHandlerContext != null && channelHandlerContext.channel() != null) {
             Attribute<T> attribute = channelHandlerContext.channel().attr(key);
             if(attribute != null){
@@ -146,7 +146,7 @@ public class ServletHttpExchange implements Recyclable {
         return null;
     }
 
-    public static <T> void setAttribute(ChannelHandlerContext context, AttributeKey<T> key,T value){
+    public static <T> void setAttribute(ChannelHandlerContext context, AttributeKey<T> key, T value){
         if(isChannelActive(context)) {
             context.channel().attr(key).set(value);
         }

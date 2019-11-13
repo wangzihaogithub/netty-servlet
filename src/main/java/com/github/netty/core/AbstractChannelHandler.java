@@ -96,7 +96,7 @@ public abstract class AbstractChannelHandler<I,O> extends ChannelDuplexHandler {
         ctx.fireUserEventTriggered(evt);
     }
 
-    protected void onUserEventTriggered(ChannelHandlerContext ctx,Object evt){
+    protected void onUserEventTriggered(ChannelHandlerContext ctx, Object evt){
 
     }
 

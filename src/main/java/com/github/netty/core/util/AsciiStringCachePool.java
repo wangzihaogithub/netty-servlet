@@ -10,7 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author wangzihao
  */
 public class AsciiStringCachePool {
-    private static final Map<Integer,AsciiString> CACHE_POOL_MAP;
+    private static final Map<Integer, AsciiString> CACHE_POOL_MAP;
 
     public static AsciiString newInstance(byte[] bytes){
         int hash = Arrays.hashCode(bytes);
@@ -23,7 +23,7 @@ public class AsciiStringCachePool {
     }
 
     static {
-        Map<Integer,AsciiString> map;
+        Map<Integer, AsciiString> map;
         try {
             map = (Map<Integer, AsciiString>) Class.forName("io.netty.util.collection.IntObjectHashMap").getConstructor(int.class).newInstance(32);
         } catch (Exception e) {

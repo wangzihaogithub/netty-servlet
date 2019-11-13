@@ -17,7 +17,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * Packet
  * 2019/3/17/017.
- * @author acer01
+ * @author wangzihao
  */
 public class Packet implements ReferenceCounted {
     public static final byte TYPE_UNKNOWN = 0;
@@ -109,7 +109,7 @@ public class Packet implements ReferenceCounted {
     public ByteBuf putField(AsciiString key, ByteBuf value){
         boolean release = true;
         try {
-            Map<AsciiString,ByteBuf> fieldMap = getFieldMap();
+            Map<AsciiString, ByteBuf> fieldMap = getFieldMap();
             if(fieldMap == null){
                 throw new NullPointerException("fieldMap is null. put key = "+key);
             }
@@ -141,11 +141,11 @@ public class Packet implements ReferenceCounted {
         if(fieldMap == null){
             sb.append("null");
         }else {
-            Iterator<Map.Entry<AsciiString,ByteBuf>> i = fieldMap.entrySet().iterator();
+            Iterator<Map.Entry<AsciiString, ByteBuf>> i = fieldMap.entrySet().iterator();
             if (i.hasNext()) {
                 sb.append('{');
                 for (;;) {
-                    Map.Entry<AsciiString,ByteBuf> e = i.next();
+                    Map.Entry<AsciiString, ByteBuf> e = i.next();
                     sb.append(e.getKey());
                     sb.append('=');
                     sb.append(e.getValue().toString(charset));

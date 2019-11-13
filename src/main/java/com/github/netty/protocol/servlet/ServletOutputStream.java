@@ -6,6 +6,7 @@ import com.github.netty.protocol.servlet.util.HttpHeaderConstants;
 import com.github.netty.protocol.servlet.util.ServletUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
@@ -214,7 +215,7 @@ public class ServletOutputStream extends javax.servlet.ServletOutputStream imple
      * @param len The required byte length
      * @return ByteBuf
      */
-    protected ByteBuf allocByteBuf(ByteBufAllocator allocator,int len){
+    protected ByteBuf allocByteBuf(ByteBufAllocator allocator, int len){
         ByteBuf ioByteBuf;
         if(len > responseWriterChunkMaxHeapByteLength){
             ioByteBuf = allocator.directBuffer(len);
@@ -338,20 +339,16 @@ public class ServletOutputStream extends javax.servlet.ServletOutputStream imple
         HttpHeaders headers = nettyResponse.headers();
 
         //Content length
-        if (!headers.contains(HttpHeaderConstants.CONTENT_LENGTH)) {
-            long contentLength = servletResponse.getContentLength();
-            if(contentLength >= 0){
-                headers.set(HttpHeaderConstants.CONTENT_LENGTH, contentLength);
-            }else {
-                ByteBuf content = nettyResponse.content();
-                if(content != null) {
-                    headers.set(HttpHeaderConstants.CONTENT_LENGTH, content.readableBytes());
-                }
-            }
+        long contentLength = servletResponse.getContentLength();
+        if(contentLength >= 0) {
+            headers.remove(HttpHeaderConstants.TRANSFER_ENCODING);
+            headers.set(HttpHeaderConstants.CONTENT_LENGTH, contentLength);
         }
 
         // Time and date response header
-        headers.set(HttpHeaderConstants.DATE, DATE_FORMAT_GMT_LOCAL.get().format(new Date()));
+        if(!headers.contains(HttpHeaderConstants.DATE)) {
+            headers.set(HttpHeaderConstants.DATE, DATE_FORMAT_GMT_LOCAL.get().format(new Date()));
+        }
 
         //Content Type The content of the response header
         String contentType = servletResponse.getContentType();
@@ -423,7 +420,7 @@ public class ServletOutputStream extends javax.servlet.ServletOutputStream imple
     /**
      * Closing the listening wrapper class (for data collection)
      */
-    public class CloseListener implements ChannelFutureListener{
+    public class CloseListener implements ChannelFutureListener {
         private ChannelFutureListener closeListener;
         private final Queue<Consumer> recycleConsumerQueue = new LinkedList<>();
 
@@ -440,10 +437,18 @@ public class ServletOutputStream extends javax.servlet.ServletOutputStream imple
             boolean isNeedClose = isCloseChannel(servletHttpExchange.isHttpKeepAlive(),
                     servletHttpExchange.getResponse().getStatus());
             if(isNeedClose){
-                ChannelFuture closeFuture = servletHttpExchange.getChannelHandlerContext().close();
-                ChannelFutureListener closeListener = this.closeListener;
-                if(closeListener != null) {
-                    closeFuture.addListener(closeListener);
+                Channel channel = future.channel();
+                if(channel.isActive()){
+                    ChannelFuture closeFuture = channel.close();
+                    ChannelFutureListener closeListener = this.closeListener;
+                    if(closeListener != null) {
+                        closeFuture.addListener(closeListener);
+                    }
+                }else {
+                    ChannelFutureListener closeListener = this.closeListener;
+                    if(closeListener != null) {
+                        closeListener.operationComplete(future);
+                    }
                 }
             }
 

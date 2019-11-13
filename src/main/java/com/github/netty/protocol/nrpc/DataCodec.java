@@ -2,6 +2,9 @@ package com.github.netty.protocol.nrpc;
 
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Consumer;
 
 /**
  *  Data encoder decoder. (Serialization or Deserialization)
@@ -29,17 +32,30 @@ public interface DataCodec {
     /**
      * Response data - encoding
      * @param data data
+     * @param rpcMethod rpcMethod
      * @return byte[]
      */
-    byte[] encodeResponseData(Object data);
+    byte[] encodeResponseData(Object data, RpcMethod rpcMethod);
 
     /**
      * Response data - decoding
      * @param data data
+     * @param rpcMethod rpcMethod
      * @return Object
      */
-    Object decodeResponseData(byte[] data);
+    Object decodeResponseData(byte[] data, RpcMethod rpcMethod);
 
+    /**
+     * The client parses
+     * @return EncodeRequestConsumer
+     */
+    List<Consumer<Map<String, Object>>> getEncodeRequestConsumerList();
+
+    /**
+     * The server parses
+     * @return DecodeRequestConsumer
+     */
+    List<Consumer<Map<String, Object>>> getDecodeRequestConsumerList();
 
     /**
      * data encode enum  (note: 0=binary, 1=json)

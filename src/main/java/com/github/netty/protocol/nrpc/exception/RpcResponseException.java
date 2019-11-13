@@ -11,7 +11,7 @@ public class RpcResponseException extends RpcException {
      */
     private Integer status;
 
-    public RpcResponseException(Integer status, String message) {
+    public RpcResponseException(Integer status,String message) {
         super(message, null, false, false);
         this.status = status;
     }

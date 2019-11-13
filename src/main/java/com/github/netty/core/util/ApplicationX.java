@@ -25,16 +25,16 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
  *
  */
 public class ApplicationX {
-    private Collection<Class<? extends Annotation>> scannerAnnotationList = new HashSet<>(
+    private final Collection<Class<? extends Annotation>> scannerAnnotationList = new HashSet<>(
             Arrays.asList(Resource.class));
 
-    private Collection<Class<? extends Annotation>> injectAnnotationList = new HashSet<>(
+    private final Collection<Class<? extends Annotation>> injectAnnotationList = new HashSet<>(
             Arrays.asList(Resource.class));
 
-    private ClassLoader loader = getClass().getClassLoader();
-    private Scanner scanner = new Scanner();
-    private Injector injector = new Injector();
-    private Map<Object, Object> context = new ClassInstanceMap();
+    private final ClassLoader loader = getClass().getClassLoader();
+    private final Scanner scanner = new Scanner();
+    private final Injector injector = new Injector();
+    private final Map<Object,Object> context = new ClassInstanceMap();
 
     public ApplicationX() {
         addInstance(this);
@@ -66,14 +66,14 @@ public class ApplicationX {
         return addInstance(instance,true);
     }
 
-    public Object addInstance(Object instance, boolean isInject){
+    public Object addInstance(Object instance,boolean isInject){
         if(instance == null){
             return null;
         }
         return addInstance(instance.getClass(),instance,isInject);
     }
 
-    public Object addInstance(Object key, Object instance, boolean isInject){
+    public Object addInstance(Object key,Object instance,boolean isInject){
         Class clazz = instance.getClass();
         if(isInject) {
             injector.inject(clazz, instance);
@@ -86,7 +86,7 @@ public class ApplicationX {
             for (Map.Entry<Object, Object> entry : getApplicationContext().entrySet()) {
                 Object key = entry.getKey();
                 Object value = entry.getValue();
-                Class clazz = key instanceof Class ? (Class)key : value.getClass();
+                Class clazz = key instanceof Class? (Class)key : value.getClass();
                 injector.inject(clazz,value);
             }
         } catch (Exception e) {
@@ -131,10 +131,10 @@ public class ApplicationX {
     }
 
     public <T>T getBean(Class<T> clazz){
-        for(Map.Entry<Object, Object> entry : getApplicationContext().entrySet()){
+        for(Map.Entry<Object,Object> entry : getApplicationContext().entrySet()){
             Object key = entry.getKey();
             Object value = entry.getValue();
-            Class cclazz = key instanceof Class ? (Class)key : value.getClass();
+            Class cclazz = key instanceof Class? (Class)key : value.getClass();
 
             if(clazz.isAssignableFrom(cclazz)) {
                 return (T) value;
@@ -147,12 +147,12 @@ public class ApplicationX {
         return (T) getApplicationContext().get(name);
     }
 
-    public <T> Collection<T> getBeanForAnnotation(Class<? extends Annotation> annotationType){
+    public <T>Collection<T> getBeanForAnnotation(Class<? extends Annotation> annotationType){
         Collection<T> list = new LinkedHashSet<T>();
-        for(Map.Entry<Object, Object> entry : getApplicationContext().entrySet()){
+        for(Map.Entry<Object,Object> entry : getApplicationContext().entrySet()){
             Object key = entry.getKey();
             Object value = entry.getValue();
-            Class clazz = key instanceof Class ? (Class)key : value.getClass();
+            Class clazz = key instanceof Class? (Class)key : value.getClass();
 
             Annotation annotation = ReflectUtil.findAnnotation(clazz,annotationType);
             if(annotation != null) {
@@ -162,12 +162,12 @@ public class ApplicationX {
         return list;
     }
 
-    public <T> Collection<T> getBeanForType(Class<T> clazz){
+    public <T>Collection<T> getBeanForType(Class<T> clazz){
         Collection<T> list = new LinkedHashSet<T>();
-        for(Map.Entry<Object, Object> entry : getApplicationContext().entrySet()){
+        for(Map.Entry<Object,Object> entry : getApplicationContext().entrySet()){
             Object key = entry.getKey();
             Object value = entry.getValue();
-            Class cclazz = key instanceof Class ? (Class)key : value.getClass();
+            Class cclazz = key instanceof Class? (Class)key : value.getClass();
 
             if(clazz.isAssignableFrom(cclazz)) {
                 if(isAbstract(cclazz)) {
@@ -183,7 +183,7 @@ public class ApplicationX {
         return context;
     }
 
-    private <T> T newInstanceByJdk(Class<T> clazz, List<?> params){
+    private <T> T newInstanceByJdk(Class<T> clazz,List<?> params){
         params = params == null? Collections.emptyList() : params;
         Class[] typeArr = new Class[params.size()];
 
@@ -255,7 +255,7 @@ public class ApplicationX {
     private class Scanner {
         Collection<String> excludeList = new HashSet<>();
         Collection<String> rootPackageList = new ArrayList<>();
-        List<Function<Class, Object>> beanSupplierList = new ArrayList<>();
+        List<Function<Class,Object>> beanSupplierList = new ArrayList<>();
 
         public List<Function<Class, Object>> getBeanSupplierList() {
             return beanSupplierList;
@@ -307,7 +307,7 @@ public class ApplicationX {
             }
 
             T instance = null;
-            for(Function<Class, Object> function : beanSupplierList){
+            for(Function<Class,Object> function : beanSupplierList){
                 instance = (T) function.apply(clazz);
                 if(instance == null){
                     continue;
@@ -437,7 +437,7 @@ public class ApplicationX {
         /**
          * /application/home -> /home
          */
-        private String trimURI(String uri) {
+        private  String trimURI(String uri) {
             String trimmed = uri.substring(1);
             int splashIndex = trimmed.indexOf('/');
             return trimmed.substring(splashIndex);
@@ -547,7 +547,7 @@ public class ApplicationX {
         }
 
         private void inject(Class clazz, Object target) {
-            for(Class cClazz = clazz; cClazz != null && cClazz!= Object.class; cClazz = cClazz.getSuperclass()) {
+            for(Class cClazz = clazz; cClazz != null && cClazz!=Object.class; cClazz = cClazz.getSuperclass()) {
                 for (Field field : cClazz.getDeclaredFields()) {
                     if(Modifier.isFinal(field.getModifiers())){
                         continue;
@@ -587,7 +587,7 @@ public class ApplicationX {
     /**
      * 存储class实例
      */
-    public class ClassInstanceMap extends WeakHashMap<Object, Object> {
+    public class ClassInstanceMap extends WeakHashMap<Object,Object> {
         private Map<CharSequence, Object> strClassMap = new WeakHashMap<>();
         private ClassInstanceMap(){}
 

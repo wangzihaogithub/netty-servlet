@@ -44,7 +44,7 @@ public class ReflectUtil {
 	 */
 	private static final Map<String, Class<?>> COMMON_CLASS_CACHE = new HashMap<>(64);
 
-	private static final ConcurrentReferenceHashMap<Integer, Method> METHOD_CACHE = new ConcurrentReferenceHashMap<>();
+	private static final ConcurrentReferenceHashMap<Integer,Method> METHOD_CACHE = new ConcurrentReferenceHashMap<>();
 
 	public static Class<?> resolveClassName(String className, ClassLoader classLoader)
 			throws IllegalArgumentException {
@@ -200,7 +200,7 @@ public class ReflectUtil {
 		return false;
 	}
 
-	public static Class findClassByAnnotation(Class claz, Class<?extends Annotation> ann ){
+	public static Class findClassByAnnotation(Class claz, Class<?extends Annotation>ann ){
 		Annotation a;
 		//类上找
 		for (Class clazz = claz; clazz != null; clazz = clazz.getSuperclass()) {
@@ -221,7 +221,7 @@ public class ReflectUtil {
 		return null;
 	}
 
-	public static <A extends Annotation>A  findAnnotation(Class claz, Class<A> ann ){
+	public static <A extends Annotation>A  findAnnotation(Class claz, Class<A>ann ){
 		Annotation a;
 		//类上找
 		for (Class clazz = claz; clazz != null; clazz = clazz.getSuperclass()) {
@@ -254,12 +254,12 @@ public class ReflectUtil {
 		return null;
 	}
 
-	public static Map<String, Object> getAnnotationValueMap(Annotation annotation) {
+	public static Map<String,Object> getAnnotationValueMap(Annotation annotation) {
 		if(annotation == null){
 			return Collections.emptyMap();
 		}
 		Method[] declaredMethods = annotation.annotationType().getDeclaredMethods();
-		Map<String, Object> map = new HashMap<>(declaredMethods.length);
+		Map<String,Object> map = new HashMap<>(declaredMethods.length);
 		for (Method method : declaredMethods) {
 			if(method.getParameterCount() != 0 || method.getReturnType() == void.class){
 				continue;
@@ -330,7 +330,7 @@ public class ReflectUtil {
      * @return Method
      */
 	public static Method getAccessibleMethod(final Class clazz, final String methodName,
-                                             final Class<?>... parameterTypes) {
+			final Class<?>... parameterTypes) {
 		Objects.requireNonNull(methodName, "methodName can't be blank");
 		int hash = (clazz.getName().concat(methodName).concat(Arrays.toString(parameterTypes))).hashCode();
 		Method oldMethod = METHOD_CACHE.get(hash);

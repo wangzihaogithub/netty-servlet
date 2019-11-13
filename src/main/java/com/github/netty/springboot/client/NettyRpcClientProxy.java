@@ -6,6 +6,7 @@ import com.github.netty.core.util.Recyclable;
 import com.github.netty.core.util.ReflectUtil;
 import com.github.netty.core.util.StringUtil;
 import com.github.netty.protocol.nrpc.RpcClient;
+import com.github.netty.protocol.nrpc.RpcClientAop;
 import com.github.netty.protocol.nrpc.RpcServerChannelHandler;
 import com.github.netty.protocol.nrpc.exception.RpcConnectException;
 import com.github.netty.springboot.NettyProperties;
@@ -18,18 +19,34 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 /**
- * RPC client (thread safe)
+ * RPC client proxy (thread safe)
+ * 1. Management rpc client different ip addresses. Ip address corresponds to a client only.
+ * 2. In selecting ip address, will call NettyRpcLoadBalanced.class.
+ * @see com.github.netty.springboot.client.NettyRpcLoadBalanced#chooseAddress(NettyRpcRequest)
+ * @see com.github.netty.protocol.nrpc.RpcClient
+ *
+ * -----------------------------------------------------------------------
+ *
+ * Support rpc method annotation list.
+ * @see Protocol.RpcParam
+ * @see RequestMapping
+ * @see RequestParam
+ * @see RequestBody
+ * @see RequestHeader
+ * @see PathVariable
+ * @see CookieValue
+ * @see RequestPart
  * @author wangzihao
  */
 public class NettyRpcClientProxy implements InvocationHandler {
-    private static final Map<InetSocketAddress,RpcClient> CLIENT_MAP = new HashMap<>(5);
+    private static final Map<InetSocketAddress, RpcClient> CLIENT_MAP = new ConcurrentHashMap<>(5);
 
     private String serviceName;
     private String requestMappingName;
@@ -59,17 +76,17 @@ public class NettyRpcClientProxy implements InvocationHandler {
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
         String methodName = method.getName();
-        Class<?>[] parameterTypes = method.getParameterTypes();
+        int parameterCount = method.getParameterCount();
         if (method.getDeclaringClass() == Object.class) {
             return method.invoke(this, args);
         }
-        if ("toString".equals(methodName) && parameterTypes.length == 0) {
+        if ("toString".equals(methodName) && parameterCount == 0) {
             return this.toString();
         }
-        if ("hashCode".equals(methodName) && parameterTypes.length == 0) {
+        if ("hashCode".equals(methodName) && parameterCount == 0) {
             return this.hashCode();
         }
-        if ("equals".equals(methodName) && parameterTypes.length == 1) {
+        if ("equals".equals(methodName) && parameterCount == 1) {
             return this.equals(args[0]);
         }
 
@@ -143,6 +160,7 @@ public class NettyRpcClientProxy implements InvocationHandler {
                 if(rpcClient == null) {
                     NettyProperties.Nrpc nrpc = properties.getNrpc();
                     rpcClient = new RpcClient(address);
+                    rpcClient.getAopList().addAll(properties.getApplication().getBeanForType(RpcClientAop.class));
                     rpcClient.setIoThreadCount(nrpc.getClientIoThreads());
                     rpcClient.setIoRatio(nrpc.getClientIoRatio());
                     rpcClient.run();

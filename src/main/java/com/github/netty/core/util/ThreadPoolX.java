@@ -16,7 +16,7 @@ public class ThreadPoolX extends ScheduledThreadPoolExecutor {
         if(DEFAULT_INSTANCE == null){
             synchronized (ThreadPoolX.class){
                 if(DEFAULT_INSTANCE == null){
-                    DEFAULT_INSTANCE = new ThreadPoolX("Default",SystemPropertyUtil.getInt("netty-core.defaultThreadPoolCount",3));
+                    DEFAULT_INSTANCE = new ThreadPoolX("Default", SystemPropertyUtil.getInt("netty-core.defaultThreadPoolCount",3));
                 }
             }
         }
@@ -28,10 +28,10 @@ public class ThreadPoolX extends ScheduledThreadPoolExecutor {
     }
 
     public ThreadPoolX(String preName, int corePoolSize) {
-        this(preName,corePoolSize, Thread.MAX_PRIORITY,false);
+        this(preName,corePoolSize,Thread.MAX_PRIORITY,false);
     }
 
-    public ThreadPoolX(String preName, int corePoolSize, int priority, boolean daemon) {
+    public ThreadPoolX(String preName, int corePoolSize, int priority,boolean daemon) {
         super(corePoolSize, new ThreadFactoryX(preName, ThreadPoolX.class,priority,daemon), new RejectedExecutionHandlerX());
     }
 

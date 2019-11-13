@@ -52,7 +52,7 @@ public class IOUtil {
      * @throws IOException IOException
      */
     public static void copyFile(String sourcePath, String sourceFileName,
-                                String targetPath, String targetFileName, boolean append) throws FileNotFoundException, IOException {
+                                String targetPath, String targetFileName, boolean append) throws FileNotFoundException,IOException {
         if(sourcePath == null){
             sourcePath = "";
         }
@@ -216,7 +216,7 @@ public class IOUtil {
      * @throws FileNotFoundException FileNotFoundException
      * @throws IOException IOException
      */
-    public static ByteBuf readFileToByteBuf(String sourcePath, String sourceFileName) throws FileNotFoundException, IOException {
+    public static ByteBuf readFileToByteBuf(String sourcePath, String sourceFileName) throws FileNotFoundException,IOException {
         try(FileInputStream in = newFileInputStream(sourcePath,sourceFileName);
             FileChannel inChannel = in.getChannel()) {
 
@@ -235,7 +235,7 @@ public class IOUtil {
      * @throws FileNotFoundException FileNotFoundException
      * @throws IOException IOException
      */
-    public static byte[] readFileToBytes(String sourcePath, String sourceFileName) throws FileNotFoundException, IOException {
+    public static byte[] readFileToBytes(String sourcePath, String sourceFileName) throws FileNotFoundException,IOException {
         ByteBuf byteBuf = readFileToByteBuf(sourcePath,sourceFileName);
         writerModeToReadMode(byteBuf);
         try {
@@ -253,7 +253,7 @@ public class IOUtil {
      * @return File stream
      * @throws FileNotFoundException FileNotFoundException
      */
-    public static String readFileToString(String sourcePath, String sourceFileName, String charset) throws FileNotFoundException {
+    public static String readFileToString(String sourcePath, String sourceFileName,String charset) throws FileNotFoundException {
         return readInput(newFileInputStream(sourcePath,sourceFileName),charset);
     }
 
@@ -266,7 +266,7 @@ public class IOUtil {
         return readInput(inputStream, Charset.defaultCharset().name());
     }
 
-    public static String readInput(InputStream inputStream, String encode){
+    public static String readInput(InputStream inputStream,String encode){
         StringBuilder sb = RecyclableUtil.newStringBuilder();
         try {
             BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, encode));
@@ -325,7 +325,7 @@ public class IOUtil {
         return new FileInputStream(inFile);
     }
 
-    public static int indexOf(ByteBuf byteBuf,byte value){
+    public static int indexOf(ByteBuf byteBuf, byte value){
         int len = byteBuf.readableBytes();
         for(int i= 0; i<len; i++){
             byte b = byteBuf.getByte(i);

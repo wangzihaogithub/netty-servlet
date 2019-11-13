@@ -27,7 +27,7 @@ import java.util.function.Consumer;
  *
  * @author wangzihao
  */
-public class RpcClientHeartbeatTask implements Runnable {
+public class RpcClientHeartbeatTask implements Runnable{
     private LoggerX logger = LoggerFactoryX.getLogger(getClass());
 
     private RpcClient rpcClient;
@@ -148,7 +148,7 @@ public class RpcClientHeartbeatTask implements Runnable {
         if(SCHEDULE_POOL == null){
             synchronized (RpcClient.class){
                 if(SCHEDULE_POOL == null){
-                    SCHEDULE_POOL = new ThreadPoolX("RpcClientHeartbeat",2, Thread.MAX_PRIORITY,true);
+                    SCHEDULE_POOL = new ThreadPoolX("RpcClientHeartbeat",2,Thread.MAX_PRIORITY,true);
                 }
             }
         }
@@ -181,7 +181,7 @@ public class RpcClientHeartbeatTask implements Runnable {
         return chooseTask;
     }
 
-    private static class ScheduledQueueTask implements Runnable {
+    private static class ScheduledQueueTask implements Runnable{
         RpcClientHeartbeatTask heartbeatTask;
         ScheduledFuture scheduledFuture;
 
@@ -231,7 +231,7 @@ public class RpcClientHeartbeatTask implements Runnable {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-        },heartIntervalSecond,heartIntervalSecond, TimeUnit.SECONDS);
+        },heartIntervalSecond,heartIntervalSecond,TimeUnit.SECONDS);
     }
 
 }

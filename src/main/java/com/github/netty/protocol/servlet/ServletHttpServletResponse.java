@@ -501,7 +501,7 @@ public class ServletHttpServletResponse implements javax.servlet.http.HttpServle
      * Listen for closed flow
      * Optimize the number of lambda instances to reduce gc times
      */
-    private class CloseListener implements ChannelFutureListener{
+    private class CloseListener implements ChannelFutureListener {
         @Override
         public void operationComplete(ChannelFuture future) throws Exception {
             nettyResponse.recycle();

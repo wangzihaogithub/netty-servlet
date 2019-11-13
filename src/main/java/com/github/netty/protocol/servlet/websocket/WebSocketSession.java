@@ -378,7 +378,7 @@ public class WebSocketSession implements Session {
                 future = channel.writeAndFlush(new TextWebSocketFrame(true,rsv,msg));
             }else if (encoder == null && byte[].class.isAssignableFrom(obj.getClass())) {
                 ByteBuffer msg = ByteBuffer.wrap((byte[]) obj);
-                future = channel.writeAndFlush(new BinaryWebSocketFrame(true,rsv,Unpooled.wrappedBuffer(msg)));
+                future = channel.writeAndFlush(new BinaryWebSocketFrame(true,rsv, Unpooled.wrappedBuffer(msg)));
             }else if (encoder instanceof Encoder.Text) {
                 String msg = ((Encoder.Text) encoder).encode(obj);
                 future = channel.writeAndFlush(new TextWebSocketFrame(true,rsv,msg));
@@ -388,7 +388,7 @@ public class WebSocketSession implements Session {
                 }
             } else if (encoder instanceof Encoder.Binary) {
                 ByteBuffer msg = ((Encoder.Binary) encoder).encode(obj);
-                future = channel.writeAndFlush(new BinaryWebSocketFrame(true,rsv,Unpooled.wrappedBuffer(msg)));
+                future = channel.writeAndFlush(new BinaryWebSocketFrame(true,rsv, Unpooled.wrappedBuffer(msg)));
                 if(completion != null) {
                     future.addListener(e -> completion.onResult(new SendResult(e.cause())));
                 }
@@ -440,7 +440,7 @@ public class WebSocketSession implements Session {
 
         @Override
         public Future<Void> sendBinary(ByteBuffer data) {
-            return channel.writeAndFlush(new BinaryWebSocketFrame(true,rsv,Unpooled.wrappedBuffer(data)));
+            return channel.writeAndFlush(new BinaryWebSocketFrame(true,rsv, Unpooled.wrappedBuffer(data)));
         }
 
         @Override
@@ -448,7 +448,7 @@ public class WebSocketSession implements Session {
             if (completion == null) {
                 throw new IllegalArgumentException("Invalid null handler argument");
             }
-            channel.writeAndFlush(new BinaryWebSocketFrame(true,rsv,Unpooled.wrappedBuffer(data)))
+            channel.writeAndFlush(new BinaryWebSocketFrame(true,rsv, Unpooled.wrappedBuffer(data)))
                     .addListener((ChannelFutureListener) future -> completion.onResult(new SendResult(future.cause())));
         }
 
@@ -485,12 +485,12 @@ public class WebSocketSession implements Session {
 
         @Override
         public void sendPing(ByteBuffer applicationData) throws IOException, IllegalArgumentException {
-            channel.writeAndFlush(new PingWebSocketFrame(true,rsv,Unpooled.wrappedBuffer(applicationData)));
+            channel.writeAndFlush(new PingWebSocketFrame(true,rsv, Unpooled.wrappedBuffer(applicationData)));
         }
 
         @Override
         public void sendPong(ByteBuffer applicationData) throws IOException, IllegalArgumentException {
-            channel.writeAndFlush(new PongWebSocketFrame(true,rsv,Unpooled.wrappedBuffer(applicationData)));
+            channel.writeAndFlush(new PongWebSocketFrame(true,rsv, Unpooled.wrappedBuffer(applicationData)));
         }
     }
 
@@ -533,7 +533,7 @@ public class WebSocketSession implements Session {
 
         @Override
         public void sendBinary(ByteBuffer data) throws IOException {
-            channel.writeAndFlush(new BinaryWebSocketFrame(true,rsv,Unpooled.wrappedBuffer(data)));
+            channel.writeAndFlush(new BinaryWebSocketFrame(true,rsv, Unpooled.wrappedBuffer(data)));
         }
 
         @Override
@@ -543,7 +543,7 @@ public class WebSocketSession implements Session {
 
         @Override
         public void sendBinary(ByteBuffer partialByte, boolean isLast) throws IOException {
-            channel.writeAndFlush(new BinaryWebSocketFrame(isLast,rsv,Unpooled.wrappedBuffer(partialByte)));
+            channel.writeAndFlush(new BinaryWebSocketFrame(isLast,rsv, Unpooled.wrappedBuffer(partialByte)));
         }
 
         @Override
@@ -595,12 +595,12 @@ public class WebSocketSession implements Session {
 
         @Override
         public void sendPing(ByteBuffer applicationData) throws IOException, IllegalArgumentException {
-            channel.writeAndFlush(new PingWebSocketFrame(true,rsv,Unpooled.wrappedBuffer(applicationData)));
+            channel.writeAndFlush(new PingWebSocketFrame(true,rsv, Unpooled.wrappedBuffer(applicationData)));
         }
 
         @Override
         public void sendPong(ByteBuffer applicationData) throws IOException, IllegalArgumentException {
-            channel.writeAndFlush(new PongWebSocketFrame(true,rsv,Unpooled.wrappedBuffer(applicationData)));
+            channel.writeAndFlush(new PongWebSocketFrame(true,rsv, Unpooled.wrappedBuffer(applicationData)));
         }
     }
 

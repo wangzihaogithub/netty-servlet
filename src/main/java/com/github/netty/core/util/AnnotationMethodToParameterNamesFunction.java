@@ -10,7 +10,7 @@ import java.util.function.Function;
  * Annotation-based method variable parameter name function (because abstract methods cannot be obtained with ASM, only concrete methods can)
  * @author wangzihao
  */
-public class AnnotationMethodToParameterNamesFunction implements Function<Method, String[]> {
+public class AnnotationMethodToParameterNamesFunction implements Function<Method,String[]> {
     private Collection<Class<?extends Annotation>> parameterAnnotationClasses;
     public AnnotationMethodToParameterNamesFunction(Collection<Class<? extends Annotation>> parameterAnnotationClasses) {
         this.parameterAnnotationClasses = Objects.requireNonNull(parameterAnnotationClasses);

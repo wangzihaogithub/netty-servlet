@@ -2,16 +2,17 @@ package com.github.netty.protocol.nrpc;
 
 import com.github.netty.annotation.Protocol;
 import com.github.netty.core.AbstractChannelHandler;
-import com.github.netty.core.util.ClassFileMethodToParameterNamesFunction;
-import com.github.netty.core.util.RecyclableUtil;
-import com.github.netty.core.util.ReflectUtil;
-import com.github.netty.core.util.StringUtil;
+import com.github.netty.core.util.*;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 
 import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Function;
 
@@ -29,7 +30,7 @@ public class RpcServerChannelHandler extends AbstractChannelHandler<RpcPacket,Ob
      * Data encoder decoder. (Serialization or Deserialization)
      */
     private DataCodec dataCodec;
-    private final Map<String, RpcServerInstance> serviceInstanceMap = new HashMap<>();
+    private final Map<String, RpcServerInstance> serviceInstanceMap = new ConcurrentHashMap<>(8);
     private final List<RpcServerAop> nettyRpcServerAopList = new CopyOnWriteArrayList<>();
     private ChannelHandlerContext context;
 
@@ -115,7 +116,8 @@ public class RpcServerChannelHandler extends AbstractChannelHandler<RpcPacket,Ob
         rpcContext.setRemoteAddress((InetSocketAddress) ctx.channel().remoteAddress());
         rpcContext.setLocalAddress((InetSocketAddress) ctx.channel().localAddress());
         rpcContext.setRequest(request);
-        RpcServerInstance rpcInstance = serviceInstanceMap.get(request.getRequestMappingName());
+        String serverInstanceKey = RpcServerInstance.getServerInstanceKey(request.getRequestMappingName(), request.getVersion());
+        RpcServerInstance rpcInstance = serviceInstanceMap.get(serverInstanceKey);
         if(rpcInstance == null) {
             if(request.getAck() == ACK_YES) {
                 ResponsePacket response = ResponsePacket.newInstance();
@@ -125,7 +127,7 @@ public class RpcServerChannelHandler extends AbstractChannelHandler<RpcPacket,Ob
                     response.setRequestId(request.getRequestId());
                     response.setEncode(BINARY);
                     response.setStatus(ResponsePacket.NO_SUCH_SERVICE);
-                    response.setMessage("not found service " + request.getRequestMappingName());
+                    response.setMessage("not found service " + serverInstanceKey);
 
                     ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE_ON_FAILURE);
                     release = false;
@@ -147,48 +149,64 @@ public class RpcServerChannelHandler extends AbstractChannelHandler<RpcPacket,Ob
     }
 
     /**
+     * Increase the RpcServerInstance
+     * @param requestMappingName requestMappingName
+     * @param version rpc version
+     * @param rpcServerInstance RpcServerInstance
+     */
+    public void addRpcServerInstance(String requestMappingName, String version, RpcServerInstance rpcServerInstance){
+        Object instance = rpcServerInstance.getInstance();
+        if(requestMappingName == null || requestMappingName.isEmpty()){
+            requestMappingName = generateRequestMappingName(instance.getClass());
+        }
+        String serverInstanceKey = RpcServerInstance.getServerInstanceKey(requestMappingName, version);
+        if(rpcServerInstance.getDataCodec() == null) {
+            rpcServerInstance.setDataCodec(dataCodec);
+        }
+        RpcServerInstance oldServerInstance = serviceInstanceMap.put(serverInstanceKey,rpcServerInstance);
+        if (oldServerInstance != null) {
+            Object oldInstance = oldServerInstance.getInstance();
+            logger.warn("override instance old={}, new={}",
+                    oldInstance.getClass().getSimpleName() +"@"+ Integer.toHexString(oldInstance.hashCode()),
+                    instance.getClass().getSimpleName() +"@"+  Integer.toHexString(instance.hashCode()));
+        }
+        logger.trace("addInstance({}, {}, {})",
+                serverInstanceKey,
+                instance.getClass().getSimpleName(),
+                rpcServerInstance.getMethodToParameterNamesFunction().getClass().getSimpleName());
+    }
+
+    /**
      * Increase the instance
      * @param instance The implementation class
      */
     public void addInstance(Object instance){
-        addInstance(instance,getRequestMappingName(instance.getClass()));
+        addInstance(instance,getRequestMappingName(instance.getClass()),true);
     }
 
     /**
      * Increase the instance
      * @param instance The implementation class
      * @param requestMappingName requestMappingName
+     * @param methodOverwriteCheck methodOverwriteCheck
      */
-    public void addInstance(Object instance,String requestMappingName){
-        addInstance(instance,requestMappingName,new ClassFileMethodToParameterNamesFunction());
+    public void addInstance(Object instance,String requestMappingName,boolean methodOverwriteCheck){
+        String version = RpcServerInstance.getVersion(instance.getClass(), "");
+        addInstance(instance,requestMappingName,version,new ClassFileMethodToParameterNamesFunction(),new AnnotationMethodToMethodNameFunction(Protocol.RpcMethod.class),methodOverwriteCheck);
     }
 
     /**
      * Increase the instance
      * @param instance The implementation class
      * @param requestMappingName requestMappingName
+     * @param version version
      * @param methodToParameterNamesFunction Method to a function with a parameter name
+     * @param methodToNameFunction Method of extracting remote call method name
+     * @param methodOverwriteCheck methodOverwriteCheck
      */
-    public void addInstance(Object instance,String requestMappingName,Function<Method,String[]> methodToParameterNamesFunction){
-        if(requestMappingName == null || requestMappingName.isEmpty()){
-            requestMappingName = generateRequestMappingName(instance.getClass());
-        }
-        synchronized (serviceInstanceMap) {
-            RpcServerInstance rpcServerInstance = new RpcServerInstance(instance,dataCodec,methodToParameterNamesFunction);
-            RpcServerInstance oldServerInstance = serviceInstanceMap.put(requestMappingName,rpcServerInstance);
-
-            if (oldServerInstance != null) {
-                Object oldInstance = oldServerInstance.getInstance();
-                logger.warn("override instance old={}, new={}",
-                        oldInstance.getClass().getSimpleName() +"@"+ Integer.toHexString(oldInstance.hashCode()),
-                        instance.getClass().getSimpleName() +"@"+  Integer.toHexString(instance.hashCode()));
-            }
-        }
-
-        logger.trace("addInstance({}, {}, {})",
-                requestMappingName,
-                instance.getClass().getSimpleName(),
-                methodToParameterNamesFunction.getClass().getSimpleName());
+    public void addInstance(Object instance,String requestMappingName,String version,Function<Method,String[]> methodToParameterNamesFunction,Function<Method,String> methodToNameFunction,boolean methodOverwriteCheck){
+        RpcServerInstance rpcServerInstance = new RpcServerInstance(instance,dataCodec,methodToParameterNamesFunction,methodToNameFunction,methodOverwriteCheck);
+        addRpcServerInstance(requestMappingName,version,rpcServerInstance);
     }
 
     /**

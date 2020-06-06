@@ -1,8 +1,10 @@
 package com.github.netty.protocol;
 
+import com.github.netty.core.AbstractNettyServer;
 import com.github.netty.core.AbstractProtocol;
 import com.github.netty.core.util.IOUtil;
 import com.github.netty.core.util.LoggerFactoryX;
+import com.github.netty.core.util.LoggerX;
 import com.github.netty.protocol.servlet.*;
 import com.github.netty.protocol.servlet.util.HttpHeaderConstants;
 import io.netty.buffer.ByteBuf;
@@ -18,6 +20,7 @@ import javax.servlet.Filter;
 import javax.servlet.Servlet;
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executor;
@@ -29,6 +32,7 @@ import java.util.function.Supplier;
  *  2018/11/11/011
  */
 public class HttpServletProtocol extends AbstractProtocol {
+    private static final LoggerX logger = LoggerFactoryX.getLogger(HttpServletProtocol.class);
     private final ServletContext servletContext;
     private SslContext sslContext;
     private SslContextBuilder sslContextBuilder;
@@ -50,7 +54,7 @@ public class HttpServletProtocol extends AbstractProtocol {
     }
 
     @Override
-    public void onServerStart() throws Exception {
+    public <T extends AbstractNettyServer> void onServerStart(T server) throws Exception {
         ServletEventListenerManager listenerManager = servletContext.getServletEventListenerManager();
         if(listenerManager.hasServletContextListener()){
             listenerManager.onServletContextInitialized(new ServletContextEvent(servletContext));
@@ -59,7 +63,9 @@ public class HttpServletProtocol extends AbstractProtocol {
         //Servlet will be initialized automatically before use.
         initFilter(servletContext);
 
-        LoggerFactoryX.getLogger(HttpServletProtocol.class).info(
+        listenerManager.onServletContainerInitializerStartup(Collections.emptySet(),servletContext);
+
+        logger.info(
                 "Netty servlet on port: {}, with context path '{}'",
                 servletContext.getServerAddress().getPort(),
                 servletContext.getContextPath()
@@ -67,7 +73,7 @@ public class HttpServletProtocol extends AbstractProtocol {
     }
 
     @Override
-    public void onServerStop() {
+    public <T extends AbstractNettyServer> void onServerStop(T server) {
         ServletEventListenerManager listenerManager = servletContext.getServletEventListenerManager();
         if(listenerManager.hasServletContextListener()){
             listenerManager.onServletContextDestroyed(new ServletContextEvent(servletContext));
@@ -104,7 +110,7 @@ public class HttpServletProtocol extends AbstractProtocol {
                 try {
                     filter.destroy();
                 }catch (Exception e){
-                    e.printStackTrace();
+                    logger.error("destroyFilter error={},filter={}",e.toString(),filter,e);
                 }
             }
         }
@@ -124,7 +130,7 @@ public class HttpServletProtocol extends AbstractProtocol {
                 try {
                     servlet.destroy();
                 }catch (Exception e){
-                    e.printStackTrace();
+                    logger.error("destroyServlet error={},servlet={}",e.toString(),servlet,e);
                 }
             }
         }

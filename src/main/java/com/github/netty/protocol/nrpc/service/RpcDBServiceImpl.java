@@ -2,17 +2,17 @@ package com.github.netty.protocol.nrpc.service;
 
 import com.github.netty.core.util.ExpiryLRUMap;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.RandomAccess;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * RpcDBServiceImpl
  * @author wangzihao
  */
 public class RpcDBServiceImpl implements RpcDBService {
-    private final Map<String, RpcDBExpiryLRUMap<String,byte[]>> memExpiryGroupMap = new HashMap<>(16);
+    private final Map<String, RpcDBExpiryLRUMap<String,byte[]>> memExpiryGroupMap = new ConcurrentHashMap<>(64);
     private static final String SHARING_GROUP = "/sharing";
 
     @Override
@@ -66,8 +66,8 @@ public class RpcDBServiceImpl implements RpcDBService {
 
     @Override
     public void changeKey3(String oldKey, String newKey, String group) {
-	     RpcDBExpiryLRUMap<String, byte[]> memExpiryMap = getMemExpiryMap(group);
-	    memExpiryMap.putNode(newKey,memExpiryMap.removeNode(oldKey));
+        RpcDBExpiryLRUMap<String, byte[]> memExpiryMap = getMemExpiryMap(group);
+        memExpiryMap.put(newKey,memExpiryMap.remove(oldKey));
     }
 
     @Override
@@ -86,8 +86,8 @@ public class RpcDBServiceImpl implements RpcDBService {
     }
 
 	@Override
-	public void setMaxSize2(Integer maxSize, String group) {
-		getMemExpiryMap(group).setMaxSize(maxSize);
+	public void setMaxSize2(Integer maxSize,String group) {
+		getMemExpiryMap(group).setMaxCacheSize(maxSize);
 	}
 
 	@Override
@@ -130,17 +130,8 @@ public class RpcDBServiceImpl implements RpcDBService {
     }
 
     private static class RpcDBExpiryLRUMap<K,V> extends ExpiryLRUMap<K,V> {
-	    private int maxSize = -1;
 	    RpcDBExpiryLRUMap(long defaultExpiryTime) {
 		    super(defaultExpiryTime);
-	    }
-	    @Override
-	    protected boolean removeEldestEntry(Entry<K, Node<V>> eldest) {
-		    return size() > maxSize;
-	    }
-
-	    public void setMaxSize(int maxSize) {
-		    this.maxSize = maxSize;
 	    }
     }
 }

@@ -2,6 +2,7 @@ package com.github.netty.protocol.servlet;
 
 import com.github.netty.core.MessageToRunnable;
 import com.github.netty.core.util.Recyclable;
+import com.github.netty.core.util.RecyclableUtil;
 import com.github.netty.core.util.Recycler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.FullHttpRequest;
@@ -10,7 +11,7 @@ import javax.servlet.ReadListener;
 import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
-import java.util.concurrent.atomic.AtomicLong;
+//import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * NettyMessageToServletRunnable
@@ -18,8 +19,8 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class NettyMessageToServletRunnable implements MessageToRunnable {
     private static final Recycler<HttpRunnable> RECYCLER = new Recycler<>(HttpRunnable::new);
-    public static final AtomicLong SERVLET_AND_FILTER_TIME = new AtomicLong();
-    public static final AtomicLong SERVLET_QUERY_COUNT = new AtomicLong();
+//    public static final AtomicLong SERVLET_AND_FILTER_TIME = new AtomicLong();
+//    public static final AtomicLong SERVLET_QUERY_COUNT = new AtomicLong();
 
     private ServletContext servletContext;
 
@@ -37,7 +38,7 @@ public class NettyMessageToServletRunnable implements MessageToRunnable {
         instance.servletHttpExchange = ServletHttpExchange.newInstance(
                 servletContext,
                 context,
-                (FullHttpRequest) msg);;
+                (FullHttpRequest) msg);
         return instance;
     }
 
@@ -61,18 +62,19 @@ public class NettyMessageToServletRunnable implements MessageToRunnable {
             ServletHttpServletResponse httpServletResponse = servletHttpExchange.getResponse();
             Throwable realThrowable = null;
 
-            long beginTime = System.currentTimeMillis();
+//            long beginTime = System.currentTimeMillis();
             try {
                 ServletRequestDispatcher dispatcher = servletHttpExchange.getServletContext().getRequestDispatcher(httpServletRequest.getRequestURI());
                 if (dispatcher == null) {
                     httpServletResponse.sendError(HttpServletResponse.SC_NOT_FOUND);
+                    RecyclableUtil.release(httpServletRequest);
                     return;
                 }
-                httpServletRequest.setDispatcher(dispatcher);
+//                servletHttpExchange.touch(this);
                 dispatcher.dispatch(httpServletRequest, httpServletResponse);
 
                 if(httpServletRequest.isAsync()){
-                    ReadListener readListener = httpServletRequest.getInputStream().getReadListener();
+                    ReadListener readListener = httpServletRequest.getInputStream0().getReadListener();
                     if(readListener != null){
                         readListener.onAllDataRead();
                     }
@@ -82,8 +84,8 @@ public class NettyMessageToServletRunnable implements MessageToRunnable {
             }catch (Throwable throwable){
                 realThrowable = throwable;
             }finally {
-                long totalTime = System.currentTimeMillis() - beginTime;
-                SERVLET_AND_FILTER_TIME.addAndGet(totalTime);
+//                long totalTime = System.currentTimeMillis() - beginTime;
+//                SERVLET_AND_FILTER_TIME.addAndGet(totalTime);
 
                 /*
                  * Error pages are obtained according to two types: 1. By exception type; 2. By status code
@@ -109,10 +111,9 @@ public class NettyMessageToServletRunnable implements MessageToRunnable {
                     }
                 }
                 //Error page
-                if(errorPage != null){
-                    errorPageManager.handleErrorPage(errorPage,realThrowable,httpServletRequest,httpServletResponse);
+                if(realThrowable != null || errorPage != null) {
+                    errorPageManager.handleErrorPage(errorPage, realThrowable, httpServletRequest, httpServletResponse);
                 }
-
                 /*
                  * If not asynchronous, or asynchronous has ended
                  * each response object is valid only if it is within the scope of the servlet's service method or the filter's doFilter method, unless the
@@ -125,10 +126,13 @@ public class NettyMessageToServletRunnable implements MessageToRunnable {
                     ServletAsyncContext asyncContext = httpServletRequest.getAsyncContext();
                     //If the asynchronous execution completes, recycle
                     if(asyncContext.isComplete()){
-                        servletHttpExchange.recycle();
+                        asyncContext.recycle();
                     }else {
                         //Marks the end of execution for the main thread
                         httpServletRequest.getAsyncContext().markIoThreadOverFlag();
+                        if(asyncContext.isComplete()) {
+                            asyncContext.recycle();
+                        }
                     }
                 }else {
                     //Not asynchronous direct collection
@@ -136,7 +140,7 @@ public class NettyMessageToServletRunnable implements MessageToRunnable {
                 }
 
                 recycle();
-                SERVLET_QUERY_COUNT.incrementAndGet();
+//                SERVLET_QUERY_COUNT.incrementAndGet();
             }
         }
 

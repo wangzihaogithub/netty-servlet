@@ -1,31 +1,25 @@
 package com.github.netty.springboot.server;
 
+import com.github.netty.core.AbstractNettyServer;
 import com.github.netty.core.util.ApplicationX;
 import com.github.netty.core.util.StringUtil;
 import com.github.netty.protocol.HttpServletProtocol;
-import com.github.netty.protocol.servlet.ServletContext;
-import com.github.netty.protocol.servlet.ServletErrorPage;
-import com.github.netty.protocol.servlet.SessionCompositeServiceImpl;
-import com.github.netty.protocol.servlet.SessionService;
+import com.github.netty.protocol.servlet.*;
 import com.github.netty.springboot.NettyProperties;
 import io.netty.handler.ssl.ApplicationProtocolConfig;
 import io.netty.handler.ssl.ApplicationProtocolNames;
 import io.netty.handler.ssl.ClientAuth;
 import io.netty.handler.ssl.SslContextBuilder;
 import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.BeanFactory;
+import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.beans.factory.BeanInitializationException;
-import org.springframework.beans.factory.ListableBeanFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.BeanPostProcessor;
-import org.springframework.boot.web.server.ErrorPage;
-import org.springframework.boot.web.server.MimeMappings;
-import org.springframework.boot.web.server.Ssl;
-import org.springframework.boot.web.server.SslStoreProvider;
+import org.springframework.boot.web.server.*;
 import org.springframework.boot.web.servlet.server.AbstractServletWebServerFactory;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.ResourceUtils;
 
-import javax.annotation.Resource;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.TrustManagerFactory;
 import java.net.InetSocketAddress;
@@ -33,18 +27,20 @@ import java.net.URL;
 import java.security.KeyStore;
 import java.util.Arrays;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
+
+import static org.springframework.util.ClassUtils.getMethod;
 
 /**
  * HttpServlet protocol registry (spring adapter)
  * @author wangzihao
  * 2018/11/12/012
  */
-public class HttpServletProtocolSpringAdapter extends HttpServletProtocol implements BeanPostProcessor {
+public class HttpServletProtocolSpringAdapter extends HttpServletProtocol implements BeanPostProcessor, BeanFactoryAware {
     private NettyProperties properties;
     private ApplicationX application;
-    @Autowired(required = false)
-    private ListableBeanFactory listableBeanFactory;
+    private BeanFactory beanFactory;
 
     public HttpServletProtocolSpringAdapter(NettyProperties properties, Supplier<Executor> serverHandlerExecutor, ClassLoader classLoader) {
         super(serverHandlerExecutor,new ServletContext(classLoader == null? ClassUtils.getDefaultClassLoader():classLoader));
@@ -53,13 +49,10 @@ public class HttpServletProtocolSpringAdapter extends HttpServletProtocol implem
     }
 
     @Override
-    public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
-        application.addInstance(beanName,bean,false);
-        return bean;
-    }
-
-    @Override
     public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
+        if(beanFactory.containsBean(beanName) && beanFactory.isSingleton(beanName)) {
+            application.addSingletonBeanDefinition(bean, beanName, false);
+        }
         if(bean instanceof AbstractServletWebServerFactory && ((AbstractServletWebServerFactory) bean).getPort() > 0){
             try {
                 configurableServletContext((AbstractServletWebServerFactory) bean);
@@ -73,22 +66,24 @@ public class HttpServletProtocolSpringAdapter extends HttpServletProtocol implem
     }
 
     @Override
-    public void onServerStart() throws Exception {
-        super.onServerStart();
+    public <T extends AbstractNettyServer> void onServerStart(T server) throws Exception {
+        super.onServerStart(server);
 
-        //Injection into the spring object
-        application.addInjectAnnotation(Autowired.class, Resource.class);
         ServletContext servletContext = getServletContext();
-        application.addInstance(servletContext);
-        application.addInstance(servletContext.getSessionService());
 
-        if(listableBeanFactory != null) {
-            for (String beanName : listableBeanFactory.getBeanDefinitionNames()) {
-                Object bean = listableBeanFactory.getBean(beanName);
-                application.addInstance(beanName, bean, false);
-            }
+        Class<? extends ExecutorService> asyncExecutorServiceClass = properties.getHttpServlet().getAsyncExecutorService();
+        ExecutorService asyncExecutorService;
+        if(asyncExecutorServiceClass != null){
+            asyncExecutorService = beanFactory.getBean(asyncExecutorServiceClass);
+        }else {
+            asyncExecutorService = server.getWorker();
         }
-        application.scanner("com.github.netty").inject();
+        servletContext.setAsyncExecutorService(asyncExecutorService);
+
+        application.addSingletonBeanDefinition(servletContext);
+        application.addSingletonBeanDefinition(servletContext.getSessionService());
+
+//        application.scanner("com.github.netty").inject();
     }
 
     protected void configurableServletContext(AbstractServletWebServerFactory configurableWebServer) throws Exception {
@@ -96,11 +91,13 @@ public class HttpServletProtocolSpringAdapter extends HttpServletProtocol implem
         InetSocketAddress address = NettyTcpServerFactory.getServerSocketAddress(configurableWebServer.getAddress(),configurableWebServer.getPort());
         //Server port
         servletContext.setServerAddress(address);
+        servletContext.setEnableLookupFlag(properties.getHttpServlet().isEnableLookup());
         servletContext.setDocBase(configurableWebServer.getDocumentRoot().getAbsolutePath());
         servletContext.setContextPath(configurableWebServer.getContextPath());
         servletContext.setServerHeader(configurableWebServer.getServerHeader());
         servletContext.setServletContextName(configurableWebServer.getDisplayName());
         servletContext.setResponseWriterChunkMaxHeapByteLength(properties.getHttpServlet().getResponseWriterChunkMaxHeapByteLength());
+        servletContext.setAsyncSwitchThread(properties.getHttpServlet().isAsyncSwitchThread());
         //Session timeout
         servletContext.setSessionTimeout((int) configurableWebServer.getSession().getTimeout().getSeconds());
         servletContext.setSessionService(newSessionService(properties,servletContext));
@@ -108,10 +105,15 @@ public class HttpServletProtocolSpringAdapter extends HttpServletProtocol implem
             servletContext.getMimeMappings().add(mapping.getExtension(),mapping.getMimeType());
         }
 
-        super.setEnableContentCompression(configurableWebServer.getCompression().getEnabled());
-        super.setContentSizeThreshold((int) configurableWebServer.getCompression().getMinResponseSize().toBytes());
-        super.setCompressionMimeTypes(configurableWebServer.getCompression().getMimeTypes().clone());
-        super.setCompressionExcludedUserAgents(configurableWebServer.getCompression().getExcludedUserAgents());
+        Compression compression = configurableWebServer.getCompression();
+        super.setEnableContentCompression(compression.getEnabled());
+        Object minResponseSize = getMethod(compression.getClass(), "getMinResponseSize").invoke(compression);
+        if(!(minResponseSize instanceof Number)) {
+            minResponseSize = getMethod(minResponseSize.getClass(), "toBytes").invoke(minResponseSize);
+        }
+        super.setContentSizeThreshold(((Number) minResponseSize).intValue());
+        super.setCompressionMimeTypes(compression.getMimeTypes().clone());
+        super.setCompressionExcludedUserAgents(compression.getExcludedUserAgents());
 
         //Error page
         for(ErrorPage errorPage : configurableWebServer.getErrorPages()) {
@@ -136,8 +138,7 @@ public class HttpServletProtocolSpringAdapter extends HttpServletProtocol implem
      */
     protected SessionService newSessionService(NettyProperties properties, ServletContext servletContext){
         //Composite session (default local storage)
-        SessionCompositeServiceImpl compositeSessionService = new SessionCompositeServiceImpl();
-
+        SessionService sessionService;
         if(StringUtil.isNotEmpty(properties.getHttpServlet().getSessionRemoteServerAddress())) {
             //Enable session remote storage using RPC
             String remoteSessionServerAddress = properties.getHttpServlet().getSessionRemoteServerAddress();
@@ -148,17 +149,21 @@ public class HttpServletProtocolSpringAdapter extends HttpServletProtocol implem
             }else {
                 address = new InetSocketAddress(remoteSessionServerAddress,80);
             }
+            SessionCompositeServiceImpl compositeSessionService = new SessionCompositeServiceImpl();
             compositeSessionService.enableRemoteRpcSession(address,
-                    100,
+                    80,
                     1,
-                    true,properties.getNrpc().isClientEnableHeartLog(),
-                    properties.getNrpc().getClientHeartInterval());
-
+                    properties.getNrpc().isClientEnableHeartLog(),
+                    properties.getNrpc().getClientHeartIntervalTimeMs(),
+                    properties.getNrpc().getClientReconnectScheduledIntervalMs());
+            sessionService = compositeSessionService;
         }else if(properties.getHttpServlet().isEnablesLocalFileSession()){
             //Enable session file storage
-            compositeSessionService.enableLocalFileSession(servletContext.getResourceManager());
+            sessionService = new SessionLocalFileServiceImpl(servletContext.getResourceManager());
+        }else {
+            sessionService = new SessionLocalMemoryServiceImpl();
         }
-        return compositeSessionService;
+        return sessionService;
     }
 
     /**
@@ -205,7 +210,7 @@ public class HttpServletProtocolSpringAdapter extends HttpServletProtocol implem
      * @return TrustManagerFactory
      * @throws Exception Exception
      */
-    protected TrustManagerFactory getTrustManagerFactory(Ssl ssl,SslStoreProvider sslStoreProvider) throws Exception {
+    protected TrustManagerFactory getTrustManagerFactory(Ssl ssl, SslStoreProvider sslStoreProvider) throws Exception {
         KeyStore store;
         if (sslStoreProvider != null) {
             store = sslStoreProvider.getTrustStore();
@@ -224,7 +229,7 @@ public class HttpServletProtocolSpringAdapter extends HttpServletProtocol implem
      * @return KeyManagerFactory
      * @throws Exception Exception
      */
-    protected KeyManagerFactory getKeyManagerFactory(Ssl ssl,SslStoreProvider sslStoreProvider) throws Exception {
+    protected KeyManagerFactory getKeyManagerFactory(Ssl ssl, SslStoreProvider sslStoreProvider) throws Exception {
         KeyStore keyStore;
         if (sslStoreProvider != null) {
             keyStore = sslStoreProvider.getKeyStore();
@@ -261,4 +266,8 @@ public class HttpServletProtocolSpringAdapter extends HttpServletProtocol implem
         return store;
     }
 
+    @Override
+    public void setBeanFactory(BeanFactory beanFactory) throws BeansException {
+        this.beanFactory = beanFactory;
+    }
 }

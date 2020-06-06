@@ -117,13 +117,13 @@ public class ServletOutputStreamWrapper extends javax.servlet.ServletOutputStrea
 
     @Override
     public <T> void recycle(Consumer<T> consumer) {
-        if(source != null){
-            ServletOutputStream out = source;
+        ServletOutputStream out = source;
+        if(out != null){
             source = null;
             out.recycle(consumer);
+        }else {
+            consumer.accept(null);
         }
-        if(suspendFlag){
-            suspendFlag = false;
-        }
+        suspendFlag = false;
     }
 }

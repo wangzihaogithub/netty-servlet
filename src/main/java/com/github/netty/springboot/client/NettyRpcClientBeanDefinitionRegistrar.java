@@ -1,10 +1,14 @@
 package com.github.netty.springboot.client;
 
+import com.github.netty.protocol.nrpc.RpcClient;
 import com.github.netty.springboot.EnableNettyRpcClients;
 import com.github.netty.springboot.NettyProperties;
 import com.github.netty.springboot.NettyRpcClient;
 import org.springframework.beans.BeansException;
-import org.springframework.beans.factory.*;
+import org.springframework.beans.factory.BeanClassLoaderAware;
+import org.springframework.beans.factory.BeanCreationException;
+import org.springframework.beans.factory.BeanFactory;
+import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.beans.factory.annotation.AnnotatedBeanDefinition;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.config.BeanPostProcessor;
@@ -25,7 +29,6 @@ import org.springframework.util.StringUtils;
 
 import java.beans.Introspector;
 import java.lang.annotation.Annotation;
-import java.lang.reflect.Proxy;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -46,8 +49,9 @@ public class NettyRpcClientBeanDefinitionRegistrar implements ImportBeanDefiniti
     private String enableNettyRpcClientsCanonicalName = EnableNettyRpcClients.class.getCanonicalName();
     private String nettyRpcClientCanonicalName = NettyRpcClient.class.getCanonicalName();
     private String lazyCanonicalName = Lazy.class.getCanonicalName();
-	private ObjectFactory<NettyRpcLoadBalanced> nettyRpcLoadBalancedProvider;
-	private ObjectFactory<NettyProperties> nettyPropertiesProvider;
+	private Supplier<NettyRpcLoadBalanced> nettyRpcLoadBalancedSupplier;
+	private Supplier<NettyProperties> nettyPropertiesSupplier;
+    private BeanFactory beanFactory;
 
     public NettyRpcClientBeanDefinitionRegistrar() {}
 
@@ -93,7 +97,7 @@ public class NettyRpcClientBeanDefinitionRegistrar implements ImportBeanDefiniti
         this.environment = environment;
     }
 
-    private void registerNettyRpcClient(AnnotatedBeanDefinition beanDefinition,BeanDefinitionRegistry registry)  {
+    private void registerNettyRpcClient(AnnotatedBeanDefinition beanDefinition, BeanDefinitionRegistry registry)  {
         AnnotationMetadata metadata = beanDefinition.getMetadata();
         Map<String, Object> nettyRpcClientAttributes = metadata.getAnnotationAttributes(nettyRpcClientCanonicalName);
         Map<String, Object> lazyAttributes = metadata.getAnnotationAttributes(lazyCanonicalName);
@@ -105,7 +109,7 @@ public class NettyRpcClientBeanDefinitionRegistrar implements ImportBeanDefiniti
             throw new BeanCreationException("NettyRpcClientsRegistrar failure! notfound class",e);
         }
 
-        String serviceName = resolve((String) nettyRpcClientAttributes.get("serviceImplName"));
+        String serviceName = resolve((String) nettyRpcClientAttributes.get("serviceName"));
         beanDefinition.setLazyInit(lazyAttributes == null || Boolean.TRUE.equals(lazyAttributes.get("value")));
         ((AbstractBeanDefinition)beanDefinition).setAutowireMode(AbstractBeanDefinition.AUTOWIRE_BY_TYPE);
         ((AbstractBeanDefinition)beanDefinition).setInstanceSupplier(newInstanceSupplier(beanClass,serviceName,(int)nettyRpcClientAttributes.get("timeout")));
@@ -116,13 +120,14 @@ public class NettyRpcClientBeanDefinitionRegistrar implements ImportBeanDefiniti
 
     public <T> Supplier<T> newInstanceSupplier(Class<T> beanClass, String serviceName,int timeout) {
         return ()->{
-            NettyProperties nettyProperties = nettyPropertiesProvider.getObject();
-
+            NettyProperties nettyProperties = nettyPropertiesSupplier.get();
             NettyRpcClientProxy nettyRpcClientProxy = new NettyRpcClientProxy(serviceName,null,
                     beanClass,nettyProperties,
-		            nettyRpcLoadBalancedProvider::getObject);
-            nettyRpcClientProxy.setTimeout(timeout);
-            Object instance = Proxy.newProxyInstance(classLoader,new Class[]{beanClass},nettyRpcClientProxy);
+		            nettyRpcLoadBalancedSupplier::get);
+            if(timeout > 0){
+                nettyRpcClientProxy.setTimeout(timeout);
+            }
+            Object instance = java.lang.reflect.Proxy.newProxyInstance(classLoader,new Class[]{beanClass, RpcClient.Proxy.class},nettyRpcClientProxy);
             return (T) instance;
         };
     }
@@ -138,7 +143,7 @@ public class NettyRpcClientBeanDefinitionRegistrar implements ImportBeanDefiniti
         return value;
     }
 
-    protected Set<String> getBasePackages(AnnotationMetadata importingClassMetadata,Map<String, Object> enableNettyRpcClientsAttributes) {
+    protected Set<String> getBasePackages(AnnotationMetadata importingClassMetadata, Map<String, Object> enableNettyRpcClientsAttributes) {
         Set<String> basePackages = new HashSet<>();
         if(enableNettyRpcClientsAttributes != null) {
             for (String pkg : (String[]) enableNettyRpcClientsAttributes.get("value")) {
@@ -196,13 +201,17 @@ public class NettyRpcClientBeanDefinitionRegistrar implements ImportBeanDefiniti
 
     @Override
     public void setBeanFactory(BeanFactory beanFactory) throws BeansException {
-	    this.nettyRpcLoadBalancedProvider = beanFactory.getBeanProvider(NettyRpcLoadBalanced.class);
-	    this.nettyPropertiesProvider = beanFactory.getBeanProvider(NettyProperties.class);
+        this.beanFactory = beanFactory;
+	    this.nettyRpcLoadBalancedSupplier = ()->beanFactory.getBean(NettyRpcLoadBalanced.class);
+	    this.nettyPropertiesSupplier = ()->beanFactory.getBean(NettyProperties.class);
     }
 
     @Override
-    public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
-        nettyPropertiesProvider.getObject().getApplication().addInstance(beanName, bean, false);
+    public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
+        if(beanFactory.containsBean(beanName) && beanFactory.isSingleton(beanName)) {
+            nettyPropertiesSupplier.get().getApplication()
+                    .addSingletonBeanDefinition(bean, beanName, false);
+        }
         return bean;
     }
 }

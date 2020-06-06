@@ -1,28 +1,23 @@
 package com.github.netty.springboot.client;
 
 import com.github.netty.annotation.Protocol;
-import com.github.netty.core.util.AnnotationMethodToParameterNamesFunction;
-import com.github.netty.core.util.Recyclable;
-import com.github.netty.core.util.ReflectUtil;
-import com.github.netty.core.util.StringUtil;
-import com.github.netty.protocol.nrpc.RpcClient;
-import com.github.netty.protocol.nrpc.RpcClientAop;
-import com.github.netty.protocol.nrpc.RpcServerChannelHandler;
+import com.github.netty.core.util.*;
+import com.github.netty.protocol.nrpc.*;
 import com.github.netty.protocol.nrpc.exception.RpcConnectException;
 import com.github.netty.springboot.NettyProperties;
-import io.netty.channel.ChannelFuture;
 import io.netty.util.concurrent.FastThreadLocal;
+import org.springframework.core.annotation.AnnotationAwareOrderComparator;
 import org.springframework.web.bind.annotation.*;
 
-import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
-import java.util.Arrays;
+import java.util.Collections;
+import java.util.ConcurrentModificationException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
 /**
@@ -46,20 +41,32 @@ import java.util.function.Supplier;
  * @author wangzihao
  */
 public class NettyRpcClientProxy implements InvocationHandler {
-    private static final Map<InetSocketAddress, RpcClient> CLIENT_MAP = new ConcurrentHashMap<>(5);
-
     private String serviceName;
-    private String requestMappingName;
-    private Class<?> interfaceClass;
+    private final String requestMappingName;
+    private final Class<?> interfaceClass;
+    private final String rpcInstanceKey;
+    private final String version;
+    private long timeout;
     private NettyProperties properties;
     private Supplier<NettyRpcLoadBalanced> loadBalancedSupplier;
+    private final AnnotationMethodToParameterNamesFunction annotationMethodToParameterNamesFunction = new AnnotationMethodToParameterNamesFunction(
+            Protocol.RpcParam.class, RequestParam.class, RequestBody.class, RequestHeader.class,
+            PathVariable.class, CookieValue.class, RequestPart.class);
+    private final AnnotationMethodToMethodNameFunction annotationMethodToMethodNameFunction = new AnnotationMethodToMethodNameFunction(
+            Protocol.RpcMethod.class, RequestMapping.class);
+    private static final Map<InetSocketAddress, RpcClient> CLIENT_MAP = new ConcurrentHashMap<>(64);
     private static final FastThreadLocal<DefaultNettyRpcRequest> REQUEST_THREAD_LOCAL = new FastThreadLocal<DefaultNettyRpcRequest>(){
         @Override
         protected DefaultNettyRpcRequest initialValue() throws Exception {
             return new DefaultNettyRpcRequest();
         }
     };
-    private int timeout = 1000;
+    private static final FastThreadLocal<NettyRpcFilterChain> FILTER_CHAIN_THREAD_LOCAL = new FastThreadLocal<NettyRpcFilterChain>(){
+        @Override
+        protected NettyRpcFilterChain initialValue() throws Exception {
+            return new NettyRpcFilterChain();
+        }
+    };
 
     NettyRpcClientProxy(String serviceName, String requestMappingName, Class interfaceClass, NettyProperties properties, Supplier<NettyRpcLoadBalanced> loadBalancedSupplier) {
         this.serviceName = serviceName;
@@ -67,10 +74,9 @@ public class NettyRpcClientProxy implements InvocationHandler {
         this.properties = properties;
         this.loadBalancedSupplier = loadBalancedSupplier;
         this.requestMappingName = StringUtil.isEmpty(requestMappingName)? getRequestMappingName(interfaceClass) : requestMappingName;
-    }
-
-    public static NettyRpcRequest getNettyRpcRequest(){
-        return REQUEST_THREAD_LOCAL.get();
+        this.version = RpcServerInstance.getVersion(interfaceClass,properties.getNrpc().getClientDefaultVersion());
+        this.rpcInstanceKey = RpcClient.getClientInstanceKey(interfaceClass,this.requestMappingName,version);
+        this.timeout = properties.getNrpc().getClientServerResponseTimeout();
     }
 
     @Override
@@ -90,45 +96,92 @@ public class NettyRpcClientProxy implements InvocationHandler {
             return this.equals(args[0]);
         }
 
+        NettyRpcFilterChain filterChain = FILTER_CHAIN_THREAD_LOCAL.get();
         DefaultNettyRpcRequest request = REQUEST_THREAD_LOCAL.get();
         request.args = args;
         request.method = method;
+        request.proxy = proxy;
+        request.timeout = this.timeout;
         request.clientProxy = this;
+        try {
+            InetSocketAddress address = chooseAddress(request);
+            request.remoteAddress = address;
 
-        InetSocketAddress address = chooseAddress(request);
-        RpcClient rpcClient = getClient(address);
-        InvocationHandler handler = rpcClient.getRpcInstance(requestMappingName);
-        if(handler == null){
-            List<Class<?extends Annotation>> parameterAnnotationClasses = getParameterAnnotationClasses();
-            handler = rpcClient.newRpcInstance(interfaceClass, timeout,
-                    requestMappingName, new AnnotationMethodToParameterNamesFunction(parameterAnnotationClasses));
+            RpcClient rpcClient = getClient(address);
+            request.rpcClient = rpcClient;
+
+            RpcClient.Sender sender = rpcClient.getRpcInstance(rpcInstanceKey);
+            if (sender == null) {
+                sender = rpcClient.newRpcInstance(interfaceClass, timeout,
+                        version, requestMappingName,
+                        annotationMethodToParameterNamesFunction,
+                        annotationMethodToMethodNameFunction,
+                        properties.getNrpc().isClientMethodOverwriteCheck());
+            }
+            request.sender = sender;
+
+            filterChain.nettyRpcFilterList = getNettyRpcFilterList();
+            filterChain.doFilter(request);
+            return request.getResponse();
+        }finally {
+            request.recycle();
+            filterChain.recycle();
         }
-        return handler.invoke(proxy,method,args);
     }
 
-    public int getTimeout() {
+
+    public List<NettyRpcFilter> getNettyRpcFilterList(){
+        List<NettyRpcFilter> nettyRpcFilterList = properties.getApplication().getBeanForType(NettyRpcFilter.class);
+        nettyRpcFilterList.sort(AnnotationAwareOrderComparator.INSTANCE);
+        return nettyRpcFilterList;
+    }
+
+    private static class NettyRpcFilterChain implements NettyRpcFilter.FilterChain, Recyclable {
+        private List<NettyRpcFilter> nettyRpcFilterList;
+        private int count = 0;
+        @Override
+        public void doFilter(NettyRpcFullRequest request) throws Throwable{
+            if(count < nettyRpcFilterList.size()) {
+                nettyRpcFilterList.get(count++).doFilter(request, this);
+            }
+        }
+
+        @Override
+        public List<NettyRpcFilter> getNettyRpcFilterList() {
+            return Collections.unmodifiableList(nettyRpcFilterList);
+        }
+
+        @Override
+        public void recycle() {
+            count = 0;
+            nettyRpcFilterList = null;
+        }
+    }
+    public long getTimeout() {
         return timeout;
     }
 
-    public void setTimeout(int timeout) {
+    public void setTimeout(long timeout) {
         if(timeout > 0) {
             this.timeout = timeout;
         }
     }
 
-    protected List<Class<?extends Annotation>> getParameterAnnotationClasses(){
-        return Arrays.asList(
-                Protocol.RpcParam.class,RequestParam.class,RequestBody.class, RequestHeader.class,
-                PathVariable.class,CookieValue.class, RequestPart.class);
+    public AnnotationMethodToMethodNameFunction getAnnotationMethodToMethodNameFunction() {
+        return annotationMethodToMethodNameFunction;
     }
 
-    protected String getRequestMappingName(Class objectType){
+    public AnnotationMethodToParameterNamesFunction getAnnotationMethodToParameterNamesFunction() {
+        return annotationMethodToParameterNamesFunction;
+    }
+
+    public String getRequestMappingName(Class objectType){
         String requestMappingName = RpcServerChannelHandler.getRequestMappingName(objectType);
         if(StringUtil.isNotEmpty(requestMappingName)) {
             return requestMappingName;
         }
 
-        RequestMapping requestMapping = ReflectUtil.findAnnotation(objectType,RequestMapping.class);
+        RequestMapping requestMapping = ReflectUtil.findAnnotation(objectType, RequestMapping.class);
         if(requestMapping != null) {
             requestMappingName = requestMapping.name();
             String[] values = requestMapping.value();
@@ -150,9 +203,10 @@ public class NettyRpcClientProxy implements InvocationHandler {
 
     /**
      * Get the RPC client (from the current thread, if not, create it automatically)
+     * @param address InetSocketAddress
      * @return RpcClient
      */
-    private RpcClient getClient(InetSocketAddress address){
+    public RpcClient getClient(InetSocketAddress address){
         RpcClient rpcClient = CLIENT_MAP.get(address);
         if(rpcClient == null) {
             synchronized (CLIENT_MAP){
@@ -163,27 +217,24 @@ public class NettyRpcClientProxy implements InvocationHandler {
                     rpcClient.getAopList().addAll(properties.getApplication().getBeanForType(RpcClientAop.class));
                     rpcClient.setIoThreadCount(nrpc.getClientIoThreads());
                     rpcClient.setIoRatio(nrpc.getClientIoRatio());
-                    rpcClient.run();
-                    if (nrpc.isClientAutoReconnect()) {
-                        rpcClient.enableAutoReconnect(nrpc.getClientHeartInterval(), TimeUnit.SECONDS,
-                                null, nrpc.isClientEnableHeartLog());
-                    }
+                    rpcClient.setConnectTimeout(nrpc.getClientConnectTimeout());
+                    rpcClient.setIdleTimeMs(nrpc.getClientHeartIntervalTimeMs());
+                    rpcClient.setReconnectScheduledIntervalMs(nrpc.getClientReconnectScheduledIntervalMs());
+                    rpcClient.setEnableRpcHeartLog(nrpc.isClientEnableHeartLog());
+                    rpcClient.setEnableReconnectScheduledTask(nrpc.isClientReconnectScheduledTaskEnable());
                     CLIENT_MAP.put(address, rpcClient);
-                    rpcClient.connect().ifPresent(ChannelFuture::syncUninterruptibly);
                 }
             }
         }
         return rpcClient;
     }
 
-    private InetSocketAddress chooseAddress(DefaultNettyRpcRequest request){
+    public InetSocketAddress chooseAddress(DefaultNettyRpcRequest request){
         InetSocketAddress address;
         try {
             address = loadBalancedSupplier.get().chooseAddress(request);
         }catch (Exception e){
             throw new RpcConnectException("Rpc Failed to select client address.  cause ["+e.getLocalizedMessage()+"]",e);
-        }finally {
-            request.recycle();
         }
         if (address == null) {
             throw new NullPointerException("Rpc Failed to select client address. cause [return address is null]");
@@ -194,10 +245,40 @@ public class NettyRpcClientProxy implements InvocationHandler {
     /**
      * Default nett request (parameter [args array] can be modified)
      */
-    private static class DefaultNettyRpcRequest implements NettyRpcRequest, Recyclable {
+    private static class DefaultNettyRpcRequest implements NettyRpcFullRequest, Recyclable {
+        private AtomicBoolean responseGetFlag = new AtomicBoolean(false);
         private Method method;
         private Object[] args;
         private NettyRpcClientProxy clientProxy;
+        private long timeout;
+        private Object proxy;
+        private RpcClient rpcClient;
+        private InetSocketAddress remoteAddress;
+        private RpcClient.Sender sender;
+
+        private volatile Object response;
+        private volatile Throwable throwable;
+        private volatile boolean doneFlag;
+
+        @Override
+        public String getRpcInstanceKey() {
+            return clientProxy.rpcInstanceKey;
+        }
+
+        @Override
+        public NettyRpcClientProxy getClientProxy() {
+            return clientProxy;
+        }
+
+        @Override
+        public Supplier<NettyRpcLoadBalanced> getLoadBalancedSupplier() {
+            return clientProxy.loadBalancedSupplier;
+        }
+
+        @Override
+        public Object getProxy() {
+            return proxy;
+        }
 
         @Override
         public Method getMethod() {
@@ -220,8 +301,33 @@ public class NettyRpcClientProxy implements InvocationHandler {
         }
 
         @Override
+        public String getVersion() {
+            return clientProxy.version;
+        }
+
+        @Override
+        public void setTimeout(long timeout) {
+            this.timeout = timeout;
+        }
+
+        @Override
+        public long getTimeout() {
+            return timeout;
+        }
+
+        @Override
         public NettyProperties getNettyProperties() {
             return clientProxy.properties;
+        }
+
+        @Override
+        public ApplicationX getApplication() {
+            return clientProxy.properties.getApplication();
+        }
+
+        @Override
+        public Map<InetSocketAddress, RpcClient> getClientMap() {
+            return CLIENT_MAP;
         }
 
         @Override
@@ -230,10 +336,134 @@ public class NettyRpcClientProxy implements InvocationHandler {
         }
 
         @Override
+        public RpcClient getRpcClient() {
+            return rpcClient;
+        }
+
+        @Override
+        public RpcClient.Sender getSender() {
+            return sender;
+        }
+
+        @Override
+        public RpcMethod<RpcClient> getRpcMethod() {
+            if(sender == null){
+                return null;
+            }
+            String rpcMethodName = RpcMethod.getMethodDescriptorName(method);
+            return sender.getRpcMethodMap().get(rpcMethodName);
+        }
+
+        @Override
+        public Map<String, RpcMethod<RpcClient>> getRpcMethodMap() {
+            if(sender == null){
+                return null;
+            }
+            return sender.getRpcMethodMap();
+        }
+
+        @Override
+        public InetSocketAddress getRemoteAddress() {
+            return remoteAddress;
+        }
+
+        @Override
+        public Object getResponse() throws Throwable {
+            if(sender == null){
+                return null;
+            }
+            if(responseGetFlag.compareAndSet(false,true)){
+                sender.setTimeout(timeout);
+                try {
+                    response = sender.invoke(getProxy(), getMethod(), getArgs());
+                }catch (Throwable t){
+                    throwable = t;
+                    throw t;
+                }finally {
+                    doneFlag = true;
+                }
+            }else if(doneFlag){
+                if(throwable != null){
+                    throw throwable;
+                }
+            }else {
+                throw new ConcurrentModificationException("other thread call getting response!");
+            }
+            return response;
+        }
+
+        @Override
         public void recycle() {
             args = null;
             method = null;
             clientProxy = null;
+            proxy = null;
+            remoteAddress = null;
+            rpcClient = null;
+            sender = null;
+            response = null;
+            throwable = null;
+            doneFlag = false;
+            responseGetFlag.set(false);
         }
+    }
+
+    public static NettyRpcRequest getRequest(){
+        return REQUEST_THREAD_LOCAL.get();
+    }
+
+    public static NettyRpcFilter.FilterChain getFilterChain(){
+        return FILTER_CHAIN_THREAD_LOCAL.get();
+    }
+
+    public static Map<InetSocketAddress, RpcClient> getClientMap() {
+        return CLIENT_MAP;
+    }
+
+    public String getRequestMappingName() {
+        return requestMappingName;
+    }
+
+    public String getVersion() {
+        return version;
+    }
+
+    public Class<?> getInterfaceClass() {
+        return interfaceClass;
+    }
+
+    public String getRpcInstanceKey() {
+        return rpcInstanceKey;
+    }
+
+    public String getServiceName() {
+        return serviceName;
+    }
+
+    public NettyProperties getProperties() {
+        return properties;
+    }
+
+    public Supplier<NettyRpcLoadBalanced> getLoadBalancedSupplier() {
+        return loadBalancedSupplier;
+    }
+
+    public void setLoadBalancedSupplier(Supplier<NettyRpcLoadBalanced> loadBalancedSupplier) {
+        this.loadBalancedSupplier = loadBalancedSupplier;
+    }
+
+    public void setServiceName(String serviceName) {
+        this.serviceName = serviceName;
+    }
+
+    @Override
+    public String toString() {
+        return "NettyRpcClientProxy{" +
+                "serviceName='" + serviceName + '\'' +
+                ", requestMappingName='" + requestMappingName + '\'' +
+                ", interfaceClass=" + interfaceClass +
+                ", version='" + version + '\'' +
+                ", timeout=" + timeout +
+                '}';
     }
 }

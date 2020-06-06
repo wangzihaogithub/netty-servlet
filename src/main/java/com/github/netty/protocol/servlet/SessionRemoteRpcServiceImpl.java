@@ -1,8 +1,11 @@
 package com.github.netty.protocol.servlet;
 
+import com.github.netty.core.util.LoggerFactoryX;
+import com.github.netty.core.util.LoggerX;
 import com.github.netty.core.util.NamespaceUtil;
 import com.github.netty.protocol.nrpc.RpcClient;
 import com.github.netty.protocol.nrpc.exception.RpcDecodeException;
+import com.github.netty.protocol.nrpc.exception.RpcEncodeException;
 import com.github.netty.protocol.nrpc.service.RpcDBService;
 import io.netty.util.concurrent.FastThreadLocal;
 
@@ -11,7 +14,6 @@ import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Remote session service
@@ -20,15 +22,16 @@ import java.util.concurrent.TimeUnit;
  */
 public class SessionRemoteRpcServiceImpl implements SessionService {
     private static final String SESSION_GROUP = "/session";
+    private static final LoggerX logger = LoggerFactoryX.getLogger(SessionRemoteRpcServiceImpl.class);
 
     private String name = NamespaceUtil.newIdName(getClass());
     private static final byte[] EMPTY = {};
     private InetSocketAddress address;
     private int ioRatio;
     private int ioThreadCount;
-    private boolean enablesAutoReconnect;
     private boolean enableRpcHeartLog;
-    private int rpcClientHeartIntervalSecond;
+    private int rpcClientHeartIntervalMillSecond;
+    private int reconnectIntervalMillSeconds;
     private FastThreadLocal<RpcClient> rpcClientThreadLocal = new FastThreadLocal<RpcClient>(){
         @Override
         protected RpcClient initialValue() throws Exception {
@@ -36,27 +39,26 @@ public class SessionRemoteRpcServiceImpl implements SessionService {
             rpcClient.setIoRatio(ioRatio);
             rpcClient.setIoThreadCount(ioThreadCount);
 //            rpcClient.setSocketChannelCount(clientChannels);
-            rpcClient.run();
-            if(enablesAutoReconnect) {
-                rpcClient.enableAutoReconnect(rpcClientHeartIntervalSecond, TimeUnit.SECONDS,null,enableRpcHeartLog);
-            }
+            rpcClient.setIdleTimeMs(rpcClientHeartIntervalMillSecond);
+            rpcClient.setReconnectScheduledIntervalMs(reconnectIntervalMillSeconds);
+            rpcClient.setEnableRpcHeartLog(enableRpcHeartLog);
             return rpcClient;
         }
     };
 
     public SessionRemoteRpcServiceImpl(InetSocketAddress address) {
-        this(address,100,0,true,false,20);
+        this(address,100,0,false,20,20);
     }
 
     public SessionRemoteRpcServiceImpl(InetSocketAddress address,
                                        int rpcClientIoRatio, int rpcClientIoThreads,
-                                       boolean enablesAutoReconnect, boolean enableRpcHeartLog, int rpcClientHeartIntervalSecond) {
+                                       boolean enableRpcHeartLog, int rpcClientHeartIntervalMillSecond,int reconnectIntervalMillSeconds) {
         this.address = address;
         this.ioRatio = rpcClientIoRatio;
         this.ioThreadCount = rpcClientIoThreads;
-        this.enablesAutoReconnect = enablesAutoReconnect;
         this.enableRpcHeartLog = enableRpcHeartLog;
-        this.rpcClientHeartIntervalSecond = rpcClientHeartIntervalSecond;
+        this.rpcClientHeartIntervalMillSecond = rpcClientHeartIntervalMillSecond;
+        this.reconnectIntervalMillSeconds = reconnectIntervalMillSeconds;
     }
 
     @Override
@@ -133,22 +135,21 @@ public class SessionRemoteRpcServiceImpl implements SessionService {
 
             return session;
         } catch (Exception e) {
-            throw new RpcDecodeException(e.getMessage(),e);
+            throw new RpcDecodeException("decode http session error="+e,e);
         } finally {
             try {
                 if(ois != null) {
                     ois.close();
                 }
             } catch (IOException e) {
-                e.printStackTrace();
+               //skip
             }
-
             try {
                 if(bfi != null){
                     bfi.close();
                 }
             }catch (Exception e){
-                e.printStackTrace();
+                //skip
             }
         }
     }
@@ -189,7 +190,7 @@ public class SessionRemoteRpcServiceImpl implements SessionService {
                     if (entry.getValue() instanceof Serializable) {
                         attributeSize++;
                     }else {
-//                        logger.warn("The value of key={} in the session property is not serialized and has been skipped automatically",entry.getKey());
+                        logger.warn("The value of key={} in the http session property is not serialized and has been skipped automatically",entry.getKey());
                     }
                 }
             }
@@ -209,23 +210,22 @@ public class SessionRemoteRpcServiceImpl implements SessionService {
             oout.flush();
             return bout.toByteArray();
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new RpcEncodeException("encode http session error="+e,e);
         } finally {
             if (oout != null) {
                 try {
                     oout.close();
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    //skip
                 }
             } else {
                 try {
                     bout.close();
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    //skip
                 }
             }
         }
-        return null;
     }
 
     @Override

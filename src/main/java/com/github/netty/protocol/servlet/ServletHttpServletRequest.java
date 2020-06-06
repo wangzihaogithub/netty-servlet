@@ -24,7 +24,6 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * The servlet request
@@ -45,6 +44,9 @@ public class ServletHttpServletRequest implements HttpServletRequest, Recyclable
     private ServletHttpExchange servletHttpExchange;
     private ServletAsyncContext asyncContext;
 
+    private String serverName;
+    private int serverPort;
+    private String remoteHost;
     private String protocol;
     private String scheme;
     private String servletPath;
@@ -67,7 +69,7 @@ public class ServletHttpServletRequest implements HttpServletRequest, Recyclable
     private BufferedReader reader;
     private FullHttpRequest nettyRequest;
     private ServletInputStreamWrapper inputStream = new ServletInputStreamWrapper();
-    private Map<String,Object> attributeMap = new ConcurrentHashMap<>(16);
+    private Map<String,Object> attributeMap = Collections.synchronizedMap(new HashMap<>(16));
     private LinkedMultiValueMap<String,String> parameterMap = new LinkedMultiValueMap<>(16);
     private Map<String,String[]> unmodifiableParameterMap = new AbstractMap<String, String[]>() {
 	    @Override
@@ -115,7 +117,6 @@ public class ServletHttpServletRequest implements HttpServletRequest, Recyclable
     private Cookie[] cookies;
     private Locale[] locales;
     private Boolean asyncSupportedFlag;
-    private ServletRequestDispatcher dispatcher;
 
     protected ServletHttpServletRequest() {}
 
@@ -125,10 +126,6 @@ public class ServletHttpServletRequest implements HttpServletRequest, Recyclable
         instance.nettyRequest = fullHttpRequest;
         instance.inputStream.wrap(fullHttpRequest.content());
         return instance;
-    }
-
-    void setDispatcher(ServletRequestDispatcher dispatcher) {
-        this.dispatcher = dispatcher;
     }
 
     void setMultipartConfigElement(MultipartConfigElement multipartConfigElement) {
@@ -287,7 +284,6 @@ public class ServletHttpServletRequest implements HttpServletRequest, Recyclable
                     try {
                         value = data.getValue();
                     } catch (IOException e) {
-                        e.printStackTrace();
                         value = "";
                     }
                     parameterMap.add(name, value);
@@ -335,6 +331,79 @@ public class ServletHttpServletRequest implements HttpServletRequest, Recyclable
     }
 
     /**
+     * Returns the fully qualified name of the client
+     * or the last proxy that sent the request.
+     * If the engine cannot or chooses not to resolve the hostname
+     * (to improve performance), this method returns the dotted-string form of
+     * the IP address. For HTTP servlets, same as the value of the CGI variable
+     * <code>REMOTE_HOST</code>.
+     * qualified name of the client
+     */
+    private void decodeRemoteHost(){
+        if(getServletContext().isEnableLookupFlag()){
+            InetSocketAddress inetSocketAddress = servletHttpExchange.getRemoteAddress();
+            if (inetSocketAddress == null) {
+                throw new IllegalStateException("request invalid");
+            }
+            try {
+                this.remoteHost = InetAddress.getByName(
+                        inetSocketAddress.getHostName()).getHostName();
+            } catch (IOException e) {
+                //Ignore
+            }
+        }else {
+            this.remoteHost = getRemoteAddr();
+        }
+    }
+
+    /**
+     * decode the host name of the server to which the request was sent.
+     * It is the value of the part before ":" in the <code>Host</code>
+     * header value, if any, or the resolved server name, or the server IP
+     * address.
+     */
+    private void decodeServerNameAndPort(){
+        String host = getHeader(HttpHeaderConstants.HOST.toString());
+        StringBuilder sb;
+        if(host != null && host.length() > 0) {
+            sb = RecyclableUtil.newStringBuilder();
+            int i = 0, length = host.length();
+            boolean hasPort = false;
+            while (i < length) {
+                char c = host.charAt(i);
+                if (c == ':') {
+                    serverName = sb.toString();
+                    sb.setLength(0);
+                    hasPort = true;
+                }else {
+                    sb.append(c);
+                }
+                i++;
+            }
+            if(hasPort && sb.length() > 0){
+                serverPort = Integer.parseInt(sb.toString());
+            }else {
+                serverName = sb.toString();
+                sb.setLength(0);
+            }
+        }else {
+            serverName = getRemoteHost();
+        }
+        if(serverPort == 0) {
+            String scheme = getScheme();
+            if (remoteSchemeFlag) {
+                if (HttpConstants.HTTPS.equalsIgnoreCase(scheme)) {
+                    serverPort = HttpConstants.HTTPS_PORT;
+                } else {
+                    serverPort = HttpConstants.HTTP_PORT;
+                }
+            } else {
+                serverPort = HttpConstants.HTTP_PORT;
+            }
+        }
+    }
+
+    /**
      * Parsing path
      */
     private void decodePaths(){
@@ -361,7 +430,7 @@ public class ServletHttpServletRequest implements HttpServletRequest, Recyclable
 
     /**
      * New session ID
-     * @return
+     * @return session ID
      */
     private String newSessionId(){
         return String.valueOf(snowflakeIdWorker.nextId());
@@ -732,11 +801,15 @@ public class ServletHttpServletRequest implements HttpServletRequest, Recyclable
     }
 
     @Override
-    public ServletInputStreamWrapper getInputStream() throws IOException {
+    public ServletInputStreamWrapper getInputStream(){
         if(reader != null){
             throw new IllegalStateException("getReader() has already been called for this request");
         }
         usingInputStreamFlag = true;
+        return inputStream;
+    }
+
+    ServletInputStreamWrapper getInputStream0(){
         return inputStream;
     }
 
@@ -792,24 +865,18 @@ public class ServletHttpServletRequest implements HttpServletRequest, Recyclable
 
     @Override
     public String getServerName() {
-        InetSocketAddress inetSocketAddress = servletHttpExchange.getLocalAddress();
-        if(inetSocketAddress != null) {
-            return inetSocketAddress.getAddress().getHostAddress();
+        if(serverName == null){
+            decodeServerNameAndPort();
         }
-        return null;
+        return serverName;
     }
 
     @Override
     public int getServerPort() {
-        String scheme = getScheme();
-        if(remoteSchemeFlag){
-            if(HttpConstants.HTTPS.equalsIgnoreCase(scheme)){
-                return HttpConstants.HTTPS_PORT;
-            }else{
-                return HttpConstants.HTTP_PORT;
-            }
+        if(serverPort == 0){
+            decodeServerNameAndPort();
         }
-        return servletHttpExchange.getServerAddress().getPort();
+        return serverPort;
     }
 
     @Override
@@ -824,7 +891,7 @@ public class ServletHttpServletRequest implements HttpServletRequest, Recyclable
                     if(charset == null){
                         charset = getServletContext().getRequestCharacterEncoding();
                     }
-                    reader = new BufferedReader(new InputStreamReader(getInputStream(),charset));
+                    reader = new BufferedReader(new InputStreamReader(getInputStream0(),charset));
                 }
             }
         }
@@ -846,11 +913,10 @@ public class ServletHttpServletRequest implements HttpServletRequest, Recyclable
 
     @Override
     public String getRemoteHost() {
-        InetSocketAddress inetSocketAddress = servletHttpExchange.getRemoteAddress();
-        if(inetSocketAddress == null){
-            return null;
+        if(remoteHost == null) {
+            decodeRemoteHost();
         }
-        return inetSocketAddress.getHostName();
+        return remoteHost;
     }
 
     @Override
@@ -1170,9 +1236,11 @@ public class ServletHttpServletRequest implements HttpServletRequest, Recyclable
         this.decodeCookieFlag = false;
         this.decodePathsFlag = false;
         this.usingInputStreamFlag = false;
-        this.dispatcher = null;
         this.reader = null;
         this.sessionIdSource = null;
+        this.remoteHost = null;
+        this.serverName = null;
+        this.serverPort = 0;
         this.protocol = null;
         this.scheme = null;
         this.servletPath = null;

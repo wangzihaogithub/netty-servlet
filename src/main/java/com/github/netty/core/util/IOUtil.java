@@ -7,7 +7,9 @@ import io.netty.util.AsciiString;
 
 import java.io.*;
 import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.charset.Charset;
 import java.util.Arrays;
@@ -27,6 +29,19 @@ public class IOUtil {
     public static final int LONG_LENGTH = 8;
 
     public static boolean FORCE_META_DATA = false;
+
+    /**
+     * byte merge
+     * @param bytes1 bytes1
+     * @param bytes2 bytes2
+     * @return new bytes
+     */
+    public static byte[] merge(byte[] bytes1, byte[] bytes2){
+        byte[] newBytes = new byte[bytes1.length + bytes2.length];
+        System.arraycopy(bytes1,0,newBytes,0,bytes1.length);
+        System.arraycopy(bytes2,0,newBytes,bytes1.length,bytes2.length);
+        return newBytes;
+    }
 
     /**
      * Write mode to read mode
@@ -66,12 +81,14 @@ public class IOUtil {
         if(!outFile.exists()){
             outFile.createNewFile();
         }
-        try(FileInputStream in =  new FileInputStream(inFile);
-            FileOutputStream out = new FileOutputStream(outFile,append);
-            FileChannel inChannel = in.getChannel();
-            FileChannel outChannel = out.getChannel()) {
 
-            inChannel.transferTo(0, inChannel.size(), outChannel);
+        try (FileChannel inChannel = new FileInputStream(inFile).getChannel();
+             FileChannel outChannel = new FileOutputStream(outFile,append).getChannel()) {
+            long writeBeginIndex = append? outChannel.size() : 0L;
+            FileLock lock = outChannel.lock(writeBeginIndex,Long.MAX_VALUE - writeBeginIndex,false);
+
+            outChannel.transferFrom(inChannel, writeBeginIndex, inChannel.size());
+            lock.release();
             outChannel.force(FORCE_META_DATA);
         }
     }
@@ -83,9 +100,10 @@ public class IOUtil {
      * @param targetFileName targetFileName
      * @param append Whether to concatenate old data
      * @throws IOException IOException
+     * @return File
      */
-    public static void writeFile(byte[] data, String targetPath, String targetFileName, boolean append) throws IOException {
-        writeFile(new Iterator<ByteBuffer>() {
+    public static File writeFile(byte[] data, String targetPath, String targetFileName, boolean append) throws IOException {
+        return writeFile(new Iterator<ByteBuffer>() {
             ByteBuffer buffer = ByteBuffer.wrap(data);
             @Override
             public boolean hasNext() {
@@ -108,8 +126,9 @@ public class IOUtil {
      * @param targetFileName targetFileName
      * @param append Whether to concatenate old data
      * @throws IOException IOException
+     * @return File
      */
-    public static void writeFile(InputStream in, String targetPath, String targetFileName, boolean append) throws IOException {
+    public static File writeFile(InputStream in, String targetPath, String targetFileName, boolean append) throws IOException {
         if(targetPath == null){
             targetPath = "";
         }
@@ -119,40 +138,19 @@ public class IOUtil {
         if(!outFile.exists()){
             outFile.createNewFile();
         }
-
-        try(FileOutputStream out = new FileOutputStream(outFile,append);
-            FileChannel outChannel = out.getChannel()) {
-            if(in instanceof FileInputStream){
-                try(FileChannel inChannel = ((FileInputStream) in).getChannel()){
-                    inChannel.transferTo(0, inChannel.size(), outChannel);
-                }
-            }else {
-                outChannel.transferFrom(new ReadableByteChannel() {
-                    byte[] buffer;
-                    @Override
-                    public int read(ByteBuffer dst) throws IOException {
-                        if(buffer == null){
-                            buffer = new byte[dst.limit()];
-                        }
-                        int len = in.read(buffer);
-                        if(len > 0){
-                            dst.put(buffer, 0, len);
-                        }
-                        return len;
-                    }
-
-                    @Override
-                    public boolean isOpen() {
-                        return true;
-                    }
-
-                    @Override
-                    public void close() throws IOException {
-                        in.close();
-                    }
-                },outChannel.position(),in.available());
-            }
+        FileChannel outChannel = new FileOutputStream(outFile,append).getChannel();
+        long writeBeginIndex = append? outChannel.size() : 0L;
+        ReadableByteChannel inChannel = Channels.newChannel(in);
+        FileLock lock = outChannel.lock(writeBeginIndex,Long.MAX_VALUE - writeBeginIndex,false);
+        try{
+            outChannel.transferFrom(inChannel,writeBeginIndex,Long.MAX_VALUE);
+        }finally {
+            lock.release();
+            outChannel.force(FORCE_META_DATA);
+            inChannel.close();
+            outChannel.close();
         }
+        return outFile;
     }
 
     /**
@@ -162,8 +160,9 @@ public class IOUtil {
      * @param targetFileName targetFileName
      * @param append Whether to concatenate old data
      * @throws IOException IOException
+     * @return File
      */
-    public static void writeFile(Iterator<ByteBuffer> dataIterator, String targetPath, String targetFileName, boolean append) throws IOException {
+    public static File writeFile(Iterator<ByteBuffer> dataIterator, String targetPath, String targetFileName, boolean append) throws IOException {
         if(targetPath == null){
             targetPath = "";
         }
@@ -172,11 +171,10 @@ public class IOUtil {
         if(!outFile.exists()){
             outFile.createNewFile();
         }
-
-        try(FileOutputStream out = new FileOutputStream(outFile,append);
-            FileChannel outChannel = out.getChannel()) {
-
-            long position = outChannel.position();
+        FileChannel outChannel = new FileOutputStream(outFile, append).getChannel();
+        long writeBeginIndex = append? outChannel.size() : 0L;
+        FileLock lock = outChannel.lock(writeBeginIndex, Long.MAX_VALUE - writeBeginIndex, false);
+        try{
             while (dataIterator.hasNext()){
                 ByteBuffer buffer = dataIterator.next();
                 if(buffer == null) {
@@ -185,26 +183,14 @@ public class IOUtil {
                 if(!buffer.hasRemaining()){
                     buffer.flip();
                 }
-
-                int remaining = buffer.remaining();
-                position += outChannel.transferFrom(new ReadableByteChannel() {
-                    @Override
-                    public boolean isOpen() {
-                        return true;
-                    }
-
-                    @Override
-                    public void close() throws IOException {}
-
-                    @Override
-                    public int read(ByteBuffer dst) throws IOException {
-                        dst.put(buffer);
-                        return remaining;
-                    }
-                },position,remaining);
+                outChannel.write(buffer);
             }
+        }finally {
+            lock.release();
             outChannel.force(FORCE_META_DATA);
+            outChannel.close();
         }
+        return outFile;
     }
 
 
@@ -272,10 +258,13 @@ public class IOUtil {
             BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, encode));
             String line;
             while ((line = reader.readLine()) != null) {
-                sb.append(line);
+                sb.append(line).append('\n');
             }
-            String value = sb.toString();
-            return value;
+            if(sb.length() > 0){
+                return sb.substring(0,sb.length() - 1);
+            }else {
+                return "";
+            }
         }catch (Exception e){
             return null;
         }finally {
@@ -553,7 +542,7 @@ public class IOUtil {
                                         "D:\\", "test_writeFile_123.txt", false);
                                 System.out.println(Thread.currentThread());
                             } catch(IOException e){
-                                e.printStackTrace();
+                                //
                             }finally {
                                 latch.countDown();
                             }

@@ -18,6 +18,24 @@ public class RpcContext<INSTANCE> implements Recyclable {
     private RpcMethod<INSTANCE> rpcMethod;
     private Throwable throwable;
     private State state = State.INIT;
+    private long rpcBeginTimestamp;
+    private long rpcEndTimestamp;
+
+    public long getRpcBeginTimestamp() {
+        return rpcBeginTimestamp;
+    }
+
+    public void setRpcBeginTimestamp(long rpcBeginTimestamp) {
+        this.rpcBeginTimestamp = rpcBeginTimestamp;
+    }
+
+    public long getRpcEndTimestamp() {
+        return rpcEndTimestamp;
+    }
+
+    public void setRpcEndTimestamp(long rpcEndTimestamp) {
+        this.rpcEndTimestamp = rpcEndTimestamp;
+    }
 
     public InetSocketAddress getRemoteAddress() {
         return remoteAddress;
@@ -91,6 +109,10 @@ public class RpcContext<INSTANCE> implements Recyclable {
         this.rpcMethod = rpcMethod;
     }
 
+    public boolean isInnerMethod(){
+        return rpcMethod.isInnerMethodFlag();
+    }
+
     @Override
     public void recycle() {
         this.request = null;
@@ -117,7 +139,8 @@ public class RpcContext<INSTANCE> implements Recyclable {
         WRITE_ING,
         WRITE_FINISH,
         READ_ING,
-        READ_FINISH
+        READ_FINISH,
+        TIMEOUT
     }
 
 }

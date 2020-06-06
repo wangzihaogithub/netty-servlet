@@ -47,6 +47,16 @@ public class ServletHttpServletResponse implements javax.servlet.http.HttpServle
 
         ServletHttpServletResponse instance = RECYCLER.getInstance();
         instance.servletHttpExchange = servletHttpExchange;
+
+        /**
+         * Reception not receive request
+         * https://github.com/wangzihaogithub/spring-boot-protocol/issues/2
+         */
+        instance.outputStream.wrap(ServletOutputStream.newInstance(servletHttpExchange));
+        //try if changeToChunkStream
+        instance.changeToChunkStream();
+        //------------------------
+
         return instance;
     }
 
@@ -354,22 +364,13 @@ public class ServletHttpServletResponse implements javax.servlet.http.HttpServle
         return characterEncoding;
     }
 
-    //Writer and OutputStream cannot be used together
     @Override
-    public ServletOutputStreamWrapper getOutputStream() throws IOException {
-        if(outputStream.unwrap() == null){
-            synchronized (outputStream) {
-                if(outputStream.unwrap() == null) {
-                    outputStream.wrap(ServletOutputStream.newInstance(servletHttpExchange));
-                    changeToChunkStream();
-                }
-            }
-        }
+    public ServletOutputStreamWrapper getOutputStream(){
         return outputStream;
     }
 
     @Override
-    public PrintWriter getWriter() throws IOException {
+    public PrintWriter getWriter(){
         if(writer != null){
             return writer;
         }

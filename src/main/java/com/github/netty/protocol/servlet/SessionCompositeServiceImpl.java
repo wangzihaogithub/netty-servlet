@@ -32,11 +32,11 @@ public class SessionCompositeServiceImpl implements SessionService {
     }
 
     public void enableRemoteRpcSession(InetSocketAddress address,int rpcClientIoRatio, int rpcClientIoThreads,
-                                       boolean enablesAutoReconnect, boolean enableRpcHeartLog, int rpcClientHeartIntervalSecond){
+                                       boolean enableRpcHeartLog, int rpcClientHeartIntervalMillSecond,int reconnectIntervalMillSeconds){
         removeSessionService();
         this.sessionService = new SessionRemoteRpcServiceImpl(address,
-                rpcClientIoRatio,rpcClientIoThreads,enablesAutoReconnect,
-                enableRpcHeartLog,rpcClientHeartIntervalSecond);
+                rpcClientIoRatio,rpcClientIoThreads,
+                enableRpcHeartLog,rpcClientHeartIntervalMillSecond,reconnectIntervalMillSeconds);
     }
 
     public void enableLocalFileSession(ResourceManager resourceManager){
@@ -65,7 +65,7 @@ public class SessionCompositeServiceImpl implements SessionService {
         try {
             getSessionServiceImpl().saveSession(session);
         }catch (Throwable t){
-            logger.error(t.toString());
+            logger.error("saveSession error={}",t.toString(),t);
         }
     }
 
@@ -85,7 +85,7 @@ public class SessionCompositeServiceImpl implements SessionService {
             // TODO: 10-16/0016 Lack of automatic switching
             return getSessionServiceImpl().getSession(sessionId);
         }catch (Throwable t){
-            logger.error(t.toString());
+            logger.error("getSession error={}",t.toString(),t);
             return null;
         }
     }

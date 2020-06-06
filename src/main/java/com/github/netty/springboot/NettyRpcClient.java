@@ -14,7 +14,7 @@ public @interface NettyRpcClient {
      * example value "service-provider"
      * @return serviceName
      */
-    String serviceImplName();
+    String serviceName();
 
 //    Class<?> fallback() default void.class;
 
@@ -22,6 +22,8 @@ public @interface NettyRpcClient {
      * Timeout time (milliseconds)
      * @return timeout
      */
-    int timeout() default 2000;
+    int timeout() default -1;
+
+//    int retry() default -1;
 
 }

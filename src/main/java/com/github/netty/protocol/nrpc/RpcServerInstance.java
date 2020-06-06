@@ -1,5 +1,8 @@
 package com.github.netty.protocol.nrpc;
 
+import com.github.netty.annotation.Protocol;
+import com.github.netty.core.util.ReflectUtil;
+
 import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.function.Function;
@@ -14,28 +17,59 @@ import static com.github.netty.protocol.nrpc.RpcPacket.ResponsePacket.*;
  */
 public class RpcServerInstance {
     private Object instance;
-    private Map<String, RpcMethod<RpcServerInstance>> rpcMethodMap;
+    private Map<String,RpcMethod<RpcServerInstance>> rpcMethodMap;
     private DataCodec dataCodec;
+    private Function<Method,String[]> methodToParameterNamesFunction;
 
     /**
      * A constructor
      * @param instance The implementation class
      * @param dataCodec Data encoding and decoding
      * @param methodToParameterNamesFunction Method to a function with a parameter name
+     * @param methodToNameFunction Method of extracting remote call method name
+     * @param methodOverwriteCheck methodOverwriteCheck
+     * @throws IllegalStateException An RPC service must have at least one method
      */
-    protected RpcServerInstance(Object instance, DataCodec dataCodec, Function<Method,String[]> methodToParameterNamesFunction) {
+    public RpcServerInstance(Object instance, DataCodec dataCodec, Function<Method,String[]> methodToParameterNamesFunction, Function<Method,String> methodToNameFunction, boolean methodOverwriteCheck) throws IllegalStateException {
         this.instance = instance;
         this.dataCodec = dataCodec;
-        this.rpcMethodMap = RpcMethod.getMethodMap(this,instance.getClass(), methodToParameterNamesFunction);
+        this.methodToParameterNamesFunction = methodToParameterNamesFunction;
+        this.rpcMethodMap = RpcMethod.getMethodMap(this,instance.getClass(), methodToParameterNamesFunction,methodToNameFunction,methodOverwriteCheck);
         if(rpcMethodMap.isEmpty()){
             throw new IllegalStateException("An RPC service must have at least one method, class=["+instance.getClass().getSimpleName()+"]");
         }
     }
 
+    public Function<Method, String[]> getMethodToParameterNamesFunction() {
+        return methodToParameterNamesFunction;
+    }
+
+    public static boolean isRpcInnerClass(Class clazz){
+        return clazz.getPackage().getName().startsWith(RpcVersion.class.getPackage().getName());
+    }
+
+    public static String getVersion(Class clazz,String defaultReturnVersion){
+        Protocol.RpcService rpcInterfaceAnn = ReflectUtil.findAnnotation(clazz, Protocol.RpcService.class);
+        String version;
+        if (rpcInterfaceAnn != null) {
+            version = rpcInterfaceAnn.version();
+        }else {
+            version = null;
+        }
+        if(version == null || version.isEmpty()){
+            return isRpcInnerClass(clazz)? version : defaultReturnVersion;
+        }else {
+            return version;
+        }
+    }
+
+    public static String getServerInstanceKey(String requestMappingName,String version){
+        return requestMappingName + ":" + version;
+    }
+
     public ResponsePacket invoke(RequestPacket rpcRequest, RpcContext<RpcServerInstance> rpcContext){
         ResponsePacket rpcResponse = ResponsePacket.newInstance();
         rpcContext.setResponse(rpcResponse);
-
         rpcResponse.setRequestId(rpcRequest.getRequestId());
         RpcMethod<RpcServerInstance> rpcMethod = rpcMethodMap.get(rpcRequest.getMethodName());
         rpcContext.setRpcMethod(rpcMethod);
@@ -50,7 +84,7 @@ public class RpcServerInstance {
         try {
             Object[] args = dataCodec.decodeRequestData(rpcRequest.getData(),rpcMethod);
             rpcContext.setArgs(args);
-            Object result = rpcMethod.getMethod().invoke(instance, args);
+            Object result = rpcMethod.invoke(instance, args);
             rpcContext.setResult(result);
             //Whether to code or not
             if(result instanceof byte[]){
@@ -89,6 +123,14 @@ public class RpcServerInstance {
                 return cause;
             }
         }
+    }
+
+    public DataCodec getDataCodec() {
+        return dataCodec;
+    }
+
+    public void setDataCodec(DataCodec dataCodec) {
+        this.dataCodec = dataCodec;
     }
 
     private String getMessage(Throwable t){

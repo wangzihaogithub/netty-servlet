@@ -3,7 +3,6 @@ package com.github.netty.protocol.servlet;
 import com.github.netty.core.util.*;
 import com.github.netty.protocol.servlet.util.HttpConstants;
 import com.github.netty.protocol.servlet.util.MimeMappingsX;
-import com.github.netty.protocol.servlet.util.ServletUtil;
 import com.github.netty.protocol.servlet.util.UrlMapper;
 import io.netty.handler.codec.http.multipart.DefaultHttpDataFactory;
 import io.netty.handler.codec.http.multipart.DiskAttribute;
@@ -17,6 +16,7 @@ import javax.servlet.http.HttpSessionAttributeListener;
 import javax.servlet.http.HttpSessionIdListener;
 import javax.servlet.http.HttpSessionListener;
 import java.io.InputStream;
+import java.lang.reflect.InvocationTargetException;
 import java.net.InetSocketAddress;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -68,6 +68,8 @@ public class ServletContext implements javax.servlet.ServletContext {
     private SessionService sessionService;
     private Set<SessionTrackingMode> sessionTrackingModeSet;
 
+    private boolean enableLookupFlag = false;
+    private boolean asyncSwitchThread = true;
     private String serverHeader;
     private String contextPath;
     private String requestCharacterEncoding;
@@ -78,6 +80,22 @@ public class ServletContext implements javax.servlet.ServletContext {
 
     public ServletContext(ClassLoader classLoader) {
         this.classLoader = classLoader == null ? getClass().getClassLoader(): classLoader;
+    }
+
+    public void setAsyncSwitchThread(boolean asyncSwitchThread) {
+        this.asyncSwitchThread = asyncSwitchThread;
+    }
+
+    public boolean isAsyncSwitchThread() {
+        return asyncSwitchThread;
+    }
+
+    public boolean isEnableLookupFlag() {
+        return enableLookupFlag;
+    }
+
+    public void setEnableLookupFlag(boolean enableLookupFlag) {
+        this.enableLookupFlag = enableLookupFlag;
     }
 
     public void setServerAddress(InetSocketAddress serverAddress) {
@@ -99,12 +117,16 @@ public class ServletContext implements javax.servlet.ServletContext {
         if(asyncExecutorService == null) {
             synchronized (this){
                 if(asyncExecutorService == null) {
-                    asyncExecutorService = new ThreadPoolX("Async",8);
+                    asyncExecutorService = new ThreadPoolX("Async", Runtime.getRuntime().availableProcessors() * 2);
 //                            executorService = new DefaultEventExecutorGroup(15);
                 }
             }
         }
         return asyncExecutorService;
+    }
+
+    public void setAsyncExecutorService(ExecutorService asyncExecutorService) {
+        this.asyncExecutorService = asyncExecutorService;
     }
 
     public HttpDataFactory getHttpDataFactory(Charset charset){
@@ -355,13 +377,13 @@ public class ServletContext implements javax.servlet.ServletContext {
 
     @Override
     public String getServerInfo() {
-        return ServletUtil.getServerInfo()
+        return ServerInfo.getServerInfo()
                 .concat("(JDK ")
-                .concat(ServletUtil.getJvmVersion())
+                .concat(ServerInfo.getJvmVersion())
                 .concat(";")
-                .concat(ServletUtil.getOsName())
+                .concat(ServerInfo.getOsName())
                 .concat(" ")
-                .concat(ServletUtil.getArch())
+                .concat(ServerInfo.getArch())
                 .concat(")");
     }
 
@@ -440,9 +462,8 @@ public class ServletContext implements javax.servlet.ServletContext {
         try {
             return addServlet(servletName, (Class<? extends Servlet>) Class.forName(className).newInstance());
         } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
-            e.printStackTrace();
+            throw new IllegalStateException("addServlet error ="+e+",servletName="+servletName,e);
         }
-        return null;
     }
 
     @Override
@@ -463,9 +484,9 @@ public class ServletContext implements javax.servlet.ServletContext {
     public ServletRegistration addServlet(String servletName, Class<? extends Servlet> servletClass) {
         Servlet servlet = null;
         try {
-            servlet = servletClass.newInstance();
-        } catch (InstantiationException | IllegalAccessException e) {
-            e.printStackTrace();
+            servlet = servletClass.getConstructor().newInstance();
+        } catch (InstantiationException | IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {
+            throw new IllegalStateException("createServlet error ="+e+",servletName="+servletName,e);
         }
         return addServlet(servletName,servlet);
     }
@@ -473,11 +494,10 @@ public class ServletContext implements javax.servlet.ServletContext {
     @Override
     public <T extends Servlet> T createServlet(Class<T> clazz) throws ServletException {
         try {
-            return clazz.newInstance();
-        } catch (InstantiationException | IllegalAccessException e) {
-            e.printStackTrace();
+            return clazz.getConstructor().newInstance();
+        } catch (NoSuchMethodException | InvocationTargetException | InstantiationException | IllegalAccessException e) {
+            throw new ServletException("createServlet error ="+e+",clazz="+clazz,e);
         }
-        return null;
     }
 
     @Override
@@ -495,9 +515,8 @@ public class ServletContext implements javax.servlet.ServletContext {
         try {
             return addFilter(filterName, (Class<? extends Filter>) Class.forName(className));
         } catch (ClassNotFoundException e) {
-            e.printStackTrace();
+            throw new IllegalStateException("addFilter error ="+e+",filterName="+filterName,e);
         }
-        return null;
     }
 
     @Override
@@ -512,9 +531,8 @@ public class ServletContext implements javax.servlet.ServletContext {
         try {
             return addFilter(filterName,filterClass.newInstance());
         } catch (InstantiationException | IllegalAccessException e) {
-            e.printStackTrace();
+            throw new IllegalStateException("addFilter error ="+e,e);
         }
-        return null;
     }
 
     @Override
@@ -522,9 +540,8 @@ public class ServletContext implements javax.servlet.ServletContext {
         try {
             return clazz.newInstance();
         } catch (InstantiationException | IllegalAccessException e) {
-            e.printStackTrace();
+            throw new ServletException("createFilter error ="+e,e);
         }
-        return null;
     }
 
     @Override
@@ -565,7 +582,7 @@ public class ServletContext implements javax.servlet.ServletContext {
         try {
             addListener((Class<? extends EventListener>) Class.forName(className));
         } catch (ClassNotFoundException e) {
-            e.printStackTrace();
+            throw new IllegalStateException("addListener error ="+e+",className="+className,e);
         }
     }
 
@@ -573,29 +590,37 @@ public class ServletContext implements javax.servlet.ServletContext {
     public <T extends EventListener> void addListener(T listener) {
         Objects.requireNonNull(listener);
 
+        boolean addFlag = false;
         ServletEventListenerManager listenerManager = getServletEventListenerManager();
         if(listener instanceof ServletContextAttributeListener){
             listenerManager.addServletContextAttributeListener((ServletContextAttributeListener) listener);
-
-        }else if(listener instanceof ServletRequestListener){
+            addFlag = true;
+        }
+        if(listener instanceof ServletRequestListener){
             listenerManager.addServletRequestListener((ServletRequestListener) listener);
-
-        }else if(listener instanceof ServletRequestAttributeListener){
+            addFlag = true;
+        }
+        if(listener instanceof ServletRequestAttributeListener){
             listenerManager.addServletRequestAttributeListener((ServletRequestAttributeListener) listener);
-
-        }else if(listener instanceof HttpSessionIdListener){
+            addFlag = true;
+        }
+        if(listener instanceof HttpSessionIdListener){
             listenerManager.addHttpSessionIdListenerListener((HttpSessionIdListener) listener);
-
-        }else if(listener instanceof HttpSessionAttributeListener){
+            addFlag = true;
+        }
+        if(listener instanceof HttpSessionAttributeListener){
             listenerManager.addHttpSessionAttributeListener((HttpSessionAttributeListener) listener);
-
-        }else if(listener instanceof HttpSessionListener){
+            addFlag = true;
+        }
+        if(listener instanceof HttpSessionListener){
             listenerManager.addHttpSessionListener((HttpSessionListener) listener);
-
-        }else if(listener instanceof ServletContextListener){
+            addFlag = true;
+        }
+        if(listener instanceof ServletContextListener){
             listenerManager.addServletContextListener((ServletContextListener) listener);
-
-        }else {
+            addFlag = true;
+        }
+        if(!addFlag){
             throw new IllegalArgumentException("applicationContext.addListener.iae.wrongType"+
                     listener.getClass().getName());
         }
@@ -606,7 +631,7 @@ public class ServletContext implements javax.servlet.ServletContext {
         try {
             addListener(listenerClass.newInstance());
         } catch (InstantiationException | IllegalAccessException e) {
-            e.printStackTrace();
+            throw new IllegalStateException("addListener listenerClass ="+listenerClass,e);
         }
     }
 
@@ -615,14 +640,13 @@ public class ServletContext implements javax.servlet.ServletContext {
         try {
             return clazz.newInstance();
         } catch (InstantiationException | IllegalAccessException e) {
-            e.printStackTrace();
+            throw new ServletException("addListener clazz ="+clazz,e);
         }
-        return null;
     }
 
     @Override
     public JspConfigDescriptor getJspConfigDescriptor() {
-        return null;
+        throw new UnsupportedOperationException("getJspConfigDescriptor");
     }
 
     @Override
@@ -632,12 +656,12 @@ public class ServletContext implements javax.servlet.ServletContext {
 
     @Override
     public void declareRoles(String... roleNames) {
-
+        throw new UnsupportedOperationException("declareRoles");
     }
 
     @Override
     public String getVirtualServerName() {
-        return ServletUtil.getServerInfo()
+        return ServerInfo.getServerInfo()
         .concat(" (")
         .concat(serverAddress.getHostName())
         .concat(":")
@@ -673,8 +697,7 @@ public class ServletContext implements javax.servlet.ServletContext {
 
     @Override
     public javax.servlet.ServletRegistration.Dynamic addJspFile(String jspName, String jspFile) {
-        // TODO: 2018/11/11/011  addJspFile
-        return null;
+        throw new UnsupportedOperationException("addJspFile");
     }
 
 }

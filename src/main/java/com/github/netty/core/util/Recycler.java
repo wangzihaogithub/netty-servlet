@@ -2,9 +2,8 @@ package com.github.netty.core.util;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
-import java.util.concurrent.ConcurrentLinkedDeque;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Supplier;
 
 /**
@@ -13,6 +12,7 @@ import java.util.function.Supplier;
  */
 public class Recycler<T> {
     private static final int DEFAULT_INSTANCE_COUNT = SystemPropertyUtil.getInt("netty-core.recyclerCount",30);
+    private static final boolean ENABLE = SystemPropertyUtil.getBoolean("netty-core.recyclerEnable",true);
     /**
      * The instance queue of the current object
      */
@@ -26,10 +26,10 @@ public class Recycler<T> {
      * All recyclers
      */
     private static final List<Recycler> RECYCLER_LIST = new ArrayList<>();
-    public static final AtomicInteger TOTAL_COUNT = new AtomicInteger();
-    public static final AtomicInteger HIT_COUNT = new AtomicInteger();
+    public static final LongAdder TOTAL_COUNT = new LongAdder();
+    public static final LongAdder HIT_COUNT = new LongAdder();
 
-    private StackTraceElement formStack;
+//    private StackTraceElement formStack;
     private Thread formThread;
 
     public Recycler(Supplier<T> supplier) {
@@ -37,14 +37,16 @@ public class Recycler<T> {
     }
 
     public Recycler(int instanceCount, Supplier<T> supplier) {
-        this.supplier = Objects.requireNonNull(supplier);
+        this.supplier = supplier;
         this.queue = new Queue<>();
         RECYCLER_LIST.add(this);
         this.formThread = Thread.currentThread();
-        this.formStack = formThread.getStackTrace()[3];
+//        this.formStack = formThread.getStackTrace()[3];
 
-        for(int i=0; i< instanceCount; i++) {
-            recycleInstance(supplier.get());
+        if(ENABLE) {
+            for (int i = 0; i < instanceCount; i++) {
+                recycleInstance(supplier.get());
+            }
         }
     }
 
@@ -61,14 +63,18 @@ public class Recycler<T> {
      * @return object
      */
     public T getInstance() {
-        TOTAL_COUNT.incrementAndGet();
-        T value = queue.pop();
-        if(value == null){
-            value = supplier.get();
+        if(ENABLE) {
+            TOTAL_COUNT.increment();
+            T value = queue.pop();
+            if (value == null) {
+                value = supplier.get();
+            } else {
+                HIT_COUNT.increment();
+            }
+            return value;
         }else {
-            HIT_COUNT.incrementAndGet();
+            return supplier.get();
         }
-        return value;
     }
 
     /**
@@ -84,7 +90,7 @@ public class Recycler<T> {
     public String toString() {
         return "Recycler{" +
                 "size=" + queue.size() +
-                ", formStack=" + StringUtil.simpleClassName(formStack.getClassName()) +
+//                ", formStack=" + StringUtil.simpleClassName(formStack.getClassName()) +
                 ", formThread=" + formThread +
                 '}';
     }
@@ -93,15 +99,13 @@ public class Recycler<T> {
      * Queue of instances
      * @param <E> type
      */
-    private static class Queue<E> extends ConcurrentLinkedDeque<E> {
-         @Override
+    private static class Queue<E> extends ConcurrentLinkedQueue<E> {
          public void push(E e) {
-             super.addLast(e);
+             super.offer(e);
          }
 
-         @Override
          public E pop() {
-             return super.pollFirst();
+             return super.poll();
          }
      }
 }

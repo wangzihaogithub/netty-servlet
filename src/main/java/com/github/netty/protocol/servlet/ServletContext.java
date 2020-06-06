@@ -15,6 +15,8 @@ import javax.servlet.descriptor.JspConfigDescriptor;
 import javax.servlet.http.HttpSessionAttributeListener;
 import javax.servlet.http.HttpSessionIdListener;
 import javax.servlet.http.HttpSessionListener;
+import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.net.InetSocketAddress;
@@ -65,7 +67,7 @@ public class ServletContext implements javax.servlet.ServletContext {
 
     private ResourceManager resourceManager;
     private ExecutorService asyncExecutorService;
-    private SessionService sessionService;
+    private SessionService sessionService = new SessionLocalMemoryServiceImpl();
     private Set<SessionTrackingMode> sessionTrackingModeSet;
 
     private boolean enableLookupFlag = false;
@@ -78,8 +80,13 @@ public class ServletContext implements javax.servlet.ServletContext {
     private InetSocketAddress serverAddress;
     private ClassLoader classLoader;
 
+    public ServletContext() {
+        this(null);
+    }
+
     public ServletContext(ClassLoader classLoader) {
         this.classLoader = classLoader == null ? getClass().getClassLoader(): classLoader;
+        setDocBase(createTempDir("netty-docbase").getAbsolutePath());
     }
 
     public void setAsyncSwitchThread(boolean asyncSwitchThread) {
@@ -111,6 +118,21 @@ public class ServletContext implements javax.servlet.ServletContext {
         DiskAttribute.deleteOnExitTemporaryFile = true;
         DiskFileUpload.baseDirectory = resourceManager.getRealPath("/");
         DiskAttribute.baseDirectory = resourceManager.getRealPath("/");
+    }
+
+    protected static File createTempDir(String prefix) {
+        try {
+            File tempDir = File.createTempFile(prefix + ".", "");
+            tempDir.delete();
+            tempDir.mkdir();
+            tempDir.deleteOnExit();
+            return tempDir;
+        }catch (IOException ex) {
+            throw new IllegalStateException(
+                    "Unable to create tempDir. java.io.tmpdir is set to "
+                            + System.getProperty("java.io.tmpdir"),
+                    ex);
+        }
     }
 
     public ExecutorService getAsyncExecutorService() {

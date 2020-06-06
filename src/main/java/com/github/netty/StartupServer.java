@@ -1,72 +1,65 @@
-package com.github.netty.springboot.server;
+package com.github.netty;
 
 import com.github.netty.core.AbstractNettyServer;
+import com.github.netty.core.Ordered;
 import com.github.netty.core.ProtocolHandler;
 import com.github.netty.core.ServerListener;
 import com.github.netty.core.util.HostUtil;
 import com.github.netty.core.util.ServerInfo;
 import com.github.netty.core.util.SystemPropertyUtil;
 import com.github.netty.protocol.DynamicProtocolChannelHandler;
+import com.github.netty.protocol.HttpServletProtocol;
 import com.github.netty.protocol.TcpChannel;
-import com.github.netty.springboot.NettyProperties;
+import com.github.netty.protocol.servlet.ServletContext;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelOption;
 import io.netty.util.ResourceLeakDetector;
 import io.netty.util.internal.PlatformDependent;
-import org.springframework.boot.web.server.WebServer;
-import org.springframework.boot.web.server.WebServerException;
 
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.UnknownHostException;
 import java.util.Collection;
-import java.util.function.Supplier;
+import java.util.TreeSet;
 
 /**
- * Netty container TCP layer server
- * @author wangzihao
- *  2018/7/14/014
+ * Startup Server
+ * you config this.
+ * @author wangzihaogithub
+ * 2020-06-06 17:48:28
  */
-public class NettyTcpServer extends AbstractNettyServer implements WebServer {
-    /**
-     * Container configuration information
-     */
-    private final NettyProperties properties;
-    private Collection<ProtocolHandler> protocolHandlers;
-    private Collection<ServerListener> serverListeners;
-    private Supplier<DynamicProtocolChannelHandler> channelHandlerSupplier;
+public class StartupServer extends AbstractNettyServer {
+    private final Collection<ProtocolHandler> protocolHandlers = new TreeSet<>(Ordered.COMPARATOR);
+    private final Collection<ServerListener> serverListeners = new TreeSet<>(Ordered.COMPARATOR);
+    private DynamicProtocolChannelHandler dynamicProtocolChannelHandler = new DynamicProtocolChannelHandler();
 
-    public NettyTcpServer(InetSocketAddress serverAddress, NettyProperties properties,
-                          Collection<ProtocolHandler> protocolHandlers,
-                          Collection<ServerListener> serverListeners,
-                          Supplier<DynamicProtocolChannelHandler> channelHandlerSupplier){
-        super(serverAddress);
-        this.properties = properties;
-        this.serverListeners = serverListeners;
-        this.protocolHandlers = protocolHandlers;
-        this.channelHandlerSupplier = channelHandlerSupplier;
+    public StartupServer(int port){
+        this(getServerSocketAddress(null,port));
     }
 
-    @Override
-    public void start() throws WebServerException {
+    public StartupServer(InetSocketAddress serverAddress){
+        super(serverAddress);
+    }
+
+    public void start() throws IllegalStateException {
         try{
-            super.setIoRatio(properties.getServerIoRatio());
-            super.setIoThreadCount(properties.getServerIoThreads());
             super.init();
             for(ServerListener serverListener : serverListeners){
                 serverListener.onServerStart(this);
             }
             super.run();
         } catch (Exception e) {
-            throw new WebServerException("tcp server start fail.. cause = " + e,e);
+            throw new IllegalStateException("tcp server start fail.. cause = " + e,e);
         }
     }
 
     @Override
-    public void stop() throws WebServerException {
+    public void stop() throws IllegalStateException {
         for(ServerListener serverListener : serverListeners){
             try {
-	            serverListener.onServerStop(this);
+                serverListener.onServerStop(this);
             }catch (Throwable t){
                 logger.error("case by stop event [" + t.getMessage()+"]",t);
             }
@@ -78,7 +71,7 @@ public class NettyTcpServer extends AbstractNettyServer implements WebServer {
                 tcpChannel.close();
             }
         } catch (Exception e) {
-            throw new WebServerException(e.getMessage(),e);
+            throw new IllegalStateException(e.getMessage(),e);
         }
     }
 
@@ -97,7 +90,7 @@ public class NettyTcpServer extends AbstractNettyServer implements WebServer {
                 HostUtil.getPid()+"",
                 protocolHandlers,
                 HostUtil.getOsName()
-                );
+        );
     }
 
     @Override
@@ -105,9 +98,9 @@ public class NettyTcpServer extends AbstractNettyServer implements WebServer {
         super.config(bootstrap);
         if(SystemPropertyUtil.get("io.netty.leakDetectionLevel") == null &&
                 SystemPropertyUtil.get("io.netty.leakDetection.level") == null){
-            ResourceLeakDetector.setLevel(properties.getResourceLeakDetectorLevel());
+            ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.DISABLED);
         }
-        bootstrap.childOption(ChannelOption.TCP_NODELAY, properties.isTcpNodelay());
+        bootstrap.childOption(ChannelOption.TCP_NODELAY, false);
         for (ServerListener serverListener : serverListeners) {
             serverListener.config(bootstrap);
         }
@@ -120,14 +113,18 @@ public class NettyTcpServer extends AbstractNettyServer implements WebServer {
     @Override
     protected ChannelHandler newWorkerChannelHandler() {
         //Dynamic protocol processor
-        DynamicProtocolChannelHandler handler = channelHandlerSupplier.get();
-        if(properties.isEnableTcpPackageLog()){
-            handler.enableTcpPackageLog(properties.getTcpPackageLogLevel());
-        }
-        handler.setFirstClientPacketReadTimeoutMs(properties.getFirstClientPacketReadTimeoutMs());
-        handler.setMaxConnections(properties.getMaxConnections());
+        DynamicProtocolChannelHandler handler = dynamicProtocolChannelHandler;
         handler.setProtocolHandlers(protocolHandlers);
         return handler;
+    }
+
+    public ServletContext getServletContext(){
+        for(ProtocolHandler protocolHandler : protocolHandlers){
+            if(protocolHandler instanceof HttpServletProtocol){
+                return ((HttpServletProtocol) protocolHandler).getServletContext();
+            }
+        }
+        return null;
     }
 
     /**
@@ -145,4 +142,30 @@ public class NettyTcpServer extends AbstractNettyServer implements WebServer {
     public Collection<ServerListener> getServerListeners() {
         return serverListeners;
     }
+
+    public DynamicProtocolChannelHandler getDynamicProtocolChannelHandler() {
+        return dynamicProtocolChannelHandler;
+    }
+
+    public void setDynamicProtocolChannelHandler(DynamicProtocolChannelHandler dynamicProtocolChannelHandler) {
+        this.dynamicProtocolChannelHandler = dynamicProtocolChannelHandler;
+    }
+
+    public static InetSocketAddress getServerSocketAddress(InetAddress address, int port) {
+        if(address == null) {
+            try {
+                address = InetAddress.getByAddress(new byte[]{0,0,0,0});
+                if(!address.isAnyLocalAddress()){
+                    address = InetAddress.getByName("::1");
+                }
+                if(!address.isAnyLocalAddress()){
+                    address = new InetSocketAddress(port).getAddress();
+                }
+            } catch (UnknownHostException e) {
+                address = new InetSocketAddress(port).getAddress();
+            }
+        }
+        return new InetSocketAddress(address,port);
+    }
+
 }

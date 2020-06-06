@@ -1,7 +1,6 @@
 package com.github.netty.core.util;
 
 import com.github.netty.annotation.Protocol;
-import org.springframework.web.bind.annotation.RequestMapping;
 
 import java.lang.annotation.*;
 import java.lang.reflect.Method;
@@ -79,32 +78,4 @@ public class AnnotationMethodToMethodNameFunction implements Function<Method,Str
         return null;
     }
 
-    @RpcMethodEx("RpcMethodEx1")
-    public void s1(){
-    }
-    @Protocol.RpcMethod("RpcMethod1")
-    public void s2(){
-    }
-    @RequestMapping("RequestMapping")
-    public   void s3(){
-    }
-
-    @Target({ElementType.METHOD})
-    @Retention(RetentionPolicy.RUNTIME)
-    @Documented
-    @Protocol.RpcMethod
-    public @interface RpcMethodEx{
-        String[] value() default "";
-    }
-
-    public static void main(String[] args) {
-        AnnotationMethodToMethodNameFunction function = new AnnotationMethodToMethodNameFunction(Protocol.RpcMethod.class);
-        Method[] methods = AnnotationMethodToMethodNameFunction.class.getMethods();
-        List list = new ArrayList();
-        for (Method method : methods) {
-            String apply = function.apply(method);
-            list.add(apply);
-        }
-        System.out.println("list = " + list);
-    }
 }

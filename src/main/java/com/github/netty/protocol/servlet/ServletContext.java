@@ -73,7 +73,7 @@ public class ServletContext implements javax.servlet.ServletContext {
     private boolean enableLookupFlag = false;
     private boolean asyncSwitchThread = true;
     private String serverHeader;
-    private String contextPath;
+    private String contextPath = "";
     private String requestCharacterEncoding;
     private String responseCharacterEncoding;
     private String servletContextName;

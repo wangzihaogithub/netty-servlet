@@ -1,8 +1,6 @@
 package com.github.netty.core.util;
 
-import com.github.netty.annotation.Protocol;
-
-import java.lang.annotation.*;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.function.Function;

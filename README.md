@@ -5,6 +5,10 @@
 
 github地址 : https://github.com/wangzihaogithub
 
+已迁移至新项目,支持这个项目的所有功能, 同时多了新特性.
+ 
+https://github.com/wangzihaogithub/spring-boot-protocol
+
 ---
 
 #### 优势:
@@ -27,23 +31,23 @@ github地址 : https://github.com/wangzihaogithub
 
     <dependency>
       <groupId>com.github.wangzihaogithub</groupId>
-      <artifactId>netty-servlet</artifactId>
-      <version>2.0.0</version>
+      <artifactId>spring-boot-protocol</artifactId>
+      <version>2.0.9</version>
     </dependency>
 	
 	
 #### 2.开启netty容器
 
-    @EnableNettyServletEmbedded//切换容器的注解
+    @EnableNettyEmbedded//切换容器的注解
     @SpringBootApplication
-    public class ExampleServletApplication {
+    public class ExampleApplication {
     
         public static void main(String[] args) {
-            SpringApplication.run(ExampleServletApplication.class, args);
+            SpringApplication.run(ExampleApplication.class, args);
         }
     }
 
-#### 3.完成!
-
-    2018-11-13 19:29:46.176  INFO 17544 --- [           main] c.g.n.e.s.ExampleServletApplication      : Started ExampleServletApplication in 1.847 seconds (JVM running for 2.988)
-    2018-11-13 19:29:46.424  INFO 17544 --- [ettyTcpServer@1] c.g.netty.springboot.NettyTcpServer      : NettyTcpServer@1 start [port = 10002, os = windows 10, pid = 17544]...
+#### 3.启动, 已经成功替换tomcat, 切换至 NettyTcpServer!
+	2019-02-28 22:06:16.192  INFO 9096 --- [er-Boss-NIO-2-1] c.g.n.springboot.server.NettyTcpServer   : NettyTcpServer@1 start (port = 10004, pid = 9096, protocol = [my-protocol, http, nrpc, mqtt], os = windows 8.1) ...
+	2019-02-28 22:06:16.193  INFO 9096 --- [           main] c.g.example.ProtocolApplication10004     : Started ProtocolApplication10004 in 2.508 seconds (JVM running for 3.247)    
+---

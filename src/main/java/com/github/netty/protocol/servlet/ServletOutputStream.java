@@ -9,9 +9,7 @@ import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.*;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.LastHttpContent;
-import io.netty.handler.stream.ChunkedFile;
 import io.netty.handler.stream.ChunkedInput;
-import io.netty.util.concurrent.Future;
 import io.netty.util.internal.PlatformDependent;
 
 import javax.servlet.WriteListener;
@@ -159,18 +157,11 @@ public class ServletOutputStream extends javax.servlet.ServletOutputStream imple
     }
 
     protected void flush0(){
-        if(isSendResponse.compareAndSet(false,true)){
-            ChannelHandlerContext context = servletHttpExchange.getChannelHandlerContext();
-            ServletHttpServletResponse servletResponse = servletHttpExchange.getResponse();
-            NettyHttpResponse nettyResponse = servletResponse.getNettyResponse();
-            context.write(nettyResponse);
-        }
-
+        writeResponseHeaderIfNeed();
         if(isSettingResponse.compareAndSet(false,true)){
             settingResponse();
         }
-        ServletHttpExchange exchange = getServletHttpExchange();
-        ChannelHandlerContext context = exchange.getChannelHandlerContext();
+        ChannelHandlerContext context = servletHttpExchange.getChannelHandlerContext();
         context.flush();
     }
 

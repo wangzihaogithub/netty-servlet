@@ -111,8 +111,6 @@ public class ServletRequestDispatcher implements RequestDispatcher, Recyclable {
             throw new UnsupportedOperationException("Not found Original Request");
         }
 
-        //Switch to block transport stream
-        httpResponse.changeToChunkStream();
         // ServletHttpIncludeResponse. The class will prohibit operation data
         ServletHttpIncludeResponse includeResponse = new ServletHttpIncludeResponse(httpResponse);
         // ServletHttpIncludeRequest. The class will be passed on new data

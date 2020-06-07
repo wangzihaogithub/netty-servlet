@@ -80,9 +80,6 @@ public class UrlMapper<T> {
                 if(element.objectName.equals(objectName)) {
                     throw new IllegalArgumentException("The [" + objectName + "] mapping exist!");
                 }
-                element.objectName = objectName;
-                element.object = object;
-                return;
             }
         }
         elementList.add(new Element<>(rootPath,urlPattern,object,objectName));
@@ -125,6 +122,9 @@ public class UrlMapper<T> {
      * @return T object
      */
     public Element<T> getMappingObjectByUri(String absoluteUri) {
+        if(!absoluteUri.isEmpty() && absoluteUri.charAt(absoluteUri.length() - 1) == '/'){
+            absoluteUri = absoluteUri.substring(0,absoluteUri.length()-1);
+        }
 	    List<Element<T>> elementList = this.elementList;
         int size = elementList.size();
         for(int i=0; i<size; i++){
@@ -220,6 +220,11 @@ public class UrlMapper<T> {
 
         public String getServletPath() {
             return servletPath;
+        }
+
+        @Override
+        public String toString() {
+            return pattern;
         }
     }
 

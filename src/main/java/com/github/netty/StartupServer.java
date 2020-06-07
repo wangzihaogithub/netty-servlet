@@ -15,6 +15,7 @@ import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelOption;
+import io.netty.channel.WriteBufferWaterMark;
 import io.netty.util.ResourceLeakDetector;
 import io.netty.util.internal.PlatformDependent;
 
@@ -93,6 +94,23 @@ public class StartupServer extends AbstractNettyServer {
         );
     }
 
+    /**
+     * 自适应写（maxBytesPerGatheringWrite）：
+     * Netty 批量写数据时，如果想写的都写进去了，接下来的尝试写更多（调整 maxBytesPerGatheringWrite）。
+     *
+     * 连续写（writeSpinCount）：
+     * 同连接读一样，每个连接默认最多连续写 16 次，即使还有数据也暂时不处理了，先处理下一个连接。
+     *
+     * 注册 OP_WRITE 事件
+     * 如果 socket sendbuf 已经写不动，那就注册 OP_WRITE 事件。当触发 OP_WRITE 事件时，则取消 OP_WRITE 事件，并继续写。
+     *
+     * 高低水位线（writeBufferWaterMark）
+     * Netty 待写数据太多，超过一定的水位线（writeBufferWaterMark.high()），会将可写的标志位改成
+     * false ，让应用自己做决定要不要发送数据了。
+     *
+     * @param bootstrap bootstrap
+     * @throws Exception Exception
+     */
     @Override
     protected void config(ServerBootstrap bootstrap) throws Exception{
         super.config(bootstrap);
@@ -100,6 +118,14 @@ public class StartupServer extends AbstractNettyServer {
                 SystemPropertyUtil.get("io.netty.leakDetection.level") == null){
             ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.DISABLED);
         }
+        if(SystemPropertyUtil.get("io.netty.maxDirectMemory") == null){
+            long maxDirectMemory = -1;
+            System.setProperty("io.netty.maxDirectMemory", String.valueOf(maxDirectMemory));
+        }
+        bootstrap.childOption(ChannelOption.WRITE_SPIN_COUNT,Integer.MAX_VALUE);
+        bootstrap.childOption(ChannelOption.WRITE_BUFFER_WATER_MARK, new WriteBufferWaterMark(32 * 1024,Integer.MAX_VALUE));
+        bootstrap.childOption(ChannelOption.AUTO_CLOSE,true);
+
         bootstrap.childOption(ChannelOption.TCP_NODELAY, false);
         for (ServerListener serverListener : serverListeners) {
             serverListener.config(bootstrap);

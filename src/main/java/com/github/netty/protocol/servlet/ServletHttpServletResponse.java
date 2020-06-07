@@ -53,8 +53,6 @@ public class ServletHttpServletResponse implements javax.servlet.http.HttpServle
          * https://github.com/wangzihaogithub/spring-boot-protocol/issues/2
          */
         instance.outputStream.wrap(ServletOutputStream.newInstance(servletHttpExchange));
-        //try if changeToChunkStream
-        instance.changeToChunkStream();
         //------------------------
 
         return instance;
@@ -159,44 +157,6 @@ public class ServletHttpServletResponse implements javax.servlet.http.HttpServle
 
     private HttpHeaders getNettyHeaders(){
         return nettyResponse.headers();
-    }
-
-    /**
-     * Change to block transfer stream
-     */
-    public void changeToChunkStream() {
-        //If the client does not accept block transfers, no switch is made
-        if(!HttpHeaderUtil.isAcceptTransferChunked(servletHttpExchange.getRequest().getNettyHeaders())){
-            return;
-        }
-
-        synchronized (outputStream) {
-            ServletOutputStream oldOut = outputStream.unwrap();
-            if(oldOut instanceof ServletOutputChunkedStream){
-                return;
-            }
-
-            ServletOutputStream newOut = new ServletOutputChunkedStream();
-            newOut.setServletHttpExchange(servletHttpExchange);
-            if (oldOut == null) {
-                outputStream.wrap(newOut);
-                return;
-            }
-
-            try {
-                oldOut.lock();
-                CompositeByteBufX content = oldOut.getBuffer();
-                if (content != null) {
-                    oldOut.setBuffer(null);
-                    newOut.setBuffer(content);
-                }
-                newOut.setServletHttpExchange(oldOut.getServletHttpExchange());
-                outputStream.wrap(newOut);
-            } finally {
-                oldOut.unlock();
-                oldOut.destroy();
-            }
-        }
     }
 
     @Override

@@ -112,7 +112,6 @@ public class UrlMapper<T> {
      */
     public String getServletPath(String absoluteUri) {
         Collection<Element<T>> elementList = this.elementList;
-        int size = elementList.size();
         for (Element<T> element : elementList) {
             if(antPathMatcher.match(element.pattern,absoluteUri,"*")){
                 return element.servletPath;
@@ -203,10 +202,10 @@ public class UrlMapper<T> {
             }
             this.defaultFlag = "default".equals(this.objectName);
             this.servletPath = joiner.toString();
-            if(this.allPatternFlag){
-                this.sort = 200;
-            }else if(this.defaultFlag){
+            if(this.defaultFlag){
                 this.sort = 300;
+            }else if(this.allPatternFlag){
+                this.sort = 200;
             }else {
                 this.sort = 100;
             }

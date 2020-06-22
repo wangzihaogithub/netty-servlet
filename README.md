@@ -3,7 +3,7 @@
 
 作者邮箱 : 842156727@qq.com
 
-github地址 : https://github.com/wangzihaogithub
+github地址 : https://github.com/wangzihaogithub/netty-servlet
 
 已迁移至新项目,支持这个项目的所有功能, 同时多了新特性.
  
@@ -21,7 +21,6 @@ https://github.com/wangzihaogithub/spring-boot-protocol
 
 3.单体应用,双jvm(1.servlet jvm, 2.session jvm), session会话存储分离, qps达到8000+, 
  
- tomcat底层虽然支持,但非常复杂,大家往往都用springboot-redis, 但redis与spring集成后, 无法发挥其原本的性能
 
 ----
 

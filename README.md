@@ -61,7 +61,7 @@ https://github.com/wangzihaogithub/spring-boot-protocol
 
 通过ServletRequest#getDispatcherType可以获得当前的执行类型.
 
-3.执行类型逻辑如下
+3. 执行类型逻辑如下
 
     public enum javax.servlet.DispatcherType {
         FORWARD (

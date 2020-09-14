@@ -66,12 +66,12 @@ https://github.com/wangzihaogithub/spring-boot-protocol
     public enum javax.servlet.DispatcherType {
         FORWARD (
                     执行:        根据url或name找到servlet, 并执行filterChain(N Filter) -> Servlet(1)
-                    触发:        由RequestDispatcher#forward
+                    触发:        调用RequestDispatcher#forward
                     特性:        可以对request,Response进行任何操作
 
         INCLUDE ( 
                      执行:        根据url或name找到servlet, 并执行  filterChain(N Filter) -> Servlet(1)
-                     触发:        RequestDispatcher#include
+                     触发:        调用RequestDispatcher#include
                      特性:        不能修改Response的header, status code , 重置body. 只能写入body.
 
         REQUEST(
@@ -81,14 +81,14 @@ https://github.com/wangzihaogithub/spring-boot-protocol
 
         ASYNC(
                      执行:        返回AsyncContext(本质是个装有tcp长连接的实体类)
-                     触发:        ServletRequest#startAsync
+                     触发:        调用ServletRequest#startAsync
                      特性:        无阻塞并同时释放了当前线程, 不会关闭tcp连接, 并且返回AsyncContext, 
                                   用户可以将AsyncContext装在集合中, 在定时任务或者单线程中操作AsyncContext同时批量处理大量的请求),  
                                   如果一直不调用AsyncContext#complete, 则客户端阻塞(如果不是异步客户端), 服务端非阻塞.
 
         ERROR(
                      执行:        根据Response的status code 或 Exception 或 url找到servlet, 不执行Filter-> 执行Servlet(1)
-                     触发:        ErrorPageManager#handleErrorPage
+                     触发:        出现连Filter都没有捕获的异常, ErrorPageManager#handleErrorPage. 注: spring是个Servlet, Servlet被Filter包裹
                      特性:        当的filter或者servlet都没有捕获异常, 那么会转发到错误页servlet去构造时错误页面的响应
                      备注:        当进入DispatcherType 执行流程后, 会被容器的try,catch代码包裹.
     }

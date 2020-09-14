@@ -92,3 +92,7 @@ https://github.com/wangzihaogithub/spring-boot-protocol
                      特性:        当的filter或者servlet都没有捕获异常, 那么会转发到错误页servlet去构造时错误页面的响应
                      备注:        当进入DispatcherType 执行流程后, 会被容器的try,catch代码包裹.
     }
+
+
+4.注意: 重定向(sendRedirect)的跳转是由客户端实现的, 并不由Servlet实现. 
+Servlet只负责设置Response的status为302 与设置header的Location字段.

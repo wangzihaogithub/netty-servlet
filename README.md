@@ -53,15 +53,15 @@ https://github.com/wangzihaogithub/spring-boot-protocol
 
 #### 补充: Servlet的概念
 
-1. Servlet是一个接受Request实体类, 并填充Response实体类的过程. 整个过程是为了处理一次http交互, 这个过程分为5种类型( 参考DispatcherType )
+1.Servlet是一个接受Request实体类, 并填充Response实体类的过程. 整个过程是为了处理一次http交互, 这个过程分为5种类型( 参考DispatcherType )
  
 注: 一次http交互, 可能会经历多次执行类型;
 
-2. servlet中大部分类型, 都会遵守这样的流程:  filterChain(N Filter) -> Servlet(1);
+2.servlet中大部分类型, 都会遵守这样的流程:  filterChain(N Filter) -> Servlet(1);
 
 通过ServletRequest#getDispatcherType可以获得当前的执行类型.
 
-3. 执行类型逻辑如下
+3.执行类型逻辑如下
 
     public enum javax.servlet.DispatcherType {
         FORWARD (

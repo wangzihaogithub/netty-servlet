@@ -52,7 +52,7 @@ public class ServletHttpServletResponse implements javax.servlet.http.HttpServle
          */
         instance.outputStream.wrap(ServletOutputStream.newInstance(servletHttpExchange));
         //------------------------
-
+        instance.nettyResponse.setExchange(servletHttpExchange);
         return instance;
     }
 

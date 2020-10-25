@@ -13,6 +13,13 @@ https://github.com/wangzihaogithub/spring-boot-protocol
 
 #### 优势:
 
+    1.支持异步http请求聚合后用 select * from id in (httpRequestList). 
+    示例：https://github.com/wangzihaogithub/spring-boot-protocol# com.github.netty.http.example.HttpZeroCopyController.java
+    
+    2.支持异步零拷贝。sendFile, mmap. 
+    示例：https://github.com/wangzihaogithub/spring-boot-protocol# com.github.netty.http.example.HttpGroupByApiController.java
+    
+    
 测试信息 : 笔记本[4g内存,4代I5(4核cpu) ], JVM参数 : -Xms300m -Xmn300m -Xmx500m -XX:+PrintGCDetails
 
 1.单体应用,连接复用qps=10000+ , tomcat=8000+

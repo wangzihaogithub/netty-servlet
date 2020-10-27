@@ -1,11 +1,7 @@
 package com.github.netty;
 
-import com.github.netty.core.AbstractNettyServer;
-import com.github.netty.core.Ordered;
-import com.github.netty.core.ProtocolHandler;
-import com.github.netty.core.ServerListener;
+import com.github.netty.core.*;
 import com.github.netty.core.util.HostUtil;
-import com.github.netty.core.Version;
 import com.github.netty.core.util.SystemPropertyUtil;
 import com.github.netty.protocol.DynamicProtocolChannelHandler;
 import com.github.netty.protocol.HttpServletProtocol;
@@ -27,6 +23,28 @@ import java.util.TreeSet;
 
 /**
  * Startup Server
+ * <pre>{@code
+ *  public static void main(String[] args) {
+ *         StartupServer startupServer = new StartupServer(8080);
+ *         List<AbstractProtocol> protocols = new ArrayList<>();
+ *         protocols.add(newHttpServletProtocol());
+ *         for (AbstractProtocol protocol : protocols) {
+ *             startupServer.getProtocolHandlers().add(protocol);
+ *             startupServer.getServerListeners().add(protocol);
+ *         }
+ *         startupServer.start();
+ *     }
+ *
+ *     private static HttpServletProtocol newHttpServletProtocol(){
+ *         ServletContext servletContext = new ServletContext();
+ *         servletContext.addServlet("myHttpServlet",new MyHttpServlet())
+ *                 .addMapping("/test/sayHello");
+ *
+ *         HttpServletProtocol protocol = new HttpServletProtocol(null, servletContext);
+ *         protocol.setMaxBufferBytes(1024 * 1024);//The upper limit of the output stream buffer each connection, good speed write large dots. (Bytes. 1M)
+ *         return protocol;
+ *     }
+ * }</pre>
  * you config this.
  * @author wangzihaogithub
  * 2020-06-06 17:48:28

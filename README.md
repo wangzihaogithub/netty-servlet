@@ -13,7 +13,7 @@ https://github.com/wangzihaogithub/spring-boot-protocol
 
 #### 优势:
 
-    1.支持异步http请求聚合后用 select * from id in (httpRequestList). 
+    1.支持异步http请求聚合, 然后用 select * from id in (httpRequestList). 
     示例：https://github.com/wangzihaogithub/spring-boot-protocol# com.github.netty.http.example.HttpGroupByApiController.java
     
     2.支持异步零拷贝。sendFile, mmap. 

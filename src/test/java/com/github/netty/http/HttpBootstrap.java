@@ -1,28 +1,21 @@
 package com.github.netty.http;
 
 import com.github.netty.StartupServer;
-import com.github.netty.core.AbstractProtocol;
 import com.github.netty.protocol.HttpServletProtocol;
 import com.github.netty.protocol.servlet.ServletContext;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class HttpBootstrap {
 
     public static void main(String[] args) {
-        StartupServer startupServer = new StartupServer(8080);
+        HttpServletProtocol httpProtocol = newHttpProtocol();
 
-        List<AbstractProtocol> protocols = new ArrayList<>();
-        protocols.add(newHttpServletProtocol());
-        for (AbstractProtocol protocol : protocols) {
-            startupServer.getProtocolHandlers().add(protocol);
-            startupServer.getServerListeners().add(protocol);
-        }
-        startupServer.start();
+        StartupServer server = new StartupServer(8080);
+        server.getProtocolHandlers().add(httpProtocol);
+        server.getServerListeners().add(httpProtocol);
+        server.start();
     }
 
-    private static HttpServletProtocol newHttpServletProtocol(){
+    private static HttpServletProtocol newHttpProtocol(){
         ServletContext servletContext = new ServletContext();
         servletContext.addServlet("myHttpServlet",new MyHttpFileServlet())
                 .addMapping("/test/hello");

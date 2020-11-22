@@ -1,6 +1,8 @@
 package com.github.netty.core.util;
 
-import java.lang.annotation.Annotation;
+import com.github.netty.annotation.Protocol;
+
+import java.lang.annotation.*;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.*;
@@ -10,10 +12,10 @@ import java.util.function.Function;
  * Annotation-based method variable parameter name function (because abstract methods cannot be obtained with ASM, only concrete methods can)
  * @author wangzihao
  */
-public class AnnotationMethodToParameterNamesFunction implements Function<Method,String[]> {
+public class AnnotationMethodToParameterNamesFunction implements Function<Method, String[]> {
     private final Collection<Class<?extends Annotation>> parameterAnnotationClasses;
     private final Collection<String> fieldNameList = new LinkedHashSet<>(Arrays.asList("value","name"));
-    private final Map<Integer,Boolean> existAnnotationMap = new WeakHashMap<>(128);
+    private final Map<Integer, Boolean> existAnnotationMap = new WeakHashMap<>(128);
     public AnnotationMethodToParameterNamesFunction(Collection<Class<? extends Annotation>> parameterAnnotationClasses) {
         this.parameterAnnotationClasses = Objects.requireNonNull(parameterAnnotationClasses);
     }
@@ -87,4 +89,34 @@ public class AnnotationMethodToParameterNamesFunction implements Function<Method
         return null;
     }
 
+
+    public void s1(@RpcParamEx String d){
+    }
+    public void s2(@Protocol.RpcParam("RpcParam2") String d){
+    }
+    public void s3(@Protocol.RpcParam("RpcParam3") String d){
+    }
+
+    @Target({ElementType.PARAMETER})
+    @Retention(RetentionPolicy.RUNTIME)
+    @Documented
+    @Protocol.RpcParam
+    public @interface RpcParamEx{
+        String[] value() default "";
+    }
+
+    public static void main(String[] args) {
+        AnnotationMethodToParameterNamesFunction function = new AnnotationMethodToParameterNamesFunction(
+                Protocol.RpcParam.class, Protocol.RpcParam.class, Protocol.RpcMethod.class);
+        Method[] methods = AnnotationMethodToParameterNamesFunction.class.getMethods();
+        List list = new ArrayList();
+        for (Method method : methods) {
+            if(method.getDeclaringClass() == Object.class){
+                continue;
+            }
+            String[] apply = function.apply(method);
+            list.add(apply);
+        }
+        System.out.println("list = " + list);
+    }
 }

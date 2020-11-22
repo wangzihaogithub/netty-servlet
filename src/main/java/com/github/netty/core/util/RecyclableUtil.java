@@ -14,7 +14,7 @@ import java.util.List;
  */
 public class RecyclableUtil {
 
-    public static <T>List<T> newRecyclableList(int minCapacity){
+    public static <T> List<T> newRecyclableList(int minCapacity){
         RecyclableArrayList finishListeners = RecyclableArrayList.newInstance(minCapacity);
         return (List<T>) finishListeners;
     }

@@ -18,6 +18,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static com.github.netty.protocol.servlet.util.HttpHeaderConstants.CLOSE;
+
 /**
  * NettyHttpResponse
  * @author wangzihao
@@ -130,7 +132,7 @@ public class NettyHttpResponse implements HttpResponse, Recyclable, Flushable {
 
     public NettyHttpResponse touch(Object hint) {
 //        content.touch(hint);
-        Method method = ReflectUtil.getAccessibleMethod(content.getClass(), "touch",Object.class);
+        Method method = ReflectUtil.getAccessibleMethod(content.getClass(), "touch", Object.class);
         try {
             method.invoke(content,hint);
         } catch (Exception e) {
@@ -291,9 +293,9 @@ public class NettyHttpResponse implements HttpResponse, Recyclable, Flushable {
      * @param sessionCookieConfig sessionCookieConfig
      */
     private void settingResponseHeader(boolean isKeepAlive,
-                                              ServletHttpServletRequest servletRequest,
-                                              String contentType,String characterEncoding,long contentLength,Locale locale,List<javax.servlet.http.Cookie> cookies,
-                                              ServletSessionCookieConfig sessionCookieConfig) {
+                                       ServletHttpServletRequest servletRequest,
+                                       String contentType, String characterEncoding, long contentLength, Locale locale, List<Cookie> cookies,
+                                       ServletSessionCookieConfig sessionCookieConfig) {
         HttpHeaderUtil.setKeepAlive(this, isKeepAlive);
         HttpHeaders headers = headers();
 
@@ -303,6 +305,11 @@ public class NettyHttpResponse implements HttpResponse, Recyclable, Flushable {
             headers.set(HttpHeaderConstants.CONTENT_LENGTH, contentLength);
         }else {
             enableTransferEncodingChunked();
+        }
+
+        //if need close client
+        if(servletRequest.getInputStream0().isNeedCloseClient()){
+            headers.set(HttpHeaderConstants.CONNECTION, CLOSE);
         }
 
         // Time and date response header
@@ -346,7 +353,7 @@ public class NettyHttpResponse implements HttpResponse, Recyclable, Flushable {
                 sessionCookiePath = HttpConstants.DEFAULT_SESSION_COOKIE_PATH;
             }
             String sessionCookieText = ServletUtil.encodeCookie(sessionCookieName,servletRequest.getRequestedSessionId(), -1,
-                    sessionCookiePath,sessionCookieConfig.getDomain(),sessionCookieConfig.isSecure(),Boolean.TRUE);
+                    sessionCookiePath,sessionCookieConfig.getDomain(),sessionCookieConfig.isSecure(), Boolean.TRUE);
             headers.add(HttpHeaderConstants.SET_COOKIE, sessionCookieText);
 
             httpSession.setNewSessionFlag(false);

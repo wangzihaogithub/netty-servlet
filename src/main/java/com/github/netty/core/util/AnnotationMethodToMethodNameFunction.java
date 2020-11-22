@@ -1,6 +1,8 @@
 package com.github.netty.core.util;
 
-import java.lang.annotation.Annotation;
+import com.github.netty.annotation.Protocol;
+
+import java.lang.annotation.*;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.function.Function;
@@ -9,10 +11,10 @@ import java.util.function.Function;
  * Annotation-based method name function
  * @author wangzihao
  */
-public class AnnotationMethodToMethodNameFunction implements Function<Method,String> {
+public class AnnotationMethodToMethodNameFunction implements Function<Method, String> {
     private final Collection<Class<?extends Annotation>> methodNameAnnotationClasses;
     private final Collection<String> fieldNameList = new LinkedHashSet<>(Arrays.asList("value","name"));
-    private final Map<Integer,Boolean> existAnnotationMap = new WeakHashMap<>(128);
+    private final Map<Integer, Boolean> existAnnotationMap = new WeakHashMap<>(128);
     public AnnotationMethodToMethodNameFunction(Collection<Class<? extends Annotation>> methodNameAnnotationClasses) {
         this.methodNameAnnotationClasses = Objects.requireNonNull(methodNameAnnotationClasses);
     }
@@ -76,4 +78,29 @@ public class AnnotationMethodToMethodNameFunction implements Function<Method,Str
         return null;
     }
 
+    @RpcMethodEx("RpcMethodEx1")
+    public void s1(){
+    }
+    @Protocol.RpcMethod("RpcMethod1")
+    public void s2(){
+    }
+
+    @Target({ElementType.METHOD})
+    @Retention(RetentionPolicy.RUNTIME)
+    @Documented
+    @Protocol.RpcMethod
+    public @interface RpcMethodEx{
+        String[] value() default "";
+    }
+
+    public static void main(String[] args) {
+        AnnotationMethodToMethodNameFunction function = new AnnotationMethodToMethodNameFunction(Protocol.RpcMethod.class);
+        Method[] methods = AnnotationMethodToMethodNameFunction.class.getMethods();
+        List list = new ArrayList();
+        for (Method method : methods) {
+            String apply = function.apply(method);
+            list.add(apply);
+        }
+        System.out.println("list = " + list);
+    }
 }

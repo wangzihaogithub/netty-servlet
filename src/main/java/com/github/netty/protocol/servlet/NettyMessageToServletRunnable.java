@@ -1,44 +1,145 @@
 package com.github.netty.protocol.servlet;
 
 import com.github.netty.core.MessageToRunnable;
-import com.github.netty.core.util.Recyclable;
-import com.github.netty.core.util.Recycler;
+import com.github.netty.core.util.*;
+import com.github.netty.protocol.servlet.util.HttpHeaderUtil;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufHolder;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.handler.codec.http.FullHttpRequest;
+import io.netty.handler.codec.http.*;
 
-import javax.servlet.ReadListener;
 import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
-//import java.util.concurrent.atomic.AtomicLong;
+
+import static com.github.netty.protocol.servlet.ServletHttpExchange.CLOSE_NO;
+import static com.github.netty.protocol.servlet.util.HttpHeaderConstants.*;
 
 /**
+ * Life cycle connection
  * NettyMessageToServletRunnable
  * @author wangzihao
  */
 public class NettyMessageToServletRunnable implements MessageToRunnable {
+    private static final LoggerX LOGGER = LoggerFactoryX.getLogger(NettyMessageToServletRunnable.class);
     private static final Recycler<HttpRunnable> RECYCLER = new Recycler<>(HttpRunnable::new);
-//    public static final AtomicLong SERVLET_AND_FILTER_TIME = new AtomicLong();
-//    public static final AtomicLong SERVLET_QUERY_COUNT = new AtomicLong();
+    private static final FullHttpResponse CONTINUE =
+            new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.CONTINUE, Unpooled.EMPTY_BUFFER);
+    private static final FullHttpResponse EXPECTATION_FAILED = new DefaultFullHttpResponse(
+            HttpVersion.HTTP_1_1, HttpResponseStatus.EXPECTATION_FAILED, Unpooled.EMPTY_BUFFER);
+    private static final FullHttpResponse TOO_LARGE_CLOSE = new DefaultFullHttpResponse(
+            HttpVersion.HTTP_1_1, HttpResponseStatus.REQUEST_ENTITY_TOO_LARGE, Unpooled.EMPTY_BUFFER);
+    private static final FullHttpResponse TOO_LARGE = new DefaultFullHttpResponse(
+            HttpVersion.HTTP_1_1, HttpResponseStatus.REQUEST_ENTITY_TOO_LARGE, Unpooled.EMPTY_BUFFER);
+    private static final FullHttpResponse NOT_ACCEPTABLE_CLOSE = new DefaultFullHttpResponse(
+            HttpVersion.HTTP_1_1, HttpResponseStatus.NOT_ACCEPTABLE, Unpooled.EMPTY_BUFFER);
 
-    private ServletContext servletContext;
+    private final ServletContext servletContext;
+    private final long maxContentLength;
+    private ServletHttpExchange exchange;
+    private HttpRunnable httpRunnable;
 
-    public NettyMessageToServletRunnable(ServletContext servletContext) {
+    static {
+        EXPECTATION_FAILED.headers().set(CONTENT_LENGTH, 0);
+        TOO_LARGE.headers().set(CONTENT_LENGTH, 0);
+
+        TOO_LARGE_CLOSE.headers().set(CONTENT_LENGTH, 0);
+        TOO_LARGE_CLOSE.headers().set(CONNECTION, CLOSE);
+
+        NOT_ACCEPTABLE_CLOSE.headers().set(CONTENT_LENGTH, 0);
+        NOT_ACCEPTABLE_CLOSE.headers().set(CONNECTION, CLOSE);
+    }
+
+    public NettyMessageToServletRunnable(ServletContext servletContext, long maxContentLength) {
         this.servletContext = servletContext;
+        this.maxContentLength = maxContentLength;
     }
 
     @Override
-    public Runnable newRunnable(ChannelHandlerContext context, Object msg) {
-        if(!(msg instanceof FullHttpRequest)) {
-            throw new IllegalStateException("Message type not supported");
+    public Runnable onMessage(ChannelHandlerContext context, Object msg) {
+        ServletHttpExchange exchange = this.exchange;
+        if (msg instanceof HttpRequest) {
+            HttpRequest request = (HttpRequest) msg;
+            long contentLength = HttpHeaderUtil.getContentLength(request, -1L);
+            if (continueResponse(context, request, contentLength)) {
+                HttpRunnable httpRunnable = RECYCLER.getInstance();
+                httpRunnable.servletHttpExchange = exchange = this.exchange = ServletHttpExchange.newInstance(
+                        servletContext,
+                        context,
+                        request);
+                exchange.getRequest().getInputStream0().setContentLength(contentLength);
+                this.httpRunnable = httpRunnable;
+                return null;
+            } else {
+                discard(msg);
+                return null;
+            }
+        } else if (msg instanceof HttpContent) {
+            if (exchange.closeStatus() == CLOSE_NO) {
+                exchange.getRequest().getInputStream0().onMessage((HttpContent) msg);
+                if (msg instanceof LastHttpContent) {
+                    return httpRunnable;
+                } else {
+                    return null;
+                }
+            } else {
+                discard(msg);
+                return null;
+            }
+        } else {
+            discard(msg);
+            return null;
         }
+    }
 
-        HttpRunnable instance = RECYCLER.getInstance();
-        instance.servletHttpExchange = ServletHttpExchange.newInstance(
-                servletContext,
-                context,
-                (FullHttpRequest) msg);
-        return instance;
+    protected void discard(Object msg){
+        try {
+            ByteBuf byteBuf;
+            if (msg instanceof ByteBufHolder) {
+                byteBuf = ((ByteBufHolder) msg).content();
+            } else if (msg instanceof ByteBuf) {
+                byteBuf = (ByteBuf) msg;
+            } else {
+                byteBuf = null;
+            }
+            if (byteBuf != null && byteBuf.isReadable()) {
+                LOGGER.warn("http packet discard = {}", msg);
+            }
+        }finally {
+            RecyclableUtil.release(msg);
+        }
+    }
+
+    protected boolean continueResponse(ChannelHandlerContext context,HttpRequest httpRequest,long contentLength){
+        boolean success;
+        Object continueResponse;
+        if (HttpHeaderUtil.isUnsupportedExpectation(httpRequest)) {
+            // if the request contains an unsupported expectation, we return 417
+            context.pipeline().fireUserEventTriggered(HttpExpectationFailedEvent.INSTANCE);
+            continueResponse = EXPECTATION_FAILED.retainedDuplicate();
+            success = false;
+        } else if (HttpUtil.is100ContinueExpected(httpRequest)) {
+            // if the request contains 100-continue but the content-length is too large, we return 413
+            if (contentLength <= maxContentLength) {
+                continueResponse = CONTINUE.retainedDuplicate();
+                success = true;
+            }else {
+                context.pipeline().fireUserEventTriggered(HttpExpectationFailedEvent.INSTANCE);
+                continueResponse = TOO_LARGE.retainedDuplicate();
+                success = false;
+            }
+        }else {
+            continueResponse = null;
+            success = true;
+        }
+        // we're going to respond based on the request expectation so there's no
+        // need to propagate the expectation further.
+        if (continueResponse != null) {
+            httpRequest.headers().remove(EXPECT);
+            context.writeAndFlush(continueResponse);
+        }
+        return success;
     }
 
     /**
@@ -46,11 +147,11 @@ public class NettyMessageToServletRunnable implements MessageToRunnable {
      */
     public static class HttpRunnable implements Runnable, Recyclable {
         private ServletHttpExchange servletHttpExchange;
-        public ServletHttpExchange getServletHttpExchange() {
+        public ServletHttpExchange getExchange() {
             return servletHttpExchange;
         }
 
-        public void setServletHttpExchange(ServletHttpExchange servletHttpExchange) {
+        public void setExchange(ServletHttpExchange servletHttpExchange) {
             this.servletHttpExchange = servletHttpExchange;
         }
 
@@ -60,30 +161,18 @@ public class NettyMessageToServletRunnable implements MessageToRunnable {
             ServletHttpServletResponse httpServletResponse = servletHttpExchange.getResponse();
             Throwable realThrowable = null;
 
-//            long beginTime = System.currentTimeMillis();
             try {
                 ServletRequestDispatcher dispatcher = servletHttpExchange.getServletContext().getRequestDispatcher(httpServletRequest.getRequestURI());
                 if (dispatcher == null) {
                     httpServletResponse.sendError(HttpServletResponse.SC_NOT_FOUND);
                     return;
                 }
-//                servletHttpExchange.touch(this);
                 dispatcher.dispatch(httpServletRequest, httpServletResponse);
-
-                if(httpServletRequest.isAsync()){
-                    ReadListener readListener = httpServletRequest.getInputStream0().getReadListener();
-                    if(readListener != null){
-                        readListener.onAllDataRead();
-                    }
-                }
             }catch (ServletException se){
                 realThrowable = se.getRootCause();
             }catch (Throwable throwable){
                 realThrowable = throwable;
             }finally {
-//                long totalTime = System.currentTimeMillis() - beginTime;
-//                SERVLET_AND_FILTER_TIME.addAndGet(totalTime);
-
                 /*
                  * Error pages are obtained according to two types: 1. By exception type; 2. By status code
                  */
@@ -137,7 +226,6 @@ public class NettyMessageToServletRunnable implements MessageToRunnable {
                 }
 
                 recycle();
-//                SERVLET_QUERY_COUNT.incrementAndGet();
             }
         }
 

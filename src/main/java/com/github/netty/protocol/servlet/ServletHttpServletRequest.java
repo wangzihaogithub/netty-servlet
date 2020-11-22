@@ -3,9 +3,10 @@ package com.github.netty.protocol.servlet;
 import com.github.netty.core.util.*;
 import com.github.netty.protocol.servlet.util.*;
 import io.netty.handler.codec.CodecException;
-import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.HttpHeaders;
+import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.multipart.*;
+import io.netty.util.internal.PlatformDependent;
 
 import javax.servlet.*;
 import javax.servlet.http.*;
@@ -21,6 +22,8 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Supplier;
 
 /**
  * The servlet request
@@ -37,7 +40,7 @@ public class ServletHttpServletRequest implements HttpServletRequest, Recyclable
             new SimpleDateFormat("EEE MMMM d HH:mm:ss yyyy", Locale.ENGLISH)
     };
     private static final Map<String, ResourceManager> RESOURCE_MANAGER_MAP = new HashMap<>(2);
-	private SnowflakeIdWorker snowflakeIdWorker = new SnowflakeIdWorker();
+	private static final SnowflakeIdWorker SNOWFLAKE_ID_WORKER = new SnowflakeIdWorker();
     private ServletHttpExchange servletHttpExchange;
     private ServletAsyncContext asyncContext;
     private DispatcherType dispatcherType = null;
@@ -56,20 +59,23 @@ public class ServletHttpServletRequest implements HttpServletRequest, Recyclable
     private SessionTrackingMode sessionIdSource;
     private MultipartConfigElement multipartConfigElement;
     private ServletSecurityElement servletSecurityElement;
+    private ResourceManager resourceManager;
 
     private boolean decodePathsFlag = false;
     private boolean decodeCookieFlag = false;
     private boolean decodeParameterByUrlFlag = false;
-    private InterfaceHttpPostRequestDecoder postRequestDecoder = null;
+    private volatile InterfaceHttpPostRequestDecoder postRequestDecoder = null;
     private boolean remoteSchemeFlag = false;
     private boolean usingInputStreamFlag = false;
+    private final AtomicBoolean decodeBodyFlag = new AtomicBoolean();
 
     private BufferedReader reader;
-    private FullHttpRequest nettyRequest;
-    private ServletInputStreamWrapper inputStream = new ServletInputStreamWrapper();
-    private Map<String,Object> attributeMap = Collections.synchronizedMap(new HashMap<>(16));
-    private LinkedMultiValueMap<String,String> parameterMap = new LinkedMultiValueMap<>(16);
-    private Map<String,String[]> unmodifiableParameterMap = new AbstractMap<String, String[]>() {
+    private HttpRequest nettyRequest;
+    private boolean isMultipart;
+    private boolean isFormUrlEncoder;
+    private final Map<String, Object> attributeMap = Collections.synchronizedMap(new LinkedHashMap<>(16));
+    private final LinkedMultiValueMap<String, String> parameterMap = new LinkedMultiValueMap<>(16);
+    private final Map<String, String[]> unmodifiableParameterMap = new AbstractMap<String, String[]>() {
 	    @Override
 	    public Set<Entry<String, String[]>> entrySet() {
 	    	if(isEmpty()){
@@ -77,7 +83,7 @@ public class ServletHttpServletRequest implements HttpServletRequest, Recyclable
 		    }
 		    HashSet<Entry<String, String[]>> result = new HashSet<>(6);
 		    Set<Entry<String, List<String>>> entries = parameterMap.entrySet();
-		    for (Entry<String,List<String>> entry : entries) {
+		    for (Entry<String, List<String>> entry : entries) {
 			    List<String> value = entry.getValue();
 			    String[] valueArr = value != null? value.toArray(new String[value.size()]): null;
 			    result.add(new SimpleImmutableEntry<>(entry.getKey(),valueArr));
@@ -110,24 +116,94 @@ public class ServletHttpServletRequest implements HttpServletRequest, Recyclable
 		    return parameterMap.size();
 	    }
     };
+    private final Supplier<ResourceManager> resourceManagerSupplier = ()-> {
+        if(resourceManager == null){
+            synchronized (this){
+                if(resourceManager == null){
+                    String location = null;
+                    if(multipartConfigElement != null) {
+                        location = multipartConfigElement.getLocation();
+                    }
+                    ResourceManager resourceManager;
+                    if (location != null && location.length() > 0) {
+                        resourceManager = RESOURCE_MANAGER_MAP.get(location);
+                        if (resourceManager == null) {
+                            resourceManager = new ResourceManager(location);
+                            RESOURCE_MANAGER_MAP.put(location, resourceManager);
+                        }
+                    } else {
+                        resourceManager = getServletContext().getResourceManager();
+                    }
+                    this.resourceManager = resourceManager;
+                }
+            }
+        }
+        return resourceManager;
+    };
+    private final Supplier<InterfaceHttpPostRequestDecoder> postRequestDecoderSupplier = ()->{
+        if(!isMultipart && !isFormUrlEncoder){
+            return null;
+        }
+        if(this.postRequestDecoder == null) {
+            synchronized (this) {
+                if (this.postRequestDecoder == null) {
+                    Charset charset = Charset.forName(getCharacterEncoding());
+                    HttpDataFactory httpDataFactory = getHttpDataFactory(charset);
+                    InterfaceHttpPostRequestDecoder postRequestDecoder;
+                    if(isMultipart){
+                        postRequestDecoder = new HttpPostMultipartRequestDecoder(httpDataFactory, nettyRequest, charset);
+                    }else if(isFormUrlEncoder){
+                        postRequestDecoder = new HttpPostStandardRequestDecoder(httpDataFactory, nettyRequest, charset);
+                    }else {
+                        throw new HttpPostRequestDecoder.ErrorDataDecoderException();
+                    }
+                    int discardThreshold = 0;
+                    if(multipartConfigElement != null) {
+                        discardThreshold = multipartConfigElement.getFileSizeThreshold();
+                    }
 
-    private List<Part> fileUploadList = new ArrayList<>();
+                    postRequestDecoder.setDiscardThreshold(discardThreshold);
+                    this.postRequestDecoder = postRequestDecoder;
+                }
+            }
+        }
+        return this.postRequestDecoder;
+    };
+    private final ServletInputStreamWrapper inputStream = new ServletInputStreamWrapper(postRequestDecoderSupplier);
+    private final List<Part> fileUploadList = new ArrayList<>();
     private Cookie[] cookies;
     private Locale[] locales;
     private Boolean asyncSupportedFlag;
 
     protected ServletHttpServletRequest() {}
 
-    public static ServletHttpServletRequest newInstance(ServletHttpExchange servletHttpExchange, FullHttpRequest fullHttpRequest) {
+    public static ServletHttpServletRequest newInstance(ServletHttpExchange exchange, HttpRequest httpRequest) {
         ServletHttpServletRequest instance = RECYCLER.getInstance();
-        instance.servletHttpExchange = servletHttpExchange;
-        instance.nettyRequest = fullHttpRequest;
-        instance.inputStream.wrap(fullHttpRequest.content());
+        instance.servletHttpExchange = exchange;
+        instance.nettyRequest = httpRequest;
+        instance.isMultipart = HttpPostRequestDecoder.isMultipart(httpRequest);
+        String contentType = instance.getContentType();
+        instance.isFormUrlEncoder = contentType != null && HttpHeaderUtil.isFormUrlEncoder(contentType.toLowerCase());
+
+        instance.resourceManager = null;
+        if(instance.postRequestDecoder != null){
+            try {
+                instance.postRequestDecoder.destroy();
+            }catch (IllegalStateException ignored){}
+            instance.postRequestDecoder = null;
+        }
+
+        instance.inputStream.wrap(exchange.getChannelHandlerContext().alloc().compositeBuffer(Integer.MAX_VALUE));
+        instance.inputStream.setFileUploadTimeoutMs(exchange.getServletContext().getUploadFileTimeoutMs());
         return instance;
     }
 
     void setMultipartConfigElement(MultipartConfigElement multipartConfigElement) {
         this.multipartConfigElement = multipartConfigElement;
+        InterfaceHttpPostRequestDecoder postRequestDecoder = this.postRequestDecoder;
+        if(postRequestDecoder != null){
+            postRequestDecoder.setDiscardThreshold(multipartConfigElement.getFileSizeThreshold());
+        }
     }
 
     void setServletSecurityElement(ServletSecurityElement servletSecurityElement) {
@@ -150,7 +226,7 @@ public class ServletHttpServletRequest implements HttpServletRequest, Recyclable
         return servletHttpExchange;
     }
 
-    public FullHttpRequest getNettyRequest() {
+    public HttpRequest getNettyRequest() {
         return nettyRequest;
     }
 
@@ -217,6 +293,14 @@ public class ServletHttpServletRequest implements HttpServletRequest, Recyclable
        this.characterEncoding = characterEncoding;
     }
 
+    private HttpDataFactory getHttpDataFactory(Charset charset){
+        HttpDataFactory factory = getServletContext().getHttpDataFactory(charset);
+        if(multipartConfigElement != null) {
+            factory.setMaxLimit(multipartConfigElement.getMaxFileSize());
+        }
+        return factory;
+    }
+
     /**
      * parse parameter specification
      *
@@ -236,38 +320,18 @@ public class ServletHttpServletRequest implements HttpServletRequest, Recyclable
      * if these conditions are not met and POST form data is not included in the parameter set, the servlet must be able to pass the input of the request object
      * stream gets POST data. If these conditions are met, it is no longer valid to read the POST data directly from the input stream of the request object.
      */
-    private void decodeBody(boolean bodyPartFlag){
-        Charset charset = Charset.forName(getCharacterEncoding());
-        HttpDataFactory factory = getServletContext().getHttpDataFactory(charset);
-        String location = null;
-        int discardThreshold = 0;
-        if(multipartConfigElement != null) {
-            factory.setMaxLimit(multipartConfigElement.getMaxFileSize());
-            location = multipartConfigElement.getLocation();
-            discardThreshold = multipartConfigElement.getFileSizeThreshold();
-        }
-
-        InterfaceHttpPostRequestDecoder postRequestDecoder = HttpPostRequestDecoder.isMultipart(nettyRequest)?
-                new HttpPostMultipartRequestDecoder(factory, nettyRequest, charset):
-                new HttpPostStandardRequestDecoder(factory, nettyRequest, charset);
-        postRequestDecoder.setDiscardThreshold(discardThreshold);
-
-        ResourceManager resourceManager;
-        if(location != null && location.length() > 0){
-            resourceManager = RESOURCE_MANAGER_MAP.get(location);
-            if(resourceManager == null) {
-                resourceManager = new ResourceManager(location);
-                RESOURCE_MANAGER_MAP.put(location,resourceManager);
-            }
-        }else {
-            resourceManager = getServletContext().getResourceManager();
+    private void decodeBody(){
+        //wait LastHttpContent
+        try {
+            getInputStream0().awaitDataIfNeed();
+        } catch (IOException e) {
+            PlatformDependent.throwException(e);
         }
 
         /*
          * There are three types of HttpDataType
          * Attribute, FileUpload, InternalAttribute
          */
-	    this.postRequestDecoder = postRequestDecoder;
         while (true) {
         	try {
 		        if (!postRequestDecoder.hasNext()) {
@@ -290,15 +354,15 @@ public class ServletHttpServletRequest implements HttpServletRequest, Recyclable
                     }
                     parameterMap.add(name, value);
 
-                    if(bodyPartFlag) {
-                        ServletTextPart part = new ServletTextPart(data,resourceManager);
+                    if(isMultipart) {
+                        ServletTextPart part = new ServletTextPart(data,resourceManagerSupplier);
                         fileUploadList.add(part);
                     }
                     break;
                 }
                 case FileUpload: {
                     FileUpload data = (FileUpload) interfaceData;
-                    ServletFilePart part = new ServletFilePart(data,resourceManager);
+                    ServletFilePart part = new ServletFilePart(data,resourceManagerSupplier);
                     fileUploadList.add(part);
                     break;
                 }
@@ -435,7 +499,7 @@ public class ServletHttpServletRequest implements HttpServletRequest, Recyclable
      * @return session ID
      */
     private String newSessionId(){
-        return String.valueOf(snowflakeIdWorker.nextId());
+        return String.valueOf(SNOWFLAKE_ID_WORKER.nextId());
     }
 
     @Override
@@ -501,7 +565,7 @@ public class ServletHttpServletRequest implements HttpServletRequest, Recyclable
     @Override
     public String getHeader(String name) {
        Object value = getNettyHeaders().get((CharSequence) name);
-        return value == null? null :String.valueOf(value);
+        return value == null? null :value.toString();
     }
 
     @Override
@@ -840,11 +904,11 @@ public class ServletHttpServletRequest implements HttpServletRequest, Recyclable
             decodeUrlParameter();
         }
 
-        if(postRequestDecoder ==null &&
-                HttpConstants.POST.equalsIgnoreCase(getMethod())
-                && getContentLength() > 0
-                && HttpHeaderUtil.isFormUrlEncoder(getContentType())){
-            decodeBody(false);
+        if(decodeBodyFlag.compareAndSet(false,true)) {
+            if (HttpConstants.POST.equalsIgnoreCase(getMethod())
+                    && getContentLength() > 0) {
+                decodeBody();
+            }
         }
         return unmodifiableParameterMap;
     }
@@ -1043,7 +1107,7 @@ public class ServletHttpServletRequest implements HttpServletRequest, Recyclable
 
         ServletContext servletContext = getServletContext();
         if(asyncContext == null) {
-            asyncContext = new ServletAsyncContext(servletHttpExchange, servletContext, servletContext.getAsyncExecutorService(), servletRequest, servletResponse);
+            asyncContext = new ServletAsyncContext(servletHttpExchange, servletContext, servletContext.getAsyncExecutor(), servletRequest, servletResponse);
         }
         asyncContext.setTimeout(servletContext.getAsyncTimeout());
         asyncContext.start();
@@ -1070,7 +1134,10 @@ public class ServletHttpServletRequest implements HttpServletRequest, Recyclable
 
     @Override
     public DispatcherType getDispatcherType() {
-        return DispatcherType.REQUEST;
+        if (dispatcherType == null) {
+            return DispatcherType.REQUEST;
+        }
+        return this.dispatcherType;
     }
 
     @Override
@@ -1136,9 +1203,9 @@ public class ServletHttpServletRequest implements HttpServletRequest, Recyclable
 
     @Override
     public Collection<Part> getParts() throws IOException, ServletException {
-        if(postRequestDecoder == null) {
+        if(decodeBodyFlag.compareAndSet(false,true)) {
             try {
-                decodeBody(true);
+                decodeBody();
             } catch (CodecException e) {
                 Throwable cause = getCause(e);
                 if(cause instanceof IOException){
@@ -1233,6 +1300,7 @@ public class ServletHttpServletRequest implements HttpServletRequest, Recyclable
             this.postRequestDecoder = null;
         }
 
+        this.decodeBodyFlag.set(false);
         this.decodeParameterByUrlFlag = false;
         this.remoteSchemeFlag = false;
         this.decodeCookieFlag = false;
@@ -1257,6 +1325,7 @@ public class ServletHttpServletRequest implements HttpServletRequest, Recyclable
         this.servletHttpExchange = null;
         this.multipartConfigElement = null;
         this.servletSecurityElement = null;
+        this.dispatcherType = null;
 
         this.parameterMap.clear();
         this.fileUploadList.clear();

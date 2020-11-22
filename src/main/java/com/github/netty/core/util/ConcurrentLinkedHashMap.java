@@ -178,7 +178,7 @@ public final class ConcurrentLinkedHashMap<K, V> extends AbstractMap<K, V> imple
     transient Set<Entry<K, V>> entrySet;
 
     public ConcurrentLinkedHashMap() {
-        this(128,Long.MAX_VALUE);
+        this(128, Long.MAX_VALUE);
     }
 
     public ConcurrentLinkedHashMap(int initialCapacity, long maximumWeightedCapacity) {
@@ -1050,21 +1050,24 @@ public final class ConcurrentLinkedHashMap<K, V> extends AbstractMap<K, V> imple
 
         /** A drain is not taking place. */
         IDLE {
-            @Override boolean shouldDrainBuffers(boolean delayable) {
+            @Override
+            boolean shouldDrainBuffers(boolean delayable) {
                 return !delayable;
             }
         },
 
         /** A drain is required due to a pending write modification. */
         REQUIRED {
-            @Override boolean shouldDrainBuffers(boolean delayable) {
+            @Override
+            boolean shouldDrainBuffers(boolean delayable) {
                 return true;
             }
         },
 
         /** A drain is in progress. */
         PROCESSING {
-            @Override boolean shouldDrainBuffers(boolean delayable) {
+            @Override
+            boolean shouldDrainBuffers(boolean delayable) {
                 return false;
             }
         };
@@ -1299,7 +1302,7 @@ public final class ConcurrentLinkedHashMap<K, V> extends AbstractMap<K, V> imple
 
         @Override
         public boolean contains(Object obj) {
-            if (!(obj instanceof Entry<?, ?>)) {
+            if (!(obj instanceof Map.Entry<?, ?>)) {
                 return false;
             }
             Entry<?, ?> entry = (Entry<?, ?>) obj;
@@ -1314,7 +1317,7 @@ public final class ConcurrentLinkedHashMap<K, V> extends AbstractMap<K, V> imple
 
         @Override
         public boolean remove(Object obj) {
-            if (!(obj instanceof Entry<?, ?>)) {
+            if (!(obj instanceof Map.Entry<?, ?>)) {
                 return false;
             }
             Entry<?, ?> entry = (Entry<?, ?>) obj;
@@ -1389,19 +1392,26 @@ public final class ConcurrentLinkedHashMap<K, V> extends AbstractMap<K, V> imple
 
     /** A queue that discards all additions and is always empty. */
     static final class DiscardingQueue extends AbstractQueue<Object> {
-        @Override public boolean add(Object e) { return true; }
-        @Override public boolean offer(Object e) { return true; }
-        @Override public Object poll() { return null; }
-        @Override public Object peek() { return null; }
-        @Override public int size() { return 0; }
-        @Override public Iterator<Object> iterator() { return emptyList().iterator(); }
+        @Override
+        public boolean add(Object e) { return true; }
+        @Override
+        public boolean offer(Object e) { return true; }
+        @Override
+        public Object poll() { return null; }
+        @Override
+        public Object peek() { return null; }
+        @Override
+        public int size() { return 0; }
+        @Override
+        public Iterator<Object> iterator() { return emptyList().iterator(); }
     }
 
     /** A listener that ignores all notifications. */
     enum DiscardingListener implements EvictionListener<Object, Object> {
         INSTANCE;
 
-        @Override public void onEviction(Object key, Object value) {}
+        @Override
+        public void onEviction(Object key, Object value) {}
     }
 
     /* ---------------- Serialization Support -------------- */
@@ -1477,8 +1487,8 @@ public final class ConcurrentLinkedHashMap<K, V> extends AbstractMap<K, V> imple
         long capacity;
         /**
          * null is FinalReference
-         * else if {@link WeakReference}
-         * else if {@link SoftReference}
+         * {@link WeakReference}
+         * {@link SoftReference}
          */
         Class<? extends Reference> referenceType;
 

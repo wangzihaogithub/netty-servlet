@@ -9,7 +9,7 @@ import java.util.Locale;
  *  Printing flow
  * @author wangzihao
  */
-public class ServletPrintWriter extends PrintWriter{
+public class ServletPrintWriter extends PrintWriter {
     private OutputStream out;
     private Charset charset;
     private String lineSeparator = System.lineSeparator();

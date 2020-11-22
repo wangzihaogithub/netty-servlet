@@ -22,7 +22,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * An abstract netty server
  * @author wangzihao
  */
-public abstract class AbstractNettyServer implements Runnable{
+public abstract class AbstractNettyServer implements Runnable {
     protected LoggerX logger = LoggerFactoryX.getLogger(getClass());
     private String name;
 
@@ -45,7 +45,7 @@ public abstract class AbstractNettyServer implements Runnable{
         this("", address);
     }
 
-    public AbstractNettyServer(String preName,InetSocketAddress address) {
+    public AbstractNettyServer(String preName, InetSocketAddress address) {
         super();
         this.enableEpoll = Epoll.isAvailable();
         this.serverAddress = address;
@@ -205,7 +205,7 @@ public abstract class AbstractNettyServer implements Runnable{
         return serverAddress.getPort();
     }
 
-    protected void config(ServerBootstrap bootstrap) throws Exception{
+    protected void config(ServerBootstrap bootstrap) throws Exception {
         //允许在同一端口上启动同一服务器的多个实例，只要每个实例捆绑一个不同的本地IP地址即可
         bootstrap.option(ChannelOption.SO_REUSEADDR, true)
                 //netty boos的默认内存分配器

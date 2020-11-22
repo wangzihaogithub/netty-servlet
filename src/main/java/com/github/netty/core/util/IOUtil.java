@@ -67,7 +67,7 @@ public class IOUtil {
      * @throws IOException IOException
      */
     public static void copyFile(String sourcePath, String sourceFileName,
-                                String targetPath, String targetFileName, boolean append) throws FileNotFoundException,IOException {
+                                String targetPath, String targetFileName, boolean append) throws FileNotFoundException, IOException {
         if(sourcePath == null){
             sourcePath = "";
         }
@@ -85,7 +85,7 @@ public class IOUtil {
         try (FileChannel inChannel = new FileInputStream(inFile).getChannel();
              FileChannel outChannel = new FileOutputStream(outFile,append).getChannel()) {
             long writeBeginIndex = append? outChannel.size() : 0L;
-            FileLock lock = outChannel.lock(writeBeginIndex,Long.MAX_VALUE - writeBeginIndex,false);
+            FileLock lock = outChannel.lock(writeBeginIndex, Long.MAX_VALUE - writeBeginIndex,false);
 
             outChannel.transferFrom(inChannel, writeBeginIndex, inChannel.size());
             lock.release();
@@ -141,9 +141,9 @@ public class IOUtil {
         FileChannel outChannel = new FileOutputStream(outFile,append).getChannel();
         long writeBeginIndex = append? outChannel.size() : 0L;
         ReadableByteChannel inChannel = Channels.newChannel(in);
-        FileLock lock = outChannel.lock(writeBeginIndex,Long.MAX_VALUE - writeBeginIndex,false);
+        FileLock lock = outChannel.lock(writeBeginIndex, Long.MAX_VALUE - writeBeginIndex,false);
         try{
-            outChannel.transferFrom(inChannel,writeBeginIndex,Long.MAX_VALUE);
+            outChannel.transferFrom(inChannel,writeBeginIndex, Long.MAX_VALUE);
         }finally {
             lock.release();
             outChannel.force(FORCE_META_DATA);
@@ -193,8 +193,17 @@ public class IOUtil {
         return outFile;
     }
 
+    public static String trimFilename(String fileName){
+        return fileName.replace(":","").replace("?","")
+                .replace("|","")
+                .replace("<","")
+                .replace(">","")
+                .replace("*","")
+                .replace("\"","")
+                .trim();
+    }
 
-     /**
+    /**
      * Read the file to bytebuffer.(note: remember to close after using)
       * @param sourcePath sourcePath
      * @param sourceFileName sourceFileName
@@ -202,7 +211,7 @@ public class IOUtil {
      * @throws FileNotFoundException FileNotFoundException
      * @throws IOException IOException
      */
-    public static ByteBuf readFileToByteBuf(String sourcePath, String sourceFileName) throws FileNotFoundException,IOException {
+    public static ByteBuf readFileToByteBuf(String sourcePath, String sourceFileName) throws FileNotFoundException, IOException {
         try(FileInputStream in = newFileInputStream(sourcePath,sourceFileName);
             FileChannel inChannel = in.getChannel()) {
 
@@ -221,7 +230,7 @@ public class IOUtil {
      * @throws FileNotFoundException FileNotFoundException
      * @throws IOException IOException
      */
-    public static byte[] readFileToBytes(String sourcePath, String sourceFileName) throws FileNotFoundException,IOException {
+    public static byte[] readFileToBytes(String sourcePath, String sourceFileName) throws FileNotFoundException, IOException {
         ByteBuf byteBuf = readFileToByteBuf(sourcePath,sourceFileName);
         writerModeToReadMode(byteBuf);
         try {
@@ -239,7 +248,7 @@ public class IOUtil {
      * @return File stream
      * @throws FileNotFoundException FileNotFoundException
      */
-    public static String readFileToString(String sourcePath, String sourceFileName,String charset) throws FileNotFoundException {
+    public static String readFileToString(String sourcePath, String sourceFileName, String charset) throws FileNotFoundException {
         return readInput(newFileInputStream(sourcePath,sourceFileName),charset);
     }
 
@@ -252,7 +261,7 @@ public class IOUtil {
         return readInput(inputStream, Charset.defaultCharset().name());
     }
 
-    public static String readInput(InputStream inputStream,String encode){
+    public static String readInput(InputStream inputStream, String encode){
         StringBuilder sb = RecyclableUtil.newStringBuilder();
         try {
             BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, encode));
@@ -314,7 +323,7 @@ public class IOUtil {
         return new FileInputStream(inFile);
     }
 
-    public static int indexOf(ByteBuf byteBuf, byte value){
+    public static int indexOf(ByteBuf byteBuf,byte value){
         int len = byteBuf.readableBytes();
         for(int i= 0; i<len; i++){
             byte b = byteBuf.getByte(i);

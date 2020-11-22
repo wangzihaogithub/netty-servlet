@@ -10,7 +10,7 @@ import java.util.Objects;
 public class HttpTests {
 
     public static void main(String[] args) throws IOException {
-        URL url = new URL("http://localhost:8080/test/sayHello?name=xiaowang");
+        URL url = new URL("http://localhost:8080/test/hello?name=xiaowang");
         InputStream inputStream = url.openStream();
         String responseBody = IOUtil.readInput(inputStream);
 

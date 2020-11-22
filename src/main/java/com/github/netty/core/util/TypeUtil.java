@@ -35,10 +35,10 @@ public class TypeUtil {
     public static boolean   compatibleWithFieldName      = false;
     
     private static boolean  oracleTimestampMethodInited = false;
-    private static Method   oracleTimestampMethod;
+    private static Method oracleTimestampMethod;
 
     private static boolean  oracleDateMethodInited      = false;
-    private static Method   oracleDateMethod;
+    private static Method oracleDateMethod;
 
     static {
         try {
@@ -142,7 +142,7 @@ public class TypeUtil {
     }
 
     public static <T> TypeResult getGenericType(Class<T> type,
-                                                 Class<? extends T> clazz) {
+                                                Class<? extends T> clazz) {
 
         // Look to see if this class implements the interface of interest
 
@@ -687,23 +687,10 @@ public class TypeUtil {
                 //
             }
         }
-
-        if (value instanceof Map) {
-            Map map = (Map) value;
-            if (map.size() == 2
-                    && map.containsKey("andIncrement")
-                    && map.containsKey("andDecrement")) {
-                Iterator iter = map.values().iterator();
-                iter.next();
-                Object value2 = iter.next();
-                return castToLong(value2);
-            }
-        }
-
         return null;
     }
 
-    public static int castToInt(Object value,int def) {
+    public static int castToInt(Object value, int def) {
         Integer ret;
         try {
             ret = castToInt(value);

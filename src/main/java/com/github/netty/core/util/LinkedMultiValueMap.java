@@ -13,7 +13,7 @@ import java.util.*;
  * @param <K> the key type
  * @param <V> the value element type
  */
-public class LinkedMultiValueMap<K, V> implements Map<K,List<V>>,Serializable, Cloneable {
+public class LinkedMultiValueMap<K, V> implements Map<K, List<V>>, Serializable, Cloneable {
 
 	private static final long serialVersionUID = 3801124242820219131L;
 

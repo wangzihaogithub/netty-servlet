@@ -74,12 +74,12 @@ public class ServletUtil {
         return null;
     }
 
-    public static void decodeByUrl(LinkedMultiValueMap<String,String> parameterMap, String uri, Charset charset){
+    public static void decodeByUrl(LinkedMultiValueMap<String, String> parameterMap, String uri, Charset charset){
         decodeParams(parameterMap,uri, findPathEndIndex(uri), charset, 10000);
     }
 
-	public static void decodeByUrl(Map<String,String[]> sourceParameterMap, String uri, Charset charset){
-		LinkedMultiValueMap<String,String> parameterMap = new LinkedMultiValueMap<>();
+	public static void decodeByUrl(Map<String, String[]> sourceParameterMap, String uri, Charset charset){
+		LinkedMultiValueMap<String, String> parameterMap = new LinkedMultiValueMap<>();
 		decodeByUrl(parameterMap,uri, charset);
 		for (Map.Entry<String, List<String>> entry : parameterMap.entrySet()) {
 			String[] values = sourceParameterMap.get(entry.getKey());
@@ -126,42 +126,42 @@ public class ServletUtil {
     public static String encodeCookie(String cookieName, String cookieValue, int maxAge, String path, String domain, boolean secure, boolean httpOnly) {
         StringBuilder buf = RecyclableUtil.newStringBuilder();
         buf.append(cookieName);
-        buf.append((char) io.netty.handler.codec.http.HttpConstants.EQUALS);
+        buf.append((char) HttpConstants.EQUALS);
         buf.append(cookieValue);
-        buf.append((char) io.netty.handler.codec.http.HttpConstants.SEMICOLON);
-        buf.append((char) io.netty.handler.codec.http.HttpConstants.SP);
+        buf.append((char) HttpConstants.SEMICOLON);
+        buf.append((char) HttpConstants.SP);
 
         if (maxAge > 0) {
             buf.append(HttpHeaderConstants.MAX_AGE_1.toString());
-            buf.append((char) io.netty.handler.codec.http.HttpConstants.EQUALS);
+            buf.append((char) HttpConstants.EQUALS);
             buf.append(maxAge);
-            buf.append((char) io.netty.handler.codec.http.HttpConstants.SEMICOLON);
-            buf.append((char) io.netty.handler.codec.http.HttpConstants.SP);
+            buf.append((char) HttpConstants.SEMICOLON);
+            buf.append((char) HttpConstants.SP);
 //            Date expires = new Date(cookie.maxAge() * 1000 + System.currentTimeMillis());
 //            addUnquoted(buf, HttpHeaderConstants.EXPIRES.toString(), HttpHeaderDateFormat.get().format(expires));
         }
         if (path != null) {
             buf.append(HttpHeaderConstants.PATH.toString());
-            buf.append((char) io.netty.handler.codec.http.HttpConstants.EQUALS);
+            buf.append((char) HttpConstants.EQUALS);
             buf.append(path);
-            buf.append((char) io.netty.handler.codec.http.HttpConstants.SEMICOLON);
-            buf.append((char) io.netty.handler.codec.http.HttpConstants.SP);
+            buf.append((char) HttpConstants.SEMICOLON);
+            buf.append((char) HttpConstants.SP);
         }
         if (domain != null) {
             buf.append(HttpHeaderConstants.DOMAIN.toString());
-            buf.append((char) io.netty.handler.codec.http.HttpConstants.EQUALS);
+            buf.append((char) HttpConstants.EQUALS);
             buf.append(domain);
-            buf.append((char) io.netty.handler.codec.http.HttpConstants.SEMICOLON);
-            buf.append((char) io.netty.handler.codec.http.HttpConstants.SP);
+            buf.append((char) HttpConstants.SEMICOLON);
+            buf.append((char) HttpConstants.SP);
         }
         if (secure) {
             buf.append(HttpHeaderConstants.SECURE);
-            buf.append((char) io.netty.handler.codec.http.HttpConstants.SEMICOLON);
-            buf.append((char) io.netty.handler.codec.http.HttpConstants.SP);
+            buf.append((char) HttpConstants.SEMICOLON);
+            buf.append((char) HttpConstants.SP);
         }
         if (httpOnly) {
             buf.append(HttpHeaderConstants.HTTPONLY);
-            buf.append((char) io.netty.handler.codec.http.HttpConstants.SEMICOLON);
+            buf.append((char) HttpConstants.SEMICOLON);
             buf.append((char) HttpConstants.SP);
         }
         if (buf.length() > 0) {
@@ -349,7 +349,7 @@ public class ServletUtil {
         return len;
     }
 
-    private static void decodeParams(LinkedMultiValueMap<String,String> parameterMap, String s, int from, Charset charset, int paramsLimit) {
+    private static void decodeParams(LinkedMultiValueMap<String, String> parameterMap, String s, int from, Charset charset, int paramsLimit) {
         int len = s.length();
         if (from >= len) {
             return;
@@ -390,7 +390,7 @@ public class ServletUtil {
     }
 
     private static boolean addParam(String s, int nameStart, int valueStart, int valueEnd,
-                                    LinkedMultiValueMap<String,String> parameterMap, Charset charset) {
+                                    LinkedMultiValueMap<String, String> parameterMap, Charset charset) {
         if (nameStart >= valueEnd) {
             return false;
         }

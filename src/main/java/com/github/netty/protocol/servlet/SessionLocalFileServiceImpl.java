@@ -40,7 +40,7 @@ public class SessionLocalFileServiceImpl implements SessionService {
             objectOutputStream.writeInt(session.getMaxInactiveInterval());
             objectOutputStream.writeInt(session.getAccessCount());
 
-            Map<String,Object> attributeMap = session.getAttributeMap();
+            Map<String, Object> attributeMap = session.getAttributeMap();
             int attributeSize = 0;
             if(attributeMap != null) {
                 for (Map.Entry<String, Object> entry : attributeMap.entrySet()) {
@@ -54,7 +54,7 @@ public class SessionLocalFileServiceImpl implements SessionService {
 
             objectOutputStream.writeInt(attributeSize);
             if(attributeSize > 0) {
-                for (Map.Entry<String,Object> entry : attributeMap.entrySet()){
+                for (Map.Entry<String, Object> entry : attributeMap.entrySet()){
                     Object value = entry.getValue();
                     if (value instanceof Serializable) {
                         String key = entry.getKey();

@@ -163,7 +163,7 @@ public class JavaClassFile {
         return interfaceNames;
     }
 
-    public Member getMethod(String methodName,Class<?>[] parameterTypes,Class<?> returnType){
+    public Member getMethod(String methodName, Class<?>[] parameterTypes, Class<?> returnType){
         String methodDescriptor = Member.Type.getMethodDescriptor(parameterTypes,returnType);
         for(Member method : methods){
             if(methodName.equals(method.name())
@@ -633,7 +633,7 @@ public class JavaClassFile {
             private int index;
             public ConstantClassInfo(int index,ClassReader reader) {
                 this.index = index;
-                this.nameIndex = reader.readUint16();;
+                this.nameIndex = reader.readUint16();
             }
             public String value() {
                 return getUtf8(nameIndex);
@@ -1009,7 +1009,7 @@ public class JavaClassFile {
         @Override
         public String toString() {
             StringJoiner joiner = new StringJoiner(",","{","}");
-            joiner.add("\"accessFlags\":\""+Modifier.toString(accessFlags)+"\"");
+            joiner.add("\"accessFlags\":\""+ Modifier.toString(accessFlags)+"\"");
             joiner.add("\"name\":\""+ name()+"\"");
             joiner.add("\"descriptorName\":\""+ descriptorName()+"\"");
             joiner.add("\"attributes\":"+toJsonArray(attributes));
@@ -1550,7 +1550,7 @@ public class JavaClassFile {
                 return getMethodDescriptor(method.getParameterTypes(),method.getReturnType());
             }
 
-            public static String getMethodDescriptor(Class<?>[] parameterTypes,Class<?> returnType) {
+            public static String getMethodDescriptor(Class<?>[] parameterTypes, Class<?> returnType) {
                 StringBuilder stringBuilder = new StringBuilder();
                 stringBuilder.append('(');
                 for (Class<?> parameter : parameterTypes) {
@@ -1873,7 +1873,7 @@ public class JavaClassFile {
         }
     }
 
-    public class Attribute extends LinkedHashMap<String,Object>{
+    public class Attribute extends LinkedHashMap<String, Object> {
         public Attribute(int attrNameIndex, int length, ClassReader reader) {
             String attrName = constantPool.getUtf8(attrNameIndex);
             put("attrNameIndex",attrNameIndex);
@@ -2098,9 +2098,9 @@ public class JavaClassFile {
         @Override
         public String toString() {
             StringJoiner joiner = new StringJoiner(",","{","}");
-            Iterator<Map.Entry<String,Object>> i = entrySet().iterator();
+            Iterator<Map.Entry<String, Object>> i = entrySet().iterator();
             while (i.hasNext()) {
-                Map.Entry<String,Object> e = i.next();
+                Map.Entry<String, Object> e = i.next();
                 String key = e.getKey();
                 Object value = e.getValue();
                 if(value instanceof Number){
@@ -2429,7 +2429,7 @@ public class JavaClassFile {
             private int typeIndex;
             private ElementValue[] elementValues;
             public Annotation(ClassReader reader) {
-                this.typeIndex = reader.readUint16();;
+                this.typeIndex = reader.readUint16();
                 this.elementValues = new ElementValue[reader.readUint16()];
                 for(int i = 0; i< elementValues.length; i++){
                     int valueIndex = reader.readUint16();
@@ -2671,7 +2671,7 @@ public class JavaClassFile {
         }
     }
 
-    public static class ClassReader implements Closeable{
+    public static class ClassReader implements Closeable {
         /** 字节码数组 */
         private byte[] codes;
         /** 当前读取数组的下标 */
@@ -2681,7 +2681,7 @@ public class JavaClassFile {
         /** 标记下标,用于回滚 */
         private int markIndex;
 
-        public ClassReader(String path, String fileName) throws FileNotFoundException,IOException {
+        public ClassReader(String path, String fileName) throws FileNotFoundException, IOException {
             this(new FileInputStream(new File(path + File.separator + fileName)));
         }
 
@@ -3229,7 +3229,7 @@ public class JavaClassFile {
     }
 
 
-    public static void main(String[] args) throws Exception{
+    public static void main(String[] args) throws Exception {
         //这里换成自己的class包路径
         String path = "G:\\githubs\\spring-boot-protocol\\target\\classes\\com\\github\\netty\\protocol\\servlet";
         Map<String, JavaClassFile> javaClassMap = new HashMap<>();

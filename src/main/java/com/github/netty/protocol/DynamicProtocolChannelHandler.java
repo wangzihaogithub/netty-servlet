@@ -18,7 +18,7 @@ import java.util.concurrent.TimeUnit;
  * Created by wangzihao on 2018/12/9/009.
  */
 @ChannelHandler.Sharable
-public class DynamicProtocolChannelHandler extends AbstractChannelHandler<ByteBuf,Object> {
+public class DynamicProtocolChannelHandler extends AbstractChannelHandler<ByteBuf, Object> {
     public static final AttributeKey<TcpChannel> ATTR_KEY_TCP_CHANNEL = AttributeKey.valueOf(TcpChannel.class+"#Dy");
     /**
      * Protocol registry list, dynamic protocol will find a suitable protocol to supportPipeline on the new link

@@ -22,7 +22,7 @@ public class WebSocketServerContainer implements WebSocketContainer,ServerContai
     private int maxBinaryMessageBufferSize = 8 * 1024;
     private int maxTextMessageBufferSize = 8 * 1024;
     private volatile long defaultMaxSessionIdleTimeout = 0;
-    private final ConcurrentMap<String,Set<Session>> authenticatedSessions = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, Set<Session>> authenticatedSessions = new ConcurrentHashMap<>();
     private static final CloseReason AUTHENTICATED_HTTP_SESSION_CLOSED = new CloseReason(CloseReason.CloseCodes.VIOLATED_POLICY,
                     "This connection was established under an authenticated " +
                             "HTTP session that has ended.");
@@ -167,7 +167,7 @@ public class WebSocketServerContainer implements WebSocketContainer,ServerContai
         Set<Session> wsSessions = authenticatedSessions.get(httpSessionId);
         if (wsSessions == null) {
             wsSessions = Collections.newSetFromMap(
-                    new ConcurrentHashMap<Session,Boolean>());
+                    new ConcurrentHashMap<Session, Boolean>());
             authenticatedSessions.putIfAbsent(httpSessionId, wsSessions);
             wsSessions = authenticatedSessions.get(httpSessionId);
         }

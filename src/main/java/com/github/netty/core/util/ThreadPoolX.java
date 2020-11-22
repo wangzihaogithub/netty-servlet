@@ -28,10 +28,10 @@ public class ThreadPoolX extends ScheduledThreadPoolExecutor {
     }
 
     public ThreadPoolX(String preName, int corePoolSize) {
-        this(preName,corePoolSize,Thread.MAX_PRIORITY,false);
+        this(preName,corePoolSize, Thread.MAX_PRIORITY,false);
     }
 
-    public ThreadPoolX(String preName, int corePoolSize, int priority,boolean daemon) {
+    public ThreadPoolX(String preName, int corePoolSize, int priority, boolean daemon) {
         super(corePoolSize, new ThreadFactoryX(preName, ThreadPoolX.class,priority,daemon), new RejectedExecutionHandlerX());
     }
 

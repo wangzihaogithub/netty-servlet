@@ -169,7 +169,7 @@ public class AntPathMatcher {
         return (path.indexOf('*') != -1 || path.indexOf('?') != -1);
     }
 
-    public boolean match(String pattern, String path,String allToken) {
+    public boolean match(String pattern, String path, String allToken) {
         return doMatch(pattern, path, true, null,allToken);
     }
 

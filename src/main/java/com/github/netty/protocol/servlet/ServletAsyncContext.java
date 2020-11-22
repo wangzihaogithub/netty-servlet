@@ -12,7 +12,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -50,14 +50,14 @@ public class ServletAsyncContext implements AsyncContext, Recyclable {
     private Throwable throwable;
     private HttpServletRequest httpServletRequest;
     private HttpServletResponse httpServletResponse;
-    private ExecutorService executorService;
+    private Executor executor;
 
-    public ServletAsyncContext(ServletHttpExchange servletHttpExchange, ServletContext servletContext, ExecutorService executorService, ServletRequest httpServletRequest, ServletResponse httpServletResponse) {
+    public ServletAsyncContext(ServletHttpExchange servletHttpExchange, ServletContext servletContext, Executor executor, ServletRequest httpServletRequest, ServletResponse httpServletResponse) {
         this.servletHttpExchange = Objects.requireNonNull(servletHttpExchange);
         this.servletContext = Objects.requireNonNull(servletContext);
-        this.executorService = Objects.requireNonNull(executorService);
-        this.httpServletRequest = (HttpServletRequest)Objects.requireNonNull(httpServletRequest);
-        this.httpServletResponse = (HttpServletResponse)Objects.requireNonNull(httpServletResponse);
+        this.executor = Objects.requireNonNull(executor);
+        this.httpServletRequest = (HttpServletRequest) Objects.requireNonNull(httpServletRequest);
+        this.httpServletResponse = (HttpServletResponse) Objects.requireNonNull(httpServletResponse);
     }
 
     public Throwable getThrowable() {
@@ -161,7 +161,7 @@ public class ServletAsyncContext implements AsyncContext, Recyclable {
         if(status.compareAndSet(STATUS_START,STATUS_RUNNING)){
             TaskWrapper wrapper = new TaskWrapper(runnable,this);
             if(servletContext.isAsyncSwitchThread()){
-                executorService.execute(wrapper);
+                executor.execute(wrapper);
             }else {
                 wrapper.run();
             }
@@ -172,9 +172,9 @@ public class ServletAsyncContext implements AsyncContext, Recyclable {
         status.compareAndSet(STATUS_INIT,STATUS_START);
     }
 
-    private static class TaskWrapper implements Runnable{
+    private static class TaskWrapper implements Runnable {
         private static final AtomicInteger TASK_ID_INCR = new AtomicInteger();
-        private static final ExpiryLRUMap<Integer,TaskWrapper> TIMEOUT_TASK_MAP = new ExpiryLRUMap<>(256,Long.MAX_VALUE,Long.MAX_VALUE,null);
+        private static final ExpiryLRUMap<Integer,TaskWrapper> TIMEOUT_TASK_MAP = new ExpiryLRUMap<>(256, Long.MAX_VALUE, Long.MAX_VALUE,null);
         static {
             TIMEOUT_TASK_MAP.setOnExpiryConsumer(node -> {
                 //Notice the timeout
@@ -184,7 +184,7 @@ public class ServletAsyncContext implements AsyncContext, Recyclable {
                     if(asyncContext.asyncListenerWrapperList == null) {
                         return;
                     }
-                    asyncContext.executorService.execute(()->{
+                    asyncContext.executor.execute(()->{
                         for (ServletAsyncListenerWrapper listenerWrapper : asyncContext.asyncListenerWrapperList) {
                             try {
                                 AsyncEvent event = new AsyncEvent(asyncContext, listenerWrapper.servletRequest, listenerWrapper.servletResponse, null);
@@ -317,7 +317,7 @@ public class ServletAsyncContext implements AsyncContext, Recyclable {
         }
     }
 
-    public static class AsyncRuntimeException extends RuntimeException{
+    public static class AsyncRuntimeException extends RuntimeException {
         private Throwable cause;
         AsyncRuntimeException(Throwable cause) {
             super(cause.getMessage(),cause,true,false);

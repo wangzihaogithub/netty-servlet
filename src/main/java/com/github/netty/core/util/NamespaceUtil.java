@@ -14,15 +14,15 @@ public class NamespaceUtil {
     private NamespaceUtil(){}
 
     public static String newIdName(Object obj){
-        String startName = obj instanceof Class?((Class) obj).getSimpleName():obj.toString();
+        String startName = obj instanceof Class ?((Class) obj).getSimpleName():obj.toString();
         return getDefaultNamespace().newIdName(obj,startName);
     }
 
-    public static String newIdName(Object obj,String name){
+    public static String newIdName(Object obj, String name){
         return getDefaultNamespace().newIdName(obj,name);
     }
 
-    public static String getIdName(Object obj,String name){
+    public static String getIdName(Object obj, String name){
         return getDefaultNamespace().getIdName(obj,name);
     }
 
@@ -31,11 +31,11 @@ public class NamespaceUtil {
         return getDefaultNamespace().newIdName(obj,name);
     }
 
-    public static String newIdName(String preName,Class obj){
+    public static String newIdName(String preName, Class obj){
         return preName + newIdName(obj);
     }
 
-    public static String getIdNameClass(Object obj,String name){
+    public static String getIdNameClass(Object obj, String name){
         return getDefaultNamespace().getIdNameClass(obj,name);
     }
 
@@ -63,23 +63,23 @@ public class NamespaceUtil {
     }
 
     static class Namespace {
-        private final Map<Object,AtomicInteger> idIncrMap;
-        private final Map<Object,Integer> idMap;
+        private final Map<Object, AtomicInteger> idIncrMap;
+        private final Map<Object, Integer> idMap;
 
         Namespace(){
             idIncrMap = new WeakHashMap<>(16);
             idMap = new WeakHashMap<>(16);
         }
 
-        public String newIdName(Object obj,String name){
+        public String newIdName(Object obj, String name){
             return name+"@"+ newId(obj);
         }
 
-        public String getIdName(Object obj,String name){
+        public String getIdName(Object obj, String name){
             return name+"@"+ getId(obj);
         }
 
-        public String getIdNameClass(Object obj,String name){
+        public String getIdNameClass(Object obj, String name){
             return name+"@"+ getIdClass(obj);
         }
 

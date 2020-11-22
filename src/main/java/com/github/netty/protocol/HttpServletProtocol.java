@@ -2,11 +2,10 @@ package com.github.netty.protocol;
 
 import com.github.netty.core.AbstractNettyServer;
 import com.github.netty.core.AbstractProtocol;
-import com.github.netty.core.util.ChunkedWriteHandler;
-import com.github.netty.core.util.IOUtil;
-import com.github.netty.core.util.LoggerFactoryX;
-import com.github.netty.core.util.LoggerX;
+import com.github.netty.core.DispatcherChannelHandler;
+import com.github.netty.core.util.*;
 import com.github.netty.protocol.servlet.*;
+import com.github.netty.protocol.servlet.util.HttpAbortPolicyWithReport;
 import com.github.netty.protocol.servlet.util.HttpHeaderConstants;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.*;
@@ -24,6 +23,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionHandler;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 /**
@@ -32,12 +34,12 @@ import java.util.function.Supplier;
  *  2018/11/11/011
  */
 public class HttpServletProtocol extends AbstractProtocol {
-    private static final LoggerX logger = LoggerFactoryX.getLogger(HttpServletProtocol.class);
+    private static final LoggerX LOGGER = LoggerFactoryX.getLogger(HttpServletProtocol.class);
     private final ServletContext servletContext;
     private SslContext sslContext;
     private SslContextBuilder sslContextBuilder;
     private ChannelHandler servletHandler;
-    private int maxContentLength = 20 * 1024 * 1024;
+    private long maxContentLength = 20 * 1024 * 1024;
     private int maxInitialLineLength = 40960;
     private int maxHeaderSize = 81920;
     private int maxChunkSize = 5 * 1024 * 1024;
@@ -53,9 +55,18 @@ public class HttpServletProtocol extends AbstractProtocol {
             "application/xml"};
     private String[] compressionExcludedUserAgents = {};
 
-    public HttpServletProtocol(Supplier<Executor> executor, ServletContext servletContext){
+    public HttpServletProtocol(ServletContext servletContext) {
+        this(servletContext,null,null);
+    }
+
+    public HttpServletProtocol(ServletContext servletContext, Supplier<Executor> executorSupplier, Supplier<Executor> defaultExecutorSupplier){
         this.servletContext = servletContext;
-        this.servletHandler = new ServletChannelHandler(servletContext,executor);
+        if(defaultExecutorSupplier == null){
+            defaultExecutorSupplier = new LazyPool("NettyX-http");
+        }
+        servletContext.setAsyncExecutorSupplier(executorSupplier);
+        servletContext.setDefaultExecutorSupplier(defaultExecutorSupplier);
+        this.servletHandler = new DispatcherChannelHandler(executorSupplier);
     }
 
     @Override
@@ -71,7 +82,7 @@ public class HttpServletProtocol extends AbstractProtocol {
 
         listenerManager.onServletContainerInitializerStartup(Collections.emptySet(),servletContext);
 
-        logger.info(
+        LOGGER.info(
                 "Netty servlet on port: {}, with context path '{}'",
                 servletContext.getServerAddress().getPort(),
                 servletContext.getContextPath()
@@ -116,7 +127,7 @@ public class HttpServletProtocol extends AbstractProtocol {
                 try {
                     filter.destroy();
                 }catch (Exception e){
-                    logger.error("destroyFilter error={},filter={}",e.toString(),filter,e);
+                    LOGGER.error("destroyFilter error={},filter={}",e.toString(),filter,e);
                 }
             }
         }
@@ -136,7 +147,7 @@ public class HttpServletProtocol extends AbstractProtocol {
                 try {
                     servlet.destroy();
                 }catch (Exception e){
-                    logger.error("destroyServlet error={},servlet={}",e.toString(),servlet,e);
+                    LOGGER.error("destroyServlet error={},servlet={}",e.toString(),servlet,e);
                 }
             }
         }
@@ -160,6 +171,7 @@ public class HttpServletProtocol extends AbstractProtocol {
 
     @Override
     public void addPipeline(Channel ch) throws Exception {
+        super.addPipeline(ch);
         ChannelPipeline pipeline = ch.pipeline();
         if (sslContextBuilder != null) {
             if(sslContext == null) {
@@ -175,7 +187,7 @@ public class HttpServletProtocol extends AbstractProtocol {
         pipeline.addLast("HttpCodec", new HttpServerCodec(maxInitialLineLength, maxHeaderSize, maxChunkSize, false));
 
         //HTTP request aggregation, set the maximum message value to 5M
-        pipeline.addLast("Aggregator", new HttpObjectAggregator(maxContentLength,false));
+//        pipeline.addLast("Aggregator", new HttpObjectAggregator((int) maxContentLength,false));
 
         //The content of compression
         if(enableContentCompression) {
@@ -236,6 +248,9 @@ public class HttpServletProtocol extends AbstractProtocol {
 
         //A business scheduler that lets the corresponding Servlet handle the request
         pipeline.addLast("Servlet", servletHandler);
+
+        //Dynamic binding protocol for switching protocol
+        DispatcherChannelHandler.setMessageToRunnable(ch, new NettyMessageToServletRunnable(servletContext,maxContentLength));
     }
 
     public long getMaxBufferBytes() {
@@ -272,7 +287,7 @@ public class HttpServletProtocol extends AbstractProtocol {
         this.sslContextBuilder = sslContextBuilder;
     }
 
-    public void setMaxContentLength(int maxContentLength) {
+    public void setMaxContentLength(long maxContentLength) {
         this.maxContentLength = maxContentLength;
     }
 
@@ -284,8 +299,12 @@ public class HttpServletProtocol extends AbstractProtocol {
         this.maxHeaderSize = maxHeaderSize;
     }
 
-    public void setMaxChunkSize(int maxChunkSize) {
-        this.maxChunkSize = maxChunkSize;
+    public void setMaxChunkSize(long maxChunkSize) {
+        if(maxChunkSize != (int)maxChunkSize){
+            this.maxChunkSize = Integer.MAX_VALUE;
+        }else {
+            this.maxChunkSize = (int) maxChunkSize;
+        }
     }
 
     public void setCompressionMimeTypes(String[] compressionMimeTypes) {
@@ -309,6 +328,34 @@ public class HttpServletProtocol extends AbstractProtocol {
             this.compressionExcludedUserAgents = new String[0];
         }else {
             this.compressionExcludedUserAgents = compressionExcludedUserAgents;
+        }
+    }
+
+    static class LazyPool implements Supplier<Executor> {
+        private volatile NettyThreadPoolExecutor executor;
+        private final String poolName;
+        LazyPool(String poolName) {
+            this.poolName = poolName;
+        }
+
+        @Override
+        public NettyThreadPoolExecutor get() {
+            if(executor == null){
+                synchronized (this){
+                    if(executor == null){
+                        int coreThreads = 2;
+                        int maxThreads = 50;
+                        int keepAliveSeconds = 180;
+                        int priority = Thread.NORM_PRIORITY;
+                        boolean daemon = false;
+                        RejectedExecutionHandler handler = new HttpAbortPolicyWithReport(poolName, System.getProperty("user.home"),"Http Servlet");
+                        executor = new NettyThreadPoolExecutor(
+                                coreThreads,maxThreads,keepAliveSeconds, TimeUnit.SECONDS,
+                                new SynchronousQueue<>(),poolName,priority,daemon,handler);
+                    }
+                }
+            }
+            return executor;
         }
     }
 }

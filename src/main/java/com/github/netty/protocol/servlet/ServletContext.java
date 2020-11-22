@@ -25,7 +25,8 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.*;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executor;
+import java.util.function.Supplier;
 
 /**
  * Servlet context (lifetime same as server)
@@ -46,20 +47,24 @@ public class ServletContext implements javax.servlet.ServletContext {
      * Minimum upload file length, in bytes (becomes temporary file storage if larger than 16KB)
      */
     private long uploadMinSize = 4096 * 16;
-    private Map<String,Object> attributeMap = new HashMap<>(16);
-    private Map<String,String> initParamMap = new HashMap<>(16);
-    private Map<String, ServletRegistration> servletRegistrationMap = new HashMap<>(8);
-    private Map<String, ServletFilterRegistration> filterRegistrationMap = new HashMap<>(8);
+    /**
+     * Upload file timeout millisecond , -1 is not control timeout.
+     */
+    private long uploadFileTimeoutMs = -1;
+    private Map<String, Object> attributeMap = new LinkedHashMap<>(16);
+    private Map<String, String> initParamMap = new LinkedHashMap<>(16);
+    private Map<String, ServletRegistration> servletRegistrationMap = new LinkedHashMap<>(8);
+    private Map<String, ServletFilterRegistration> filterRegistrationMap = new LinkedHashMap<>(8);
     private FastThreadLocal<Map<Charset, HttpDataFactory>> httpDataFactoryThreadLocal = new FastThreadLocal<Map<Charset, HttpDataFactory>>(){
         @Override
         protected Map<Charset, HttpDataFactory> initialValue() throws Exception {
-            return new HashMap<>(5);
+            return new LinkedHashMap<>(5);
         }
     };
     private Set<SessionTrackingMode> defaultSessionTrackingModeSet = new HashSet<>(Arrays.asList(SessionTrackingMode.COOKIE,SessionTrackingMode.URL));
 
 //    private final PropertyChangeSupport propertyChangeSupport = new PropertyChangeSupport(this);
-    private ServletErrorPageManager servletErrorPageManager = new ServletErrorPageManager();
+    private final ServletErrorPageManager servletErrorPageManager = new ServletErrorPageManager();
     private MimeMappingsX mimeMappings = new MimeMappingsX();
     private ServletEventListenerManager servletEventListenerManager = new ServletEventListenerManager();
     private ServletSessionCookieConfig sessionCookieConfig = new ServletSessionCookieConfig();
@@ -67,12 +72,14 @@ public class ServletContext implements javax.servlet.ServletContext {
     private UrlMapper<ServletFilterRegistration> filterUrlMapper = new UrlMapper<>(false);
 
     private ResourceManager resourceManager;
-    private ExecutorService asyncExecutorService;
+    private Supplier<Executor> asyncExecutorSupplier;
+    private Supplier<Executor> defaultExecutorSupplier;
     private SessionService sessionService;
     private Set<SessionTrackingMode> sessionTrackingModeSet;
 
     private boolean enableLookupFlag = false;
     private boolean asyncSwitchThread = true;
+    private boolean autoFlush;
     private String serverHeader;
     private String contextPath = "";
     private String requestCharacterEncoding;
@@ -88,6 +95,22 @@ public class ServletContext implements javax.servlet.ServletContext {
     public ServletContext(ClassLoader classLoader) {
         this.classLoader = classLoader == null ? getClass().getClassLoader(): classLoader;
         setDocBase(createTempDir("netty-docbase").getAbsolutePath());
+    }
+
+    public boolean isAutoFlush() {
+        return autoFlush;
+    }
+
+    public void setAutoFlush(boolean autoFlush) {
+        this.autoFlush = autoFlush;
+    }
+
+    public long getUploadFileTimeoutMs() {
+        return uploadFileTimeoutMs;
+    }
+
+    public void setUploadFileTimeoutMs(long uploadFileTimeoutMs) {
+        this.uploadFileTimeoutMs = uploadFileTimeoutMs;
     }
 
     public void setAsyncSwitchThread(boolean asyncSwitchThread) {
@@ -115,7 +138,7 @@ public class ServletContext implements javax.servlet.ServletContext {
         setDocBase(docBase,workspace);
     }
 
-    public void setDocBase(String docBase,String workspace){
+    public void setDocBase(String docBase, String workspace){
         this.resourceManager = new ResourceManager(docBase,workspace,classLoader);
         this.resourceManager.mkdirs("/");
 
@@ -140,20 +163,27 @@ public class ServletContext implements javax.servlet.ServletContext {
         }
     }
 
-    public ExecutorService getAsyncExecutorService() {
-        if(asyncExecutorService == null) {
-            synchronized (this){
-                if(asyncExecutorService == null) {
-                    asyncExecutorService = new ThreadPoolX("Async", Runtime.getRuntime().availableProcessors() * 2);
-//                            executorService = new DefaultEventExecutorGroup(15);
-                }
-            }
+    public Executor getAsyncExecutor() {
+        Executor executor = asyncExecutorSupplier.get();
+        if(executor == null){
+            executor = defaultExecutorSupplier.get();
         }
-        return asyncExecutorService;
+        if(executor == null){
+            throw new IllegalStateException("no found async Executor");
+        }
+        return executor;
     }
 
-    public void setAsyncExecutorService(ExecutorService asyncExecutorService) {
-        this.asyncExecutorService = asyncExecutorService;
+    public void setAsyncExecutorSupplier(Supplier<Executor> asyncExecutorSupplier) {
+        this.asyncExecutorSupplier = asyncExecutorSupplier;
+    }
+
+    public void setDefaultExecutorSupplier(Supplier<Executor> defaultExecutorSupplier) {
+        this.defaultExecutorSupplier = defaultExecutorSupplier;
+    }
+
+    public Supplier<Executor> getDefaultExecutorSupplier() {
+        return defaultExecutorSupplier;
     }
 
     public HttpDataFactory getHttpDataFactory(Charset charset){
@@ -356,11 +386,11 @@ public class ServletContext implements javax.servlet.ServletContext {
         }
 
         ServletFilterChain filterChain = ServletFilterChain.newInstance(this,servletRegistration);
-        List<ServletFilterRegistration> filterList = filterChain.getFilterRegistrationList();
+        List<UrlMapper.Element<ServletFilterRegistration>> filterList = filterChain.getFilterRegistrationList();
         for (ServletFilterRegistration registration : filterRegistrationMap.values()) {
             for(String servletName : registration.getServletNameMappings()){
                 if(servletName.equals(name)){
-                    filterList.add(registration);
+                    filterList.add(new UrlMapper.Element<>(name,registration));
                 }
             }
         }
@@ -429,7 +459,7 @@ public class ServletContext implements javax.servlet.ServletContext {
         return initParamMap.get(name);
     }
 
-    public <T>T getInitParameter(String name,T def) {
+    public <T>T getInitParameter(String name, T def) {
         String value = getInitParameter(name);
         if(value == null){
             return def;

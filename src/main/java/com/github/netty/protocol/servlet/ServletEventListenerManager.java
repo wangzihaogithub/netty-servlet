@@ -417,7 +417,7 @@ public class ServletEventListenerManager {
         return servletContextListenerList;
     }
 
-    private <T>List<T> newListenerList(){
+    private <T> List<T> newListenerList(){
         return new LinkedList<T>();
     }
 }

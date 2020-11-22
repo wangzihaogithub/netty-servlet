@@ -7,7 +7,6 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.handler.codec.http.LastHttpContent;
 import io.netty.handler.stream.ChunkedInput;
-import io.netty.util.internal.PlatformDependent;
 
 import javax.servlet.WriteListener;
 import java.io.File;
@@ -18,8 +17,6 @@ import java.nio.channels.FileChannel;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 
 /**
@@ -28,8 +25,7 @@ import java.util.function.Consumer;
  */
 public class ServletOutputStream extends javax.servlet.ServletOutputStream implements Recyclable, NettyOutputStream {
     private static final Recycler<ServletOutputStream> RECYCLER = new Recycler<>(ServletOutputStream::new);
-    private static final Lock ALLOC_DIRECT_BUFFER_LOCK = new ReentrantLock();
-    private static final float THRESHOLD = SystemPropertyUtil.getFloat("netty-servlet.directBufferThreshold",0.8F);
+//    private static final Lock ALLOC_DIRECT_BUFFER_LOCK = new ReentrantLock();
     public static final ServletResetBufferIOException RESET_BUFFER_EXCEPTION = new ServletResetBufferIOException();
 
     protected AtomicBoolean isClosed = new AtomicBoolean(false);
@@ -97,6 +93,7 @@ public class ServletOutputStream extends javax.servlet.ServletOutputStream imple
         ChannelProgressivePromise promise = context.newProgressivePromise();
         context.write(httpBody,promise);
         this.write = true;
+        this.flush = false;
         return promise;
     }
 
@@ -161,11 +158,13 @@ public class ServletOutputStream extends javax.servlet.ServletOutputStream imple
     public void flush() throws IOException {
         checkClosed();
         writeResponseHeaderIfNeed();
-        ServletHttpExchange exchange = this.servletHttpExchange;
-        if(exchange != null) {
-            exchange.getChannelHandlerContext().flush();
+        if(!flush) {
+            ServletHttpExchange exchange = this.servletHttpExchange;
+            if (exchange != null && !exchange.getServletContext().isAutoFlush()) {
+                exchange.getChannelHandlerContext().flush();
+                flush = true;
+            }
         }
-        flush = true;
     }
 
     /**
@@ -188,7 +187,7 @@ public class ServletOutputStream extends javax.servlet.ServletOutputStream imple
             ServletHttpExchange exchange = getServletHttpExchange();
             ChannelHandlerContext context = exchange.getChannelHandlerContext();
             writeResponseHeaderIfNeed();
-            context.channel().writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT)
+            context.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT)
                     .addListener(closeListenerWrapper);
         }
     }
@@ -227,17 +226,18 @@ public class ServletOutputStream extends javax.servlet.ServletOutputStream imple
      */
     protected ByteBuf allocByteBuf(ByteBufAllocator allocator, int len){
         ByteBuf ioByteBuf;
-        if(len > responseWriterChunkMaxHeapByteLength && PlatformDependent.usedDirectMemory() + len < PlatformDependent.maxDirectMemory() * THRESHOLD){
-            ALLOC_DIRECT_BUFFER_LOCK.lock();
-            try {
-                if (PlatformDependent.usedDirectMemory() + len < PlatformDependent.maxDirectMemory() * THRESHOLD) {
-                    ioByteBuf = allocator.directBuffer(len);
-                } else {
-                    ioByteBuf = allocator.heapBuffer(len);
-                }
-            }finally {
-                ALLOC_DIRECT_BUFFER_LOCK.unlock();
-            }
+        if(len > responseWriterChunkMaxHeapByteLength && NettyUtil.freeDirectMemory() > len){
+            ioByteBuf = allocator.directBuffer(len);
+//            ALLOC_DIRECT_BUFFER_LOCK.lock();
+//            try {
+//                if (NettyUtil.freeDirectMemory() > len) {
+//                    ioByteBuf = allocator.directBuffer(len);
+//                } else {
+//                    ioByteBuf = allocator.heapBuffer(len);
+//                }
+//            }finally {
+//                ALLOC_DIRECT_BUFFER_LOCK.unlock();
+//            }
         }else {
             ioByteBuf = allocator.heapBuffer(len);
         }
@@ -311,14 +311,21 @@ public class ServletOutputStream extends javax.servlet.ServletOutputStream imple
             this.closeListener = closeListener;
         }
 
+        private void callListener(){
+            Consumer recycleConsumer;
+            while ((recycleConsumer = recycleConsumerQueue.poll()) != null) {
+                recycleConsumer.accept(ServletOutputStream.this);
+            }
+        }
         @Override
         public void operationComplete(ChannelFuture future) throws Exception {
             boolean isNeedClose = isCloseChannel(servletHttpExchange.isHttpKeepAlive(),
                     servletHttpExchange.getResponse().getStatus());
+            ChannelFuture closeFuture = null;
             if(isNeedClose){
                 Channel channel = future.channel();
                 if(channel.isActive()){
-                    ChannelFuture closeFuture = channel.close();
+                    closeFuture = channel.close();
                     ChannelFutureListener closeListener = this.closeListener;
                     if(closeListener != null) {
                         closeFuture.addListener(closeListener);
@@ -331,9 +338,10 @@ public class ServletOutputStream extends javax.servlet.ServletOutputStream imple
                 }
             }
 
-            Consumer recycleConsumer;
-            while ((recycleConsumer = recycleConsumerQueue.poll()) != null){
-                recycleConsumer.accept(ServletOutputStream.this);
+            if(closeFuture != null) {
+                closeFuture.addListener(f -> callListener());
+            }else {
+                callListener();
             }
 
             write = false;

@@ -51,7 +51,7 @@ public abstract class AbstractChannelHandler<I,O> extends ChannelDuplexHandler {
         }
     }
 
-    protected void onMessageReceived(ChannelHandlerContext ctx, I msg) throws Exception{
+    protected void onMessageReceived(ChannelHandlerContext ctx, I msg) throws Exception {
         ctx.fireChannelRead(msg);
     }
 
@@ -69,7 +69,7 @@ public abstract class AbstractChannelHandler<I,O> extends ChannelDuplexHandler {
         }
     }
 
-    protected void onMessageWriter(ChannelHandlerContext ctx, O msg, ChannelPromise promise) throws Exception{
+    protected void onMessageWriter(ChannelHandlerContext ctx, O msg, ChannelPromise promise) throws Exception {
         ctx.write(msg,promise);
     }
 

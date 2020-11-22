@@ -64,7 +64,7 @@ public class WebSocketServerHandshaker13Extension extends WebSocketServerHandsha
      * @param responseHeaderValue responseHeaderValue
      * @return responseHeaderValue
      */
-    private String handshakeExtension(String requestHeaderValue,String responseHeaderValue){
+    private String handshakeExtension(String requestHeaderValue, String responseHeaderValue){
         List<WebSocketServerExtension> validExtensions = getWebSocketServerExtension(requestHeaderValue);
         if(validExtensions != null) {
             for (WebSocketServerExtension extension : validExtensions) {
@@ -134,7 +134,7 @@ public class WebSocketServerHandshaker13Extension extends WebSocketServerHandsha
      * @param extensionParameters extensionParameters
      * @return extensionHeaderValue
      */
-    private static String appendExtension(String currentHeaderValue, String extensionName,Map<String, String> extensionParameters) {
+    private static String appendExtension(String currentHeaderValue, String extensionName, Map<String, String> extensionParameters) {
         StringBuilder newHeaderValue = new StringBuilder(
                 currentHeaderValue != null ? currentHeaderValue.length() : extensionName.length() + 1);
         if (currentHeaderValue != null && !currentHeaderValue.trim().isEmpty()) {

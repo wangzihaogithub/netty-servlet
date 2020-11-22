@@ -5,16 +5,18 @@ import com.github.netty.core.util.ResourceManager;
 import com.github.netty.protocol.servlet.util.HttpHeaderConstants;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufInputStream;
-import io.netty.buffer.Unpooled;
+import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.handler.codec.http.multipart.FileUpload;
 
 import javax.servlet.http.Part;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
+import java.util.function.Supplier;
 
 /**
  * formData File blocks
@@ -23,23 +25,40 @@ import java.util.Map;
 public class ServletFilePart implements Part {
     private FileUpload fileUpload;
     private ResourceManager resourceManager;
-    private Map<String,String> headerMap;
+    private Supplier<ResourceManager> resourceManagerSupplier;
+    private Map<String, String> headerMap;
 
-    public ServletFilePart(FileUpload fileUpload, ResourceManager resourceManager) {
+    public ServletFilePart(FileUpload fileUpload, Supplier<ResourceManager> resourceManagerSupplier) {
         this.fileUpload = fileUpload;
-        this.resourceManager = resourceManager;
+        this.resourceManagerSupplier = resourceManagerSupplier;
     }
 
     @Override
     public InputStream getInputStream() throws IOException {
         InputStream inputStream;
         if(fileUpload.isInMemory()){
-            ByteBuf byteBuf = Unpooled.wrappedBuffer(fileUpload.getByteBuf());
-            inputStream = new ByteBufInputStream(byteBuf,false);
+            inputStream = new ByteBufInputStream(fileUpload.getByteBuf().retainedDuplicate(),true);
         }else {
             inputStream = new FileInputStream(fileUpload.getFile());
         }
         return inputStream;
+    }
+
+    public static void main(String[] args) {
+        String content = "123";
+
+        ByteBuf byteBuf = PooledByteBufAllocator.DEFAULT.directBuffer();
+        byteBuf.writeBytes(content.getBytes());
+        byteBuf.writerIndex(byteBuf.capacity());
+
+        ByteBuf byteBuf1 = byteBuf.retainedDuplicate();
+        byteBuf1.release();
+
+        int refCnt = byteBuf.refCnt();
+        CharSequence charSequence = byteBuf.readCharSequence(byteBuf.readableBytes(), Charset.defaultCharset());
+
+        assert refCnt == 1;
+        assert content.contentEquals(charSequence);
     }
 
     @Override
@@ -64,6 +83,9 @@ public class ServletFilePart implements Part {
 
     @Override
     public void write(String fileName) throws IOException {
+        if(resourceManager == null){
+            resourceManager = resourceManagerSupplier.get();
+        }
         resourceManager.writeFile(getInputStream(),"/",fileName);
     }
 
@@ -94,12 +116,12 @@ public class ServletFilePart implements Part {
         return getHeaderMap().keySet();
     }
 
-    private Map<String,String> getHeaderMap(){
+    private Map<String, String> getHeaderMap(){
         if(headerMap == null) {
-            Map<String,String> headerMap = new CaseInsensitiveKeyMap<>(2);
+            Map<String, String> headerMap = new CaseInsensitiveKeyMap<>(2);
             headerMap.put(HttpHeaderConstants.CONTENT_DISPOSITION.toString(),
-                    HttpHeaderConstants.FORM_DATA + "; " + HttpHeaderConstants.NAME + "=\"" + getName() + "\"; " + HttpHeaderConstants.FILENAME + "=\"" + fileUpload.getFilename());
-            headerMap.put(HttpHeaderConstants.CONTENT_LENGTH.toString(), fileUpload.length() + "");
+                    HttpHeaderConstants.FORM_DATA + "; " + HttpHeaderConstants.NAME + "=\"" + getName() + "\"; " + HttpHeaderConstants.FILENAME + "=\"" + fileUpload.getFilename()+"\"");
+            headerMap.put(HttpHeaderConstants.CONTENT_LENGTH.toString(), String.valueOf(fileUpload.length()));
             if (fileUpload.getCharset() != null) {
                 headerMap.put(HttpHeaderConstants.CONTENT_TYPE.toString(), HttpHeaderConstants.CHARSET.toString() + '=' + fileUpload.getCharset().name());
             }

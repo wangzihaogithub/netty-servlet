@@ -8,9 +8,9 @@ import io.netty.bootstrap.ServerBootstrap;
  */
 public interface ServerListener extends Ordered {
 
-    default <T extends AbstractNettyServer> void onServerStart(T server) throws Exception{}
-    default <T extends AbstractNettyServer> void onServerStop(T server) throws Exception{}
-    default void config(ServerBootstrap bootstrap) throws Exception{}
+    default <T extends AbstractNettyServer> void onServerStart(T server) throws Exception {}
+    default <T extends AbstractNettyServer> void onServerStop(T server) throws Exception {}
+    default void config(ServerBootstrap bootstrap) throws Exception {}
 
     /**
      * default Priority order 0

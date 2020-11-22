@@ -9,6 +9,8 @@ import javax.servlet.RequestDispatcher;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -17,9 +19,10 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author wangzihao
  */
 public class ServletErrorPageManager {
-    private LoggerX logger = LoggerFactoryX.getLogger(getClass());
-    private Map<String, ServletErrorPage> exceptionPages = new ConcurrentHashMap<>();
-    private Map<Integer, ServletErrorPage> statusPages = new ConcurrentHashMap<>();
+    private final LoggerX logger = LoggerFactoryX.getLogger(getClass());
+    private boolean showErrorMessage = false;
+    private final Map<String, ServletErrorPage> exceptionPages = new ConcurrentHashMap<>();
+    private final Map<Integer, ServletErrorPage> statusPages = new ConcurrentHashMap<>();
 
     public void add(ServletErrorPage errorPage) {
         String exceptionType = errorPage.getExceptionType();
@@ -63,6 +66,14 @@ public class ServletErrorPageManager {
         return null;
     }
 
+    public boolean isShowErrorMessage() {
+        return showErrorMessage;
+    }
+
+    public void setShowErrorMessage(boolean showErrorMessage) {
+        this.showErrorMessage = showErrorMessage;
+    }
+
     /**
      * Handle error page
      * @param errorPage errorPage
@@ -86,9 +97,9 @@ public class ServletErrorPageManager {
             return;
         }
         ServletRequestDispatcher dispatcher = request.getRequestDispatcher(errorPagePath);
+        response.resetBuffer();
         if (dispatcher == null) {
             try {
-                response.resetBuffer();
                 response.getWriter().write("not found ".concat(errorPagePath));
                 response.sendError(HttpServletResponse.SC_NOT_FOUND);
             } catch (IOException e) {
@@ -99,12 +110,21 @@ public class ServletErrorPageManager {
         dispatcher.clearFilter();
         try {
             if(throwable != null) {
+                httpServletRequest.setAttribute(RequestDispatcher.ERROR_EXCEPTION, throwable);
                 httpServletRequest.setAttribute(RequestDispatcher.ERROR_EXCEPTION_TYPE, throwable.getClass());
+                if(isShowErrorMessage()) {
+                    String localizedMessage = throwable.getLocalizedMessage();
+                    if(localizedMessage == null){
+                        StringWriter writer = new StringWriter();
+                        throwable.printStackTrace(new PrintWriter(writer));
+                        localizedMessage = writer.toString();
+                    }
+                    httpServletRequest.setAttribute(RequestDispatcher.ERROR_MESSAGE, localizedMessage);
+                }
             }
             httpServletRequest.setAttribute(RequestDispatcher.ERROR_SERVLET_NAME,dispatcher.getName());
             httpServletRequest.setAttribute(RequestDispatcher.ERROR_REQUEST_URI, request.getRequestURI());
             httpServletRequest.setAttribute(RequestDispatcher.ERROR_STATUS_CODE, response.getStatus());
-            httpServletRequest.setAttribute(RequestDispatcher.ERROR_MESSAGE, response.getMessage());
             request.setDispatcherType(DispatcherType.ERROR);
 
             if (httpServletResponse.isCommitted()) {

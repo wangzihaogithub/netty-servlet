@@ -18,9 +18,9 @@ public class HttpBootstrap {
     private static HttpServletProtocol newHttpProtocol(){
         ServletContext servletContext = new ServletContext();
         servletContext.addServlet("myHttpServlet",new MyHttpFileServlet())
-                .addMapping("/test/hello");
-        servletContext.addServlet("ServletDefaultHttpServlet",new MyHttpServlet())
                 .addMapping("/test");
+        servletContext.addServlet("ServletDefaultHttpServlet",new MyHttpServlet())
+                .addMapping("/test/hello");
 
         HttpServletProtocol protocol = new HttpServletProtocol(servletContext);
         protocol.setMaxBufferBytes(1024 * 1024);//每个连接的输出流缓冲区上限,网速好就写大点. (字节. 1M)

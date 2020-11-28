@@ -14,7 +14,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class MyHttpServlet extends HttpServlet {
     @Override
     protected void service(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        for (int i = 0; i < 1000; i++) {
+        for (int i = 0; i < 1; i++) {
             PrintWriter writer = response.getWriter();
             writer.write("hello");
             writer.flush();

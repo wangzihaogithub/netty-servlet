@@ -56,7 +56,7 @@ public class DynamicProtocolChannelHandler extends AbstractChannelHandler<ByteBu
         ChannelId id = channel.id();
 
         ctx.executor().schedule(()-> {
-            TcpChannel tcpChannel = TcpChannel.getChannels().get(id);
+            TcpChannel tcpChannel = getTcpChannel(id);
             if(tcpChannel == null ||
                     (tcpChannel.getProtocol() == null && tcpChannel.isActive())) {
                 onProtocolBindTimeout(ctx);
@@ -179,19 +179,23 @@ public class DynamicProtocolChannelHandler extends AbstractChannelHandler<ByteBu
         ctx.close();
     }
 
-    protected void addTcpChannel(ChannelId id, TcpChannel tcpChannel){
+    public TcpChannel getTcpChannel(ChannelId id){
+        return TcpChannel.getChannels().get(id);
+    }
+
+    public void addTcpChannel(ChannelId id, TcpChannel tcpChannel){
         tcpChannel.attr(ATTR_KEY_TCP_CHANNEL).set(tcpChannel);
         TcpChannel.getChannels().put(id,tcpChannel);
     }
 
-    protected void removeTcpChannel(ChannelId id){
+    public void removeTcpChannel(ChannelId id){
         TcpChannel tcpChannel = TcpChannel.getChannels().remove(id);
         if(tcpChannel != null){
             tcpChannel.attr(ATTR_KEY_TCP_CHANNEL).set(null);
         }
     }
 
-    protected int getTcpChannelCount(){
+    public int getTcpChannelCount(){
         return TcpChannel.getChannels().size();
     }
 

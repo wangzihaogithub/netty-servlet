@@ -73,9 +73,9 @@ public class ServletHttpServletRequest implements HttpServletRequest, Recyclable
     private HttpRequest nettyRequest;
     private boolean isMultipart;
     private boolean isFormUrlEncoder;
-    private final Map<String, Object> attributeMap = Collections.synchronizedMap(new LinkedHashMap<>(16));
-    private final LinkedMultiValueMap<String, String> parameterMap = new LinkedMultiValueMap<>(16);
-    private final Map<String, String[]> unmodifiableParameterMap = new AbstractMap<String, String[]>() {
+    private final Map<String,Object> attributeMap = Collections.synchronizedMap(new LinkedHashMap<>(16));
+    private final LinkedMultiValueMap<String,String> parameterMap = new LinkedMultiValueMap<>(16);
+    private final Map<String,String[]> unmodifiableParameterMap = new AbstractMap<String, String[]>() {
 	    @Override
 	    public Set<Entry<String, String[]>> entrySet() {
 	    	if(isEmpty()){
@@ -83,7 +83,7 @@ public class ServletHttpServletRequest implements HttpServletRequest, Recyclable
 		    }
 		    HashSet<Entry<String, String[]>> result = new HashSet<>(6);
 		    Set<Entry<String, List<String>>> entries = parameterMap.entrySet();
-		    for (Entry<String, List<String>> entry : entries) {
+		    for (Entry<String,List<String>> entry : entries) {
 			    List<String> value = entry.getValue();
 			    String[] valueArr = value != null? value.toArray(new String[value.size()]): null;
 			    result.add(new SimpleImmutableEntry<>(entry.getKey(),valueArr));
@@ -157,7 +157,6 @@ public class ServletHttpServletRequest implements HttpServletRequest, Recyclable
                     }else {
                         throw new HttpPostRequestDecoder.ErrorDataDecoderException();
                     }
-                    postRequestDecoder.setDiscardThreshold(getDiscardThreshold());
                     this.postRequestDecoder = postRequestDecoder;
                 }
             }
@@ -199,17 +198,6 @@ public class ServletHttpServletRequest implements HttpServletRequest, Recyclable
 
     void setMultipartConfigElement(MultipartConfigElement multipartConfigElement) {
         this.multipartConfigElement = multipartConfigElement;
-        InterfaceHttpPostRequestDecoder postRequestDecoder = this.postRequestDecoder;
-        if(postRequestDecoder != null){
-            int discardThreshold = 0;
-            if(multipartConfigElement != null) {
-                discardThreshold = (int)multipartConfigElement.getMaxFileSize();
-            }
-            if(discardThreshold <= 0){
-                discardThreshold = Integer.MAX_VALUE;
-            }
-            postRequestDecoder.setDiscardThreshold(discardThreshold);
-        }
     }
 
     void setServletSecurityElement(ServletSecurityElement servletSecurityElement) {
@@ -228,17 +216,6 @@ public class ServletHttpServletRequest implements HttpServletRequest, Recyclable
             fileSizeThreshold = Math.max((int) getServletContext().getUploadMinSize(),fileSizeThreshold);
         }
         return fileSizeThreshold;
-    }
-
-    public int getDiscardThreshold(){
-        int discardThreshold = 0;
-        if(multipartConfigElement != null) {
-            discardThreshold = (int)multipartConfigElement.getMaxFileSize();
-        }
-        if(discardThreshold <= 0){
-            discardThreshold = Integer.MAX_VALUE;
-        }
-        return discardThreshold;
     }
 
     public boolean isMultipart() {
@@ -748,6 +725,9 @@ public class ServletHttpServletRequest implements HttpServletRequest, Recyclable
     @Override
     public ServletHttpSession getSession(boolean create) {
 	    String sessionId = getRequestedSessionId();
+	    if(sessionIdSource == null && !create){
+	        return null;
+        }
         ServletHttpSession httpSession = servletHttpExchange.getHttpSession();
         if (httpSession != null && httpSession.isValid() && httpSession.getId().equals(sessionId)) {
             return httpSession;
@@ -830,7 +810,7 @@ public class ServletHttpServletRequest implements HttpServletRequest, Recyclable
 
     @Override
     public String getRequestedSessionId() {
-        if(StringUtil.isNotEmpty(sessionId)){
+        if(sessionId != null){
             return sessionId;
         }
 
@@ -844,11 +824,12 @@ public class ServletHttpServletRequest implements HttpServletRequest, Recyclable
             sessionIdSource = SessionTrackingMode.COOKIE;
         }else {
             String queryString = getQueryString();
-            boolean isUrlCookie = queryString != null && queryString.contains(HttpConstants.JSESSION_ID_URL);
-            if(isUrlCookie) {
-                sessionIdSource = SessionTrackingMode.URL;
+            if(queryString != null && queryString.contains(HttpConstants.JSESSION_ID_URL)) {
                 sessionId = getParameter(HttpConstants.JSESSION_ID_URL);
-            }else {
+            }
+            if(StringUtil.isNotEmpty(sessionId)){
+                sessionIdSource = SessionTrackingMode.URL;
+            }else{
                 sessionIdSource = null;
                 sessionId = newSessionId();
             }
@@ -912,7 +893,15 @@ public class ServletHttpServletRequest implements HttpServletRequest, Recyclable
 
     @Override
     public String getParameter(String name) {
-        String[] values = getParameterMap().get(name);
+        String[] values;
+        if(getServletContext().getNotExistBodyParameters().contains(name)){
+            if(!decodeParameterByUrlFlag) {
+                decodeUrlParameter();
+            }
+            values = unmodifiableParameterMap.get(name);
+        }else {
+            values = getParameterMap().get(name);
+        }
         if(values == null || values.length == 0){
             return null;
         }

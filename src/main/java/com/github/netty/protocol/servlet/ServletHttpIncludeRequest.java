@@ -124,7 +124,7 @@ public class ServletHttpIncludeRequest extends HttpServletRequestWrapper{
         return servletPath;
     }
 
-    public void setPaths(String pathInfo, String queryString, String requestURI, String servletPath) {
+    public void setPaths(String pathInfo,String queryString,String requestURI,String servletPath) {
         this.pathInfo = pathInfo;
         this.queryString = queryString;
         this.requestURI = requestURI;
@@ -212,7 +212,11 @@ public class ServletHttpIncludeRequest extends HttpServletRequestWrapper{
         //Parse the requestURI and ensure that the requestURI prefix is + /
         String requestURI;
         if(existContextPath){
-            requestURI = '/' + contextPath + servletPath;
+            if(contextPath.startsWith("/")){
+                requestURI = contextPath + servletPath;
+            }else {
+                requestURI = '/' + contextPath + servletPath;
+            }
         }else {
             requestURI = servletPath;
         }
@@ -228,8 +232,8 @@ public class ServletHttpIncludeRequest extends HttpServletRequestWrapper{
      * Parse forward parameter
      */
     private void decodeParameter(){
-        Map<String, String[]> sourceParameterMap = super.getParameterMap();
-        Map<String, String[]> parameterMap = new LinkedHashMap<>(sourceParameterMap);
+        Map<String,String[]> sourceParameterMap = super.getParameterMap();
+        Map<String,String[]> parameterMap = new LinkedHashMap<>(sourceParameterMap);
         Charset charset = Charset.forName(getCharacterEncoding());
         ServletUtil.decodeByUrl(parameterMap, includePath,charset);
 

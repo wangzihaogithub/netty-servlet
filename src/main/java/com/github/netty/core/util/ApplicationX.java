@@ -41,16 +41,16 @@ public class ApplicationX {
             "org.hibernate.validator.internal.util.ConcurrentReferenceHashMap"
     );
 
-    private static final Map<Class, Boolean> AUTOWIRED_ANNOTATION_CACHE_MAP = newConcurrentReferenceMap(128);
-    private static final Map<Class, Boolean> QUALIFIER_ANNOTATION_CACHE_MAP = newConcurrentReferenceMap(128);
-    private static final Map<Class, Boolean> FACTORY_METHOD_ANNOTATION_CACHE_MAP = newConcurrentReferenceMap(32);
-    private static final Map<Class, PropertyDescriptor[]> PROPERTY_DESCRIPTOR_CACHE_MAP = newConcurrentReferenceMap(128);
-    private static final Map<Class, Method[]> DECLARED_METHODS_CACHE_MAP = newConcurrentReferenceMap(128);
+    private static final Map<Class,Boolean> AUTOWIRED_ANNOTATION_CACHE_MAP = newConcurrentReferenceMap(128);
+    private static final Map<Class,Boolean> QUALIFIER_ANNOTATION_CACHE_MAP = newConcurrentReferenceMap(128);
+    private static final Map<Class,Boolean> FACTORY_METHOD_ANNOTATION_CACHE_MAP = newConcurrentReferenceMap(32);
+    private static final Map<Class,PropertyDescriptor[]> PROPERTY_DESCRIPTOR_CACHE_MAP = newConcurrentReferenceMap(128);
+    private static final Map<Class,Method[]> DECLARED_METHODS_CACHE_MAP = newConcurrentReferenceMap(128);
     private static final OrderComparator COMPARATOR = new OrderComparator(new LinkedHashSet<>(Collections.singletonList(Order.class)));
 
-    private BiPredicate<ClassLoader, URL> resourceLoaderUrlFilter = (classLoader, url) -> !isJavaLib(url);
+    private BiPredicate<ClassLoader,URL> resourceLoaderUrlFilter = (classLoader, url) -> !isJavaLib(url);
     private Supplier<ClassLoader> resourceLoader;
-    private Function<BeanDefinition, String> beanNameGenerator = new DefaultBeanNameGenerator(this);
+    private Function<BeanDefinition,String> beanNameGenerator = new DefaultBeanNameGenerator(this);
 
     private final Collection<Class<? extends Annotation>> initMethodAnnotations = new LinkedHashSet<>(
                 Arrays.asList(PostConstruct.class));
@@ -71,13 +71,13 @@ public class ApplicationX {
     //需要跳过生命周期管理的bean名称集合
     private final Collection<String> beanSkipLifecycles = new LinkedHashSet<>(8);
     //存放Class与bean名称对应关系
-    private final Map<Class, String[]> beanNameMap = new ConcurrentHashMap<>(64);
+    private final Map<Class,String[]> beanNameMap = new ConcurrentHashMap<>(64);
     //存放别名与别名关系或别名与bean名称的关系
     private final Map<String, String> beanAliasMap = new ConcurrentHashMap<>(6);
     //存放bean名称与bean描述的关系
     private final Map<String,BeanDefinition> beanDefinitionMap = new ConcurrentHashMap<>(64);
     //存放bean名称与单例对象的关系
-    private final Map<String, Object> singletonObjects = new ConcurrentHashMap<>(64);
+    private final Map<String,Object> singletonObjects = new ConcurrentHashMap<>(64);
     //正在创建的单例bean
     private final Set<String> singletonsCurrentlyInCreation = Collections.newSetFromMap(new ConcurrentHashMap<>(16));
     private final Map<Class, AbstractBeanFactory> beanFactoryMap = new LinkedHashMap<>(8);
@@ -273,7 +273,7 @@ public class ApplicationX {
         }
     }
 
-    protected BiConsumer<URL, String> newScannerConsumer(ClassLoader classLoader, ScannerResult result){
+    protected BiConsumer<URL,String> newScannerConsumer(ClassLoader classLoader,ScannerResult result){
         return (url,className)->{
             try {
                 result.classCount.incrementAndGet();
@@ -297,11 +297,11 @@ public class ApplicationX {
         };
     }
 
-    public ScannerResult scanner(ClassLoader classLoader, boolean onlyInMyProject){
+    public ScannerResult scanner(ClassLoader classLoader,boolean onlyInMyProject){
         return scanner(classLoader,onlyInMyProject,new ScannerResult());
     }
 
-    public ScannerResult scanner(ClassLoader classLoader, boolean onlyInMyProject, ScannerResult result){
+    public ScannerResult scanner(ClassLoader classLoader,boolean onlyInMyProject,ScannerResult result){
         result.scannerBeginTimestamp = System.currentTimeMillis();
         try {
             ClassLoader systemClassLoader = ClassLoader.getSystemClassLoader();
@@ -412,7 +412,7 @@ public class ApplicationX {
         return scanner(false,rootPackage);
     }
 
-    public ScannerResult scanner(boolean onlyInMyProject, String... rootPackage){
+    public ScannerResult scanner(boolean onlyInMyProject,String... rootPackage){
         addScanPackage(rootPackage);
         ClassLoader loader = resourceLoader.get();
         return scanner(loader,onlyInMyProject);
@@ -428,7 +428,7 @@ public class ApplicationX {
         private final Set<URL> tempUrls = new LinkedHashSet<>();
         private final Set<URL> classUrls = new LinkedHashSet<>();
         private final Map<String,BeanDefinition> beanDefinitionMap = new ConcurrentHashMap<>(64);
-        private final Map<Class, Boolean> scannerAnnotationCacheMap = new ConcurrentHashMap<>(64);
+        private final Map<Class,Boolean> scannerAnnotationCacheMap = new ConcurrentHashMap<>(64);
         public AtomicInteger getClassCount() {
             return classCount;
         }
@@ -543,7 +543,7 @@ public class ApplicationX {
         return getBean(clazz, null,true);
     }
 
-    public <T>T getBean(Class<T> clazz, Object[] args, boolean required) {
+    public <T>T getBean(Class<T> clazz,Object[] args,boolean required) {
         String[] beanNames = getBeanNamesForType(clazz);
         String beanName;
         if(beanNames.length == 0){
@@ -580,7 +580,7 @@ public class ApplicationX {
         return getBean(beanName,args,required);
     }
 
-    public <T>T getBean(String beanNameOrAlias, Object[] args, boolean required){
+    public <T>T getBean(String beanNameOrAlias,Object[] args,boolean required){
         String beanName = getBeanName(beanNameOrAlias);
         BeanDefinition definition = beanDefinitionMap.get(beanName);
         if(definition == null) {
@@ -620,17 +620,17 @@ public class ApplicationX {
         return (T) getBean(beanName,null,true);
     }
 
-    public <T>T getBean(String beanName, Object[] args){
+    public <T>T getBean(String beanName,Object[] args){
         return (T) getBean(beanName,args,true);
     }
 
-    public <T> List<T> getBeanForAnnotation(Class<? extends Annotation>... annotationType){
+    public <T>List<T> getBeanForAnnotation(Class<? extends Annotation>... annotationType){
         List<T> result = new ArrayList<>();
         for (Map.Entry<String, BeanDefinition> entry : beanDefinitionMap.entrySet()) {
             String beanName = entry.getKey();
             BeanDefinition definition = entry.getValue();
             Class beanClass = definition.getBeanClassIfResolve(resourceLoader);
-            Annotation annotation = findAnnotation(beanClass, Arrays.asList(annotationType));
+            Annotation annotation = findAnnotation(beanClass,Arrays.asList(annotationType));
             if(annotation != null) {
                 T bean = getBean(beanName, null,false);
                 if(bean != null) {
@@ -641,7 +641,7 @@ public class ApplicationX {
         return result;
     }
 
-    public <T> List<T> getBeanForType(Class<T> clazz){
+    public <T>List<T> getBeanForType(Class<T> clazz){
         List<T> result = new ArrayList<>();
         for (String beanName : getBeanNamesForType(clazz)) {
             T bean = getBean(beanName, null,false);
@@ -666,7 +666,7 @@ public class ApplicationX {
         return newBeanDefinition(beanType,beanType);
     }
 
-    public BeanDefinition newBeanDefinition(Class beanType, AnnotatedElement annotatedElement){
+    public BeanDefinition newBeanDefinition(Class beanType,AnnotatedElement annotatedElement){
         Lazy lazyAnnotation = annotatedElement.getAnnotation(Lazy.class);
         Scope scopeAnnotation = annotatedElement.getAnnotation(Scope.class);
         Primary primaryAnnotation = annotatedElement.getAnnotation(Primary.class);
@@ -682,12 +682,12 @@ public class ApplicationX {
         return definition;
     }
 
-    public BeanDefinition addBeanDefinition(String beanName, BeanDefinition definition){
+    public BeanDefinition addBeanDefinition(String beanName,BeanDefinition definition){
         return addBeanDefinition(beanName,definition,beanNameMap,beanDefinitionMap);
     }
 
-    public BeanDefinition addBeanDefinition(String beanName, BeanDefinition definition,
-                                            Map<Class, String[]> beanNameMap,
+    public BeanDefinition addBeanDefinition(String beanName,BeanDefinition definition,
+                                            Map<Class,String[]> beanNameMap,
                                             Map<String,BeanDefinition> beanDefinitionMap){
         Class beanClass = definition.getBeanClassIfResolve(resourceLoader);
         String[] oldBeanNames = beanNameMap.get(beanClass);
@@ -739,7 +739,7 @@ public class ApplicationX {
         return autowireType;
     }
 
-    protected Object initializeBean(String beanName, BeanWrapper beanWrapper, BeanDefinition definition) throws IllegalStateException {
+    protected Object initializeBean(String beanName, BeanWrapper beanWrapper, BeanDefinition definition) throws IllegalStateException{
         Object bean = beanWrapper.getWrappedInstance();
         invokeBeanAwareMethods(beanName,bean,definition);
         Object wrappedBean = bean;
@@ -749,7 +749,7 @@ public class ApplicationX {
         return wrappedBean;
     }
 
-    protected void invokeBeanAwareMethods(String beanName, Object bean, BeanDefinition definition) throws IllegalStateException {
+    protected void invokeBeanAwareMethods(String beanName, Object bean, BeanDefinition definition) throws IllegalStateException{
         if(bean instanceof Aware){
             if(bean instanceof BeanNameAware){
                 ((BeanNameAware) bean).setBeanName(beanName);
@@ -760,7 +760,7 @@ public class ApplicationX {
         }
     }
 
-    protected Object applyBeanBeforeInitialization(String beanName, Object bean) throws IllegalStateException {
+    protected Object applyBeanBeforeInitialization(String beanName, Object bean) throws IllegalStateException{
         Object result = bean;
         for (BeanPostProcessor processor : new ArrayList<>(beanPostProcessors)) {
             Object current;
@@ -777,7 +777,7 @@ public class ApplicationX {
         return result;
     }
 
-    private Object applyBeanAfterInitialization(String beanName, Object bean) throws IllegalStateException {
+    private Object applyBeanAfterInitialization(String beanName, Object bean) throws IllegalStateException{
         Object result = bean;
         for (BeanPostProcessor processor : new ArrayList<>(beanPostProcessors)) {
             Object current;
@@ -815,7 +815,7 @@ public class ApplicationX {
         return Modifier.isInterface(modifier) || Modifier.isAbstract(modifier);
     }
 
-    private static Boolean isExistAnnotation0(Class clazz, Collection<Class<? extends Annotation>> finds, Map<Class, Boolean> cacheMap){
+    private static Boolean isExistAnnotation0(Class clazz, Collection<Class<? extends Annotation>> finds,Map<Class,Boolean> cacheMap){
         Annotation annotation;
         Boolean exist = cacheMap.get(clazz);
         if(finds.contains(clazz)){
@@ -843,10 +843,10 @@ public class ApplicationX {
         return exist;
     }
 
-    public static boolean isExistAnnotation(Class clazz, Collection<Class<? extends Annotation>> finds, Map<Class, Boolean> cacheMap){
+    public static boolean isExistAnnotation(Class clazz, Collection<Class<? extends Annotation>> finds,Map<Class,Boolean> cacheMap){
         Boolean existAnnotation = cacheMap.get(clazz);
         if(existAnnotation == null){
-            Map<Class, Boolean> tempCacheMap = new HashMap<>();
+            Map<Class,Boolean> tempCacheMap = new HashMap<>();
             existAnnotation = isExistAnnotation0(clazz, finds, tempCacheMap);
             cacheMap.putAll(tempCacheMap);
         }
@@ -872,7 +872,7 @@ public class ApplicationX {
             return this.excludes;
         }
 
-        public void doScan(String basePackage, String currentPackage, URL url, BiConsumer<URL, String> classConsumer) throws IOException {
+        public void doScan(String basePackage,String currentPackage, URL url, BiConsumer<URL,String> classConsumer) throws IOException {
             StringBuilder buffer = new StringBuilder();
             String splashPath = dotToSplash(basePackage);
             if (url == null || existContains(url)) {
@@ -900,7 +900,7 @@ public class ApplicationX {
                 }
             }
         }
-        public void doScan(String basePackage, ClassLoader loader, BiConsumer<URL, String> classConsumer) throws IOException {
+        public void doScan(String basePackage,ClassLoader loader, BiConsumer<URL,String> classConsumer) throws IOException {
             StringBuilder buffer = new StringBuilder();
             String splashPath = dotToSplash(basePackage);
             URL url = loader.getResource(splashPath);
@@ -939,7 +939,7 @@ public class ApplicationX {
             return false;
         }
 
-        private String toClassName(StringBuilder buffer, String shortName, String basePackage) {
+        private String toClassName(StringBuilder buffer,String shortName, String basePackage) {
             buffer.setLength(0);
             shortName = trimExtension(shortName);
             if(shortName.contains(basePackage)) {
@@ -1035,7 +1035,7 @@ public class ApplicationX {
     public static class InjectElement<T extends Member>{
         private static final String[] QUALIFIER_FIELDS = new String[]{"value","name"};
         /**
-         * 成员有[构造器,方法,字段] {@link Constructor , Method , Field}
+         * 成员有[构造器,方法,字段] {@link Constructor,Method,Field}
          */
         private final T member;
         /**
@@ -1147,7 +1147,7 @@ public class ApplicationX {
 
         public static List<InjectElement<Field>> getInjectFields(Class rootClass, ApplicationX applicationX){
             List<InjectElement<Field>> list = new ArrayList<>();
-            for(Class clazz = rootClass; clazz != null && clazz!= Object.class; clazz = clazz.getSuperclass()) {
+            for(Class clazz = rootClass; clazz != null && clazz!=Object.class; clazz = clazz.getSuperclass()) {
                 for (Field field : clazz.getDeclaredFields()) {
                     //寻找打着注解的字段
                     if(null != findDeclaredAnnotation(field, applicationX.autowiredAnnotations, AUTOWIRED_ANNOTATION_CACHE_MAP)){
@@ -1178,7 +1178,7 @@ public class ApplicationX {
          * @return 从容器中取出的多个bean
          * @throws IllegalStateException 如果容器中不存在需要的bean
          */
-        private Object[] getInjectValues(Class targetClass) throws IllegalStateException {
+        private Object[] getInjectValues(Class targetClass) throws IllegalStateException{
             Boolean defaultRequired = this.required;
             if(defaultRequired == null){
                 defaultRequired = Boolean.FALSE;
@@ -1200,7 +1200,7 @@ public class ApplicationX {
                     }
                     case BeanDefinition.AUTOWIRE_BY_TYPE:
                     default:{
-                        Class<?> autowireClass = requiredType[i] instanceof Class ?
+                        Class<?> autowireClass = requiredType[i] instanceof Class?
                                     (Class)requiredType[i] : findConcreteClass(requiredClass[i],targetClass);
                         desc = autowireClass;
                         if(autowireClass == Object.class){
@@ -1223,7 +1223,7 @@ public class ApplicationX {
         }
 
         private static Class findConcreteClass(Class<?> parameterGenericClass, Class concreteChildClass){
-            BiFunction<Type, Class<?>, Class<?>> findFunction = (generic, genericSuper)->{
+            BiFunction<Type,Class<?>,Class<?>> findFunction = (generic,genericSuper)->{
                 if(generic instanceof ParameterizedType){
                     for (Type actualTypeArgument : ((ParameterizedType) generic).getActualTypeArguments()) {
                         if(actualTypeArgument instanceof Class
@@ -1252,7 +1252,7 @@ public class ApplicationX {
          * @return 如果是方法,则返回方法返回值. 如果是构造器,返回实例. 如果是字段返回null
          * @throws IllegalStateException 注入异常
          */
-        public Object inject(Object target, Class targetClass) throws IllegalStateException {
+        public Object inject(Object target,Class targetClass) throws IllegalStateException{
             if(targetClass == null){
                 targetClass = target.getClass();
             }
@@ -1296,7 +1296,7 @@ public class ApplicationX {
             return null;
         }
 
-        public Object newInstance(Object[] args) throws IllegalStateException {
+        public Object newInstance(Object[] args) throws IllegalStateException{
             //不能创建枚举类
             if (this.member.getDeclaringClass().isEnum()){
                 return null;
@@ -1329,7 +1329,7 @@ public class ApplicationX {
             if(annotation == null) {
                 return def;
             }
-            Type annotationDeclaredType = getAnnotationValue(annotation,"type", Type.class);
+            Type annotationDeclaredType = getAnnotationValue(annotation,"type",Type.class);
             if(annotationDeclaredType != null && annotationDeclaredType != Object.class){
                 return annotationDeclaredType;
             }else {
@@ -1338,8 +1338,8 @@ public class ApplicationX {
         }
     }
 
-    private static class DefaultBeanNameGenerator implements Function<BeanDefinition, String> {
-        private final Map<Class, Boolean> scannerAnnotationCacheMap = newConcurrentReferenceMap(32);
+    private static class DefaultBeanNameGenerator implements Function<BeanDefinition,String>{
+        private final Map<Class,Boolean> scannerAnnotationCacheMap = newConcurrentReferenceMap(32);
         private final ApplicationX applicationX;
         public DefaultBeanNameGenerator(ApplicationX applicationX) {
             this.applicationX = Objects.requireNonNull(applicationX);
@@ -1350,7 +1350,7 @@ public class ApplicationX {
             Annotation annotation = findDeclaredAnnotation(beanClass, applicationX.scannerAnnotations,scannerAnnotationCacheMap);
             String beanName = null;
             if(annotation != null){
-                beanName = getAnnotationValue(annotation,"value", String.class);
+                beanName = getAnnotationValue(annotation,"value",String.class);
             }
             if(beanName == null || beanName.isEmpty()) {
                 String className = beanClass.getName();
@@ -1375,7 +1375,7 @@ public class ApplicationX {
         //是否允许循环引用
         private boolean allowCircularReferences = true;
         @Override
-        public Object createBean(String beanName, BeanDefinition definition, Object[] args) {
+        public Object createBean(String beanName,BeanDefinition definition,Object[] args) {
             //如果不等于空, 说明在事件通知时, 用户返回了实例,不需要创建. 这样会不受下面的生命周期控制 (通常用于代理)
             Object bean = resolveBeforeInstantiation(beanName, definition);
             if (bean != null) {
@@ -1385,7 +1385,7 @@ public class ApplicationX {
             return doCreateBean(beanName,definition,args);
         }
 
-        protected Object doCreateBean(String beanName, BeanDefinition definition, Object[] args){
+        protected Object doCreateBean(String beanName, BeanDefinition definition,Object[] args){
             //参考 org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory
             //创建实例, 等同于newInstance(); 这时只是一个空的实例.
             BeanWrapper beanInstanceWrapper = createBeanInstance(beanName, definition, args);
@@ -1479,7 +1479,7 @@ public class ApplicationX {
             return null;
         }
 
-        protected Class resolveBeanClass(String beanName, BeanDefinition definition, Supplier<ClassLoader> loaderSupplier){
+        protected Class resolveBeanClass(String beanName,BeanDefinition definition, Supplier<ClassLoader> loaderSupplier){
             return definition.getBeanClassIfResolve(loaderSupplier);
         }
 
@@ -1490,7 +1490,7 @@ public class ApplicationX {
          * @param args 预期的构造入参,可能会改变
          * @return bean的实例包装
          */
-        protected BeanWrapper createBeanInstance(String beanName, BeanDefinition definition, Object[] args){
+        protected BeanWrapper createBeanInstance(String beanName,BeanDefinition definition,Object[] args){
             Supplier<?> beanSupplier = definition.getBeanSupplier();
             Object beanInstance;
             //如果用户定义了实例的获取, 就使用户返回的.
@@ -1515,7 +1515,7 @@ public class ApplicationX {
             return bw;
         }
 
-        protected BeanWrapper autowireConstructor(String beanName, BeanDefinition mbd, Constructor<?>[] ctors, Object[] explicitArgs) throws IllegalStateException {
+        protected BeanWrapper autowireConstructor(String beanName, BeanDefinition mbd, Constructor<?>[] ctors, Object[] explicitArgs) throws IllegalStateException{
             int errorCount = 0;
             for (Constructor<?> constructor : ctors) {
                 InjectElement<Constructor<?>> element = new InjectElement<>(constructor, ApplicationX.this);
@@ -1533,7 +1533,7 @@ public class ApplicationX {
                     errorCount++;
                 }
             }
-            throw new IllegalStateException("can not create instances. "+ Arrays.toString(ctors)+". " + singletonsCurrentlyInCreation);
+            throw new IllegalStateException("can not create instances. "+Arrays.toString(ctors)+". " + singletonsCurrentlyInCreation);
         }
 
         protected Constructor<?>[] determineConstructorsFromBeanPostProcessors(Class<?> beanClass, String beanName)
@@ -1562,7 +1562,7 @@ public class ApplicationX {
             //实现需参照 org.springframework.beans.factory.support.AbstractBeanFactory.registerCustomEditors
         }
 
-        protected void populateBean(String beanName, BeanDefinition definition, BeanWrapper bw){
+        protected void populateBean(String beanName,BeanDefinition definition,BeanWrapper bw){
             //boolean控制是否需要继续填充bean的属性
             boolean continueWithPropertyPopulation = true;
             //通知实例化后的PostProcessor事件
@@ -1681,7 +1681,7 @@ public class ApplicationX {
             bw.setPropertyValues(pvs);
         }
 
-        private <T> T newInstance(Class<T> clazz) throws IllegalStateException {
+        private <T> T newInstance(Class<T> clazz) throws IllegalStateException{
             try {
                 Object instance = clazz.getDeclaredConstructor().newInstance();
                 return (T) instance;
@@ -1689,13 +1689,13 @@ public class ApplicationX {
                 throw new IllegalStateException("newInstanceByJdk error="+e,e);
             }
         }
-        private void autowireByType(String beanName, BeanDefinition definition, BeanWrapper beanInstanceWrapper, PropertyValues pvs){
+        private void autowireByType(String beanName,BeanDefinition definition,BeanWrapper beanInstanceWrapper,PropertyValues pvs){
         }
-        private void autowireByName(String beanName, BeanDefinition definition, BeanWrapper beanInstanceWrapper, PropertyValues pvs){
+        private void autowireByName(String beanName,BeanDefinition definition,BeanWrapper beanInstanceWrapper,PropertyValues pvs){
         }
     }
 
-    private static <T>T getAnnotationValue(Annotation annotation, String[] fieldNames, Class<T> type){
+    private static <T>T getAnnotationValue(Annotation annotation,String[] fieldNames,Class<T> type){
         for (String fieldName : fieldNames) {
             T value = getAnnotationValue(annotation,fieldName,type);
             if(value != null){
@@ -1705,7 +1705,7 @@ public class ApplicationX {
         return null;
     }
 
-    private static <T>T getAnnotationValue(Annotation annotation, String fieldName, Class<T> type){
+    private static <T>T getAnnotationValue(Annotation annotation,String fieldName,Class<T> type){
         try {
             Method method = annotation.annotationType().getDeclaredMethod(fieldName);
             Object value = method.invoke(annotation);
@@ -1719,7 +1719,7 @@ public class ApplicationX {
         }
     }
 
-    private static Annotation findDeclaredAnnotation(AnnotatedElement element, Collection<Class<? extends Annotation>> finds, Map<Class, Boolean> cacheMap){
+    private static Annotation findDeclaredAnnotation(AnnotatedElement element, Collection<Class<? extends Annotation>> finds, Map<Class,Boolean> cacheMap){
         Annotation[] fieldAnnotations = element.getDeclaredAnnotations();
         for (Annotation annotation : fieldAnnotations) {
             boolean existAnnotation = isExistAnnotation(annotation.annotationType(), finds,cacheMap);
@@ -2035,7 +2035,7 @@ public class ApplicationX {
         Object getValue();
     }
 
-    public static class PropertyValues implements Iterable<PropertyValue> {
+    public static class PropertyValues implements Iterable<PropertyValue>{
         public static PropertyValues EMPTY = new PropertyValues(new PropertyValue[0]);
         private PropertyValue[] propertyValues;
         public PropertyValues(PropertyValue[] propertyValues) {
@@ -2082,7 +2082,7 @@ public class ApplicationX {
         }
     }
 
-    public static class OrderComparator implements Comparator<Object> {
+    public static class OrderComparator implements Comparator<Object>{
         private final Collection<Class<? extends Annotation>> orderedAnnotations;
         public OrderComparator(Collection<Class<? extends Annotation>> orderedAnnotations) {
             this.orderedAnnotations = Objects.requireNonNull(orderedAnnotations);
@@ -2203,7 +2203,7 @@ public class ApplicationX {
          * @param bean 刚创建的bean
          * @param beanClass 不是抽象的类型
          */
-        private void inject(Object bean, Class beanClass){
+        private void inject(Object bean,Class beanClass){
             //获取需要注入的字段, 比如打过注解(@Autowired)的字段
             List<InjectElement<Field>> declaredFields = InjectElement.getInjectFields(beanClass,applicationX);
             //获取需要注入的方法. 比如打过注解(@Autowired)的setter方法.
@@ -2225,7 +2225,7 @@ public class ApplicationX {
         private void addBeanDefinition(Method method, Annotation factoryMethodAnnotation, String factoryBeanName, Class<?> factoryBeanClass){
             String[] beanNames = getAnnotationValue(factoryMethodAnnotation, "value", String[].class);
             LinkedList<String> beanNameList = new LinkedList<>(beanNames == null || beanNames.length == 0?
-                    Arrays.asList(method.getName()): Arrays.asList(beanNames));
+                    Arrays.asList(method.getName()):Arrays.asList(beanNames));
             String beanName = beanNameList.pollFirst();
 
             BeanDefinition definition = applicationX.newBeanDefinition(method.getReturnType(),method);
@@ -2288,12 +2288,12 @@ public class ApplicationX {
     }
 
     @Documented
-    @Retention(RetentionPolicy.RUNTIME)
+    @Retention (RetentionPolicy.RUNTIME)
     @Target(METHOD)
     public @interface PostConstruct {}
 
     @Documented
-    @Retention(RetentionPolicy.RUNTIME)
+    @Retention (RetentionPolicy.RUNTIME)
     @Target(METHOD)
     public @interface PreDestroy {}
 
@@ -2414,7 +2414,7 @@ public class ApplicationX {
             return descriptor.getWriteMethod() != null;
         }
 
-        public Class<?> getPropertyType(String propertyName) throws IllegalArgumentException, IllegalStateException {
+        public Class<?> getPropertyType(String propertyName) throws IllegalArgumentException,IllegalStateException{
             PropertyDescriptor descriptor = getPropertyDescriptor(propertyName);
             if(descriptor == null){
                 throw new IllegalArgumentException("No property handler found");
@@ -2422,11 +2422,11 @@ public class ApplicationX {
             return descriptor.getPropertyType();
         }
 
-        public Type getPropertyTypeDescriptor(String propertyName) throws IllegalArgumentException, IllegalStateException {
+        public Type getPropertyTypeDescriptor(String propertyName) throws IllegalArgumentException,IllegalStateException{
             return getPropertyType(propertyName);
         }
 
-        public Object getPropertyValue(String propertyName) throws IllegalArgumentException, IllegalStateException {
+        public Object getPropertyValue(String propertyName) throws IllegalArgumentException,IllegalStateException{
             PropertyDescriptor descriptor = getPropertyDescriptor(propertyName);
             if(descriptor == null){
                 throw new IllegalArgumentException("No property handler found");
@@ -2442,7 +2442,7 @@ public class ApplicationX {
             }
         }
 
-        public void setPropertyValue(String propertyName, Object value) throws IllegalArgumentException, IllegalStateException {
+        public void setPropertyValue(String propertyName, Object value) throws IllegalArgumentException,IllegalStateException{
             PropertyDescriptor descriptor = getPropertyDescriptor(propertyName);
             if(descriptor == null){
                 throw new IllegalArgumentException("No property handler found");
@@ -2459,28 +2459,28 @@ public class ApplicationX {
             }
         }
 
-        public void setPropertyValue(PropertyValue pv) throws IllegalArgumentException, IllegalStateException {
+        public void setPropertyValue(PropertyValue pv) throws IllegalArgumentException,IllegalStateException{
             // TODO: 1月26日 026 setPropertyValue
             setPropertyValue(pv.name,pv.value);
         }
 
-        public void setPropertyValues(Map<?, ?> map) throws IllegalArgumentException, IllegalStateException {
+        public void setPropertyValues(Map<?, ?> map) throws IllegalArgumentException,IllegalStateException{
             for (Map.Entry<?, ?> entry : map.entrySet()) {
                 setPropertyValue(entry.getKey().toString(),entry.getValue());
             }
         }
 
-        public void setPropertyValues(PropertyValues pvs) throws IllegalArgumentException, IllegalStateException {
+        public void setPropertyValues(PropertyValues pvs) throws IllegalArgumentException,IllegalStateException{
             setPropertyValues(pvs,false, false);
         }
 
         public void setPropertyValues(PropertyValues pvs, boolean ignoreUnknown)
-                throws IllegalArgumentException, IllegalStateException {
+                throws IllegalArgumentException,IllegalStateException{
             setPropertyValues(pvs,ignoreUnknown, false);
         }
 
         public void setPropertyValues(PropertyValues pvs, boolean ignoreUnknown, boolean ignoreInvalid)
-                throws IllegalArgumentException, IllegalStateException {
+                throws IllegalArgumentException,IllegalStateException{
             for (PropertyValue pv : pvs) {
                 try {
                     setPropertyValue(pv);
@@ -2496,7 +2496,7 @@ public class ApplicationX {
             }
         }
 
-        public PropertyDescriptor getPropertyDescriptor(String propertyName) throws IllegalArgumentException {
+        public PropertyDescriptor getPropertyDescriptor(String propertyName) throws IllegalArgumentException{
             for (PropertyDescriptor descriptor : getPropertyDescriptors()) {
                 if(descriptor.getName().equals(propertyName)){
                     return descriptor;
@@ -2505,7 +2505,7 @@ public class ApplicationX {
             return null;
         }
         //by org.springframework.beans.TypeConverter
-        public <T> T convertIfNecessary(Object value, Class<T> requiredType) throws IllegalArgumentException {
+        public <T> T convertIfNecessary(Object value, Class<T> requiredType) throws IllegalArgumentException{
             Class<?> sourceType = value != null? value.getClass(): null;
             Class<?> targetType = requiredType;
             Object convertValue = value;
@@ -2534,7 +2534,7 @@ public class ApplicationX {
         }
     }
 
-    private void invokeBeanDestroy(String beanName, Object bean, BeanDefinition definition) throws IllegalStateException {
+    private void invokeBeanDestroy(String beanName, Object bean,BeanDefinition definition) throws IllegalStateException{
         boolean isDisposableBean = bean instanceof DisposableBean;
         if(isDisposableBean){
             try {
@@ -2555,7 +2555,7 @@ public class ApplicationX {
         }
     }
 
-    private void invokeBeanInitialization(String beanName, Object bean, BeanDefinition definition) throws IllegalStateException {
+    private void invokeBeanInitialization(String beanName, Object bean, BeanDefinition definition) throws IllegalStateException{
         boolean isInitializingBean = bean instanceof InitializingBean;
         if(isInitializingBean){
             try {
@@ -2662,7 +2662,7 @@ public class ApplicationX {
         return null;
     }
 
-    private static PropertyDescriptor[] getPropertyDescriptorsIfCache(Class clazz) throws IllegalStateException {
+    private static PropertyDescriptor[] getPropertyDescriptorsIfCache(Class clazz) throws IllegalStateException{
         PropertyDescriptor[] result = PROPERTY_DESCRIPTOR_CACHE_MAP.get(clazz);
         if(result == null) {
             try {
@@ -2684,7 +2684,7 @@ public class ApplicationX {
         return result;
     }
 
-    private static <K,V> ConcurrentMap<K,V> newConcurrentReferenceMap(int initialCapacity){
+    private static <K,V>ConcurrentMap<K,V> newConcurrentReferenceMap(int initialCapacity){
         if(CONCURRENT_REFERENCE_MAP_CONSTRUCTOR != null){
             try {
                 return CONCURRENT_REFERENCE_MAP_CONSTRUCTOR.newInstance(initialCapacity);
@@ -2750,7 +2750,7 @@ public class ApplicationX {
             }
         }
     }
-    private static <T> Constructor<T> getAnyConstructor(Class<?>[] parameterTypes, String... referenceMaps){
+    private static <T>Constructor<T> getAnyConstructor(Class<?>[] parameterTypes,String... referenceMaps){
         for (String s : referenceMaps) {
             try {
                 Class<T> aClass = (Class<T>) Class.forName(s);

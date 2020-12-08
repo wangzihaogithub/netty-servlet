@@ -29,7 +29,7 @@ import java.util.concurrent.TimeUnit;
  * specialized version, just flushing data after no read is done on the channel after a period. It's
  * used to avoid aggressively flushing from the ProtocolProcessor.
  */
-public class AutoFlushChannelHandler extends AbstractChannelHandler<Object, Object> {
+public class AutoFlushChannelHandler extends AbstractChannelHandler<Object,Object> {
     private static final long MIN_TIMEOUT_NANOS = TimeUnit.MILLISECONDS.toNanos(1);
 
     private final long writerIdleTimeNanos;
@@ -112,7 +112,7 @@ public class AutoFlushChannelHandler extends AbstractChannelHandler<Object, Obje
         // Avoid the case where destroy() is called before scheduling timeouts.
         // See: https://github.com/netty/netty/issues/143
         if (logger.isTraceEnabled()) {
-            logger.trace("Initializing autoflush handler on channel {} ", ctx.channel());
+            logger.trace("Initializing autoflush handler on channel {}", ctx.channel());
         }
         switch (state) {
             case 1:
@@ -147,7 +147,7 @@ public class AutoFlushChannelHandler extends AbstractChannelHandler<Object, Obje
     private void channelIdle(ChannelHandlerContext ctx) {
         // ctx.fireUserEventTriggered(evt);
         if (logger.isTraceEnabled()) {
-            logger.trace("Flushing idle Netty channel {} Cid: {}", ctx.channel());
+            logger.trace("Flushing idle Netty channel {}", ctx.channel());
         }
         ctx.channel().flush();
     }

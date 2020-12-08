@@ -104,7 +104,7 @@ public class HttpHeaderUtil {
             if (keepAlive) {
                 h.remove(HttpHeaderConstants.CONNECTION);
             } else {
-//                h.set(HttpHeaderConstants.CONNECTION, HttpHeaderConstants.CLOSE);
+                h.set(HttpHeaderConstants.CONNECTION, HttpHeaderConstants.CLOSE);
             }
         } else {
             if (keepAlive) {
@@ -197,7 +197,7 @@ public class HttpHeaderUtil {
      * @param length length
      */
     public static void setContentLength(HttpHeaders headers, long length) {
-        headers.set(HttpHeaderConstants.CONTENT_LENGTH, (CharSequence) String.valueOf(length));
+        headers.set(HttpHeaderConstants.CONTENT_LENGTH, (CharSequence)String.valueOf(length));
     }
 
     /**

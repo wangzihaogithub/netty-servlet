@@ -18,7 +18,7 @@ import java.util.concurrent.TimeUnit;
 public class NettyThreadPoolExecutor extends ThreadPoolExecutor {
 
     public NettyThreadPoolExecutor(int corePoolSize, int maximumPoolSize, long keepAliveTime, TimeUnit unit,
-                                   BlockingQueue<Runnable> workQueue, String poolName, int priority, boolean daemon,
+                                   BlockingQueue<Runnable> workQueue, String poolName,int priority,boolean daemon,
                                    RejectedExecutionHandler handler) {
         super(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue, new DefaultThreadFactory(poolName,daemon,priority,
                 System.getSecurityManager() == null ? Thread.currentThread().getThreadGroup() : System.getSecurityManager().getThreadGroup()){

@@ -3,7 +3,6 @@ package com.github.netty.core.util;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.instrument.IllegalClassFormatException;
-import java.lang.reflect.Member;
 import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.HashMap;
@@ -14,8 +13,8 @@ import java.util.function.Function;
  * read class file - based method variable parameter name function
  * @author wangzihao
  */
-public class ClassFileMethodToParameterNamesFunction implements Function<Method, String[]> {
-    private final Map<Class<?>, Map<Member, String[]>> parameterNamesCache = new ConcurrentReferenceHashMap<>(
+public class ClassFileMethodToParameterNamesFunction implements Function<Method,String[]> {
+    private final Map<Class<?>, Map<java.lang.reflect.Member, String[]>> parameterNamesCache = new ConcurrentReferenceHashMap<>(
             16, ConcurrentReferenceHashMap.ReferenceType.WEAK);
     private static final String[] EMPTY = {};
 
@@ -25,7 +24,7 @@ public class ClassFileMethodToParameterNamesFunction implements Function<Method,
         if(declaringClass.isInterface()){
             return EMPTY;
         }
-        Map<Member, String[]> memberMap = parameterNamesCache.get(declaringClass);
+        Map<java.lang.reflect.Member, String[]> memberMap = parameterNamesCache.get(declaringClass);
         if(memberMap == null){
             memberMap = readParameterNameMap(declaringClass);
             parameterNamesCache.put(declaringClass,memberMap);
@@ -37,7 +36,7 @@ public class ClassFileMethodToParameterNamesFunction implements Function<Method,
         return parameterNames;
     }
 
-    public static Map<Member, String[]> readParameterNameMap(Class<?> clazz) {
+    public static Map<java.lang.reflect.Member,String[]> readParameterNameMap(Class<?> clazz) {
         InputStream classInputStream = clazz.getResourceAsStream(ReflectUtil.getClassFileName(clazz));
         if(classInputStream == null){
             return Collections.emptyMap();
@@ -50,7 +49,7 @@ public class ClassFileMethodToParameterNamesFunction implements Function<Method,
             throw new IllegalArgumentException(e.getMessage(),e.getCause());
         }
 
-        Map<Member, String[]> methodParameterNameMap = new HashMap<>(6);
+        Map<java.lang.reflect.Member,String[]> methodParameterNameMap = new HashMap<>(6);
         for(JavaClassFile.Member methodMemberInfo : javaClassFile.getMethods()){
             java.lang.reflect.Member member;
             try {
@@ -88,7 +87,7 @@ public class ClassFileMethodToParameterNamesFunction implements Function<Method,
     }
 
     public static void main(String[] args) {
-        Map<Member, String[]> memberMap = readParameterNameMap(ClassFileMethodToParameterNamesFunction.class);
+        Map<java.lang.reflect.Member, String[]> memberMap = readParameterNameMap(ClassFileMethodToParameterNamesFunction.class);
         System.out.println("memberMap = " + memberMap);
     }
 }

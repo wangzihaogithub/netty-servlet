@@ -11,10 +11,10 @@ import java.util.function.Function;
  * Annotation-based method name function
  * @author wangzihao
  */
-public class AnnotationMethodToMethodNameFunction implements Function<Method, String> {
+public class AnnotationMethodToMethodNameFunction implements Function<Method,String> {
     private final Collection<Class<?extends Annotation>> methodNameAnnotationClasses;
     private final Collection<String> fieldNameList = new LinkedHashSet<>(Arrays.asList("value","name"));
-    private final Map<Integer, Boolean> existAnnotationMap = new WeakHashMap<>(128);
+    private final Map<Integer,Boolean> existAnnotationMap = new WeakHashMap<>(128);
     public AnnotationMethodToMethodNameFunction(Collection<Class<? extends Annotation>> methodNameAnnotationClasses) {
         this.methodNameAnnotationClasses = Objects.requireNonNull(methodNameAnnotationClasses);
     }

@@ -39,7 +39,7 @@ public abstract class AbstractNettyClient{
         this("",null);
     }
 
-    public AbstractNettyClient(String remoteHost, int remotePort) {
+    public AbstractNettyClient(String remoteHost,int remotePort) {
         this(new InetSocketAddress(remoteHost,remotePort));
     }
 
@@ -52,7 +52,7 @@ public abstract class AbstractNettyClient{
      * @param namePre 名称前缀
      * @param remoteAddress 远程地址
      */
-    public AbstractNettyClient(String namePre, InetSocketAddress remoteAddress) {
+    public AbstractNettyClient(String namePre,InetSocketAddress remoteAddress) {
         this.enableEpoll = Epoll.isAvailable();
         this.remoteAddress = remoteAddress;
         this.namePre = namePre;

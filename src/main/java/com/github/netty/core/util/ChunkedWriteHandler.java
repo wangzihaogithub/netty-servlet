@@ -15,7 +15,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.LongAdder;
 
 /**
  * A {@link ChannelHandler} that adds support for writing a large data stream
@@ -41,7 +40,7 @@ import java.util.concurrent.atomic.LongAdder;
  * </pre>
  *
  * <h3>Sending a stream which generates a chunk intermittently</h3>
- *
+ * <p>
  * Some {@link ChunkedInput} generates a chunk on a certain event or timing.
  * Such {@link ChunkedInput} implementation often returns {@code null} on
  * {@link ChunkedInput#readChunk(ByteBufAllocator)}, resulting in the indefinitely suspended
@@ -50,16 +49,9 @@ import java.util.concurrent.atomic.LongAdder;
  */
 public class ChunkedWriteHandler extends ChannelDuplexHandler {
     private static final LoggerX LOGGER =
-        LoggerFactoryX.getLogger(ChunkedWriteHandler.class);
-    /**
-     * output stream maxBufferBytes
-     * Each buffer accumulate the maximum number of bytes (default 1M)
-     */
-    private long maxBufferBytes = 1024 * 1024;
-    private final LongAdder unFlushBytes = new LongAdder();
+            LoggerFactoryX.getLogger(ChunkedWriteHandler.class);
     private final Queue<PendingWrite> queue;
     private volatile ChannelHandlerContext ctx;
-    private static final ClosedChannelException CLOSE_EXCEPTION = new ClosedChannelException();
     private final AtomicBoolean flushIng = new AtomicBoolean(false);
 
     public ChunkedWriteHandler() {
@@ -70,16 +62,8 @@ public class ChunkedWriteHandler extends ChannelDuplexHandler {
         this.queue = queue;
     }
 
-    public void setMaxBufferBytes(long maxBufferBytes) {
-        this.maxBufferBytes = maxBufferBytes;
-    }
-
     public Collection<PendingWrite> getUnFlushList() {
         return Collections.unmodifiableCollection(queue);
-    }
-
-    public long getMaxBufferBytes() {
-        return maxBufferBytes;
     }
 
     @Override
@@ -111,26 +95,18 @@ public class ChunkedWriteHandler extends ChannelDuplexHandler {
         }
     }
 
-    private PendingWrite removeFirst(){
+    private PendingWrite removeFirst() {
         PendingWrite remove = queue.poll();
-        if(remove != null) {
-            unFlushBytes.add(-remove.bytes);
-        }
         return remove;
     }
 
-    private void add(PendingWrite pendingWrite){
+    private void add(PendingWrite pendingWrite) {
         queue.add(pendingWrite);
-        unFlushBytes.add(pendingWrite.bytes);
     }
 
     @Override
     public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
         add(PendingWrite.newInstance(msg, promise));
-
-        if(unFlushBytes.longValue() >= maxBufferBytes){
-            doFlush(ctx);
-        }
     }
 
     @Override
@@ -153,17 +129,14 @@ public class ChunkedWriteHandler extends ChannelDuplexHandler {
         ctx.fireChannelWritabilityChanged();
     }
 
-    public int unWriteSize(){
+    public int unWriteSize() {
         return queue.size();
     }
 
     public void discard(Throwable cause) {
         List<PendingWrite> responseList = new ArrayList<>();
-        PendingWrite currentWrite = null;
-        for (;;) {
-            if(currentWrite != null){
-                currentWrite.recycle();
-            }
+        PendingWrite currentWrite;
+        for (; ; ) {
             currentWrite = removeFirst();
             if (currentWrite == null) {
                 break;
@@ -188,17 +161,17 @@ public class ChunkedWriteHandler extends ChannelDuplexHandler {
 
                 if (!endOfInput) {
                     if (cause == null) {
-                        cause = CLOSE_EXCEPTION;
+                        cause = new ClosedChannelException();
                     }
                     currentWrite.fail(cause);
                 } else {
                     currentWrite.success(inputLength);
                 }
-            } else if(message instanceof HttpResponse){
+            } else if (message instanceof HttpResponse) {
                 responseList.add(currentWrite);
             } else {
                 if (cause == null) {
-                    cause = CLOSE_EXCEPTION;
+                    cause = new ClosedChannelException();
                 }
                 currentWrite.fail(cause);
             }
@@ -209,14 +182,14 @@ public class ChunkedWriteHandler extends ChannelDuplexHandler {
     }
 
     private void doFlush(final ChannelHandlerContext ctx) {
-        if(queue.isEmpty()){
+        if (queue.isEmpty()) {
             ctx.flush();
             return;
         }
-        if(flushIng.compareAndSet(false,true)){
+        if (flushIng.compareAndSet(false, true)) {
             try {
                 doFlush0(ctx);
-            }finally {
+            } finally {
                 flushIng.set(false);
             }
         }
@@ -331,7 +304,7 @@ public class ChunkedWriteHandler extends ChannelDuplexHandler {
                 }
                 requiresFlush = false;
             } else {
-                if(pendingMessage instanceof Flushable){
+                if (pendingMessage instanceof Flushable) {
                     try {
                         ((Flushable) pendingMessage).flush();
                     } catch (IOException e) {
@@ -345,7 +318,7 @@ public class ChunkedWriteHandler extends ChannelDuplexHandler {
             }
 
             if (!channel.isActive()) {
-                discard(CLOSE_EXCEPTION);
+                discard(new ClosedChannelException());
                 break;
             }
         }
@@ -398,23 +371,25 @@ public class ChunkedWriteHandler extends ChannelDuplexHandler {
         Object msg;
         ChannelPromise promise;
         long bytes;
-        PendingWrite() {}
 
-        public static PendingWrite newInstance(Object msg, ChannelPromise promise){
+        PendingWrite() {
+        }
+
+        public static PendingWrite newInstance(Object msg, ChannelPromise promise) {
             PendingWrite instance = RECYCLER.getInstance();
             instance.msg = msg;
             instance.promise = promise;
-            if(msg instanceof ByteBuf){
+            if (msg instanceof ByteBuf) {
                 instance.bytes = ((ByteBuf) msg).readableBytes();
-            }else if(msg instanceof ByteBuffer){
+            } else if (msg instanceof ByteBuffer) {
                 instance.bytes = ((ByteBuffer) msg).remaining();
-            }else if(msg instanceof ByteBufHolder){
+            } else if (msg instanceof ByteBufHolder) {
                 instance.bytes = ((ByteBufHolder) msg).content().readableBytes();
-            }else if(msg instanceof ChunkedInput){
-                instance.bytes = Math.max(((ChunkedInput) msg).length(),0);
-            }else if(msg instanceof FileRegion){
+            } else if (msg instanceof ChunkedInput) {
+                instance.bytes = Math.max(((ChunkedInput) msg).length(), 0);
+            } else if (msg instanceof FileRegion) {
                 instance.bytes = ((FileRegion) msg).count() - ((FileRegion) msg).position();
-            }else {
+            } else {
                 instance.bytes = 0;
             }
             return instance;
@@ -431,6 +406,7 @@ public class ChunkedWriteHandler extends ChannelDuplexHandler {
         void fail(Throwable cause) {
             ReferenceCountUtil.release(msg);
             promise.tryFailure(cause);
+            recycle();
         }
 
         void success(long total) {
@@ -440,6 +416,7 @@ public class ChunkedWriteHandler extends ChannelDuplexHandler {
             }
             progress(total, total);
             promise.trySuccess();
+            recycle();
         }
 
         void progress(long progress, long total) {
@@ -459,9 +436,7 @@ public class ChunkedWriteHandler extends ChannelDuplexHandler {
     @Override
     public String toString() {
         return "ChunkedWriteHandler{" +
-                "maxBufferBytes=" + maxBufferBytes +
-                ", unFlushBytes=" + unFlushBytes +
-                ", queueSize=" + queue.size() +
+                "queueSize=" + queue.size() +
                 ", ctx=" + ctx +
                 '}';
     }

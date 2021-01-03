@@ -38,7 +38,7 @@ public class NettyMessageToServletRunnable implements MessageToRunnable {
     private final ServletContext servletContext;
     private final long maxContentLength;
     private ServletHttpExchange exchange;
-    private HttpRunnable httpRunnable;
+    private volatile HttpRunnable httpRunnable;
 
     static {
         EXPECTATION_FAILED.headers().set(CONTENT_LENGTH, 0);
@@ -79,27 +79,20 @@ public class NettyMessageToServletRunnable implements MessageToRunnable {
         }
 
         //body
-        if (msg instanceof HttpContent) {
-            if (exchange.closeStatus() == CLOSE_NO) {
-                exchange.getRequest().getInputStream0().onMessage((HttpContent) msg);
-                if (msg instanceof LastHttpContent) {
-                    return httpRunnable;
-                } else {
-                    return null;
-                }
-            } else {
-                discard(msg);
-                return null;
+        if (msg instanceof HttpContent && exchange.closeStatus() == CLOSE_NO) {
+            exchange.getRequest().getInputStream0().onMessage((HttpContent) msg);
+            if (exchange.getRequest().isMultipart() || msg instanceof LastHttpContent){
+                Runnable runnable = this.httpRunnable;
+                this.httpRunnable = null;
+                return runnable;
             }
         }
 
         //discard
-        if(doRequest){
-            return null;
-        } else{
+        if(!doRequest){
             discard(msg);
-            return null;
         }
+        return null;
     }
 
     protected void discard(Object msg){
@@ -155,6 +148,7 @@ public class NettyMessageToServletRunnable implements MessageToRunnable {
      * http task
      */
     public static class HttpRunnable implements Runnable, Recyclable {
+        private static final LoggerX logger = LoggerFactoryX.getLogger(HttpRunnable.class);
         private ServletHttpExchange servletHttpExchange;
         public ServletHttpExchange getExchange() {
             return servletHttpExchange;
@@ -170,6 +164,12 @@ public class NettyMessageToServletRunnable implements MessageToRunnable {
             ServletHttpServletResponse httpServletResponse = servletHttpExchange.getResponse();
             Throwable realThrowable = null;
 
+            // upload cannot block event loop
+            if(httpServletRequest.isMultipart()
+                    && servletHttpExchange.getChannelHandlerContext().executor().inEventLoop()){
+                servletHttpExchange.getServletContext().getDefaultExecutorSupplier().get().execute(this);
+                return;
+            }
             try {
                 ServletRequestDispatcher dispatcher = servletHttpExchange.getServletContext().getRequestDispatcher(httpServletRequest.getRequestURI());
                 if (dispatcher == null) {
@@ -182,60 +182,68 @@ public class NettyMessageToServletRunnable implements MessageToRunnable {
             }catch (Throwable throwable){
                 realThrowable = throwable;
             }finally {
-                /*
-                 * Error pages are obtained according to two types: 1. By exception type; 2. By status code
-                 */
-                if(realThrowable == null) {
-                    realThrowable = (Throwable) httpServletRequest.getAttribute(RequestDispatcher.ERROR_EXCEPTION);
-                }
-                ServletErrorPage errorPage = null;
-                ServletErrorPageManager errorPageManager = servletHttpExchange.getServletContext().getErrorPageManager();
-                if(realThrowable != null){
-                    errorPage = errorPageManager.find(realThrowable);
-                    if(errorPage == null) {
-                        httpServletResponse.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                        errorPage = errorPageManager.find(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                    }
-                    if(errorPage == null) {
-                        errorPage = errorPageManager.find(0);
-                    }
-                }else if(httpServletResponse.isError()) {
-                    errorPage = errorPageManager.find(httpServletResponse.getStatus());
-                    if(errorPage == null) {
-                        errorPage = errorPageManager.find(0);
-                    }
-                }
-                //Error page
-                if(realThrowable != null || errorPage != null) {
-                    errorPageManager.handleErrorPage(errorPage, realThrowable, httpServletRequest, httpServletResponse);
-                }
-                /*
-                 * If not asynchronous, or asynchronous has ended
-                 * each response object is valid only if it is within the scope of the servlet's service method or the filter's doFilter method, unless the
-                 * the request object associated with the component has started asynchronous processing. If the relevant request has already started asynchronous processing, then up to the AsyncContext
-                 * complete method is called, and the request object remains valid. To avoid the performance overhead of creating response objects, the container typically recycles the response object.
-                 * before the startAsync of the relevant request is invoked, the developer must be aware that the response object reference remains outside the scope described above
-                 * circumference may lead to uncertain behavior
-                 */
-                if(httpServletRequest.isAsync()){
-                    ServletAsyncContext asyncContext = httpServletRequest.getAsyncContext();
-                    //If the asynchronous execution completes, recycle
-                    if(asyncContext.isComplete()){
-                        asyncContext.recycle();
-                    }else {
-                        //Marks the end of execution for the main thread
-                        httpServletRequest.getAsyncContext().markIoThreadOverFlag();
-                        if(asyncContext.isComplete()) {
-                            asyncContext.recycle();
-                        }
-                    }
-                }else {
-                    //Not asynchronous direct collection
-                    servletHttpExchange.recycle();
-                }
-
-                recycle();
+               try{
+                   handleErrorPage(realThrowable,httpServletRequest,httpServletResponse);
+               }catch (Throwable e){
+                   logger.warn("handleErrorPage error = {}",e.toString(),e);
+               }
             }
+        }
+
+        private void handleErrorPage(Throwable realThrowable, ServletHttpServletRequest httpServletRequest, ServletHttpServletResponse httpServletResponse){
+            /*
+             * Error pages are obtained according to two types: 1. By exception type; 2. By status code
+             */
+            if(realThrowable == null) {
+                realThrowable = (Throwable) httpServletRequest.getAttribute(RequestDispatcher.ERROR_EXCEPTION);
+            }
+            ServletErrorPage errorPage = null;
+            ServletErrorPageManager errorPageManager = servletHttpExchange.getServletContext().getErrorPageManager();
+            if(realThrowable != null){
+                errorPage = errorPageManager.find(realThrowable);
+                if(errorPage == null) {
+                    httpServletResponse.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                    errorPage = errorPageManager.find(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                }
+                if(errorPage == null) {
+                    errorPage = errorPageManager.find(0);
+                }
+            }else if(httpServletResponse.isError()) {
+                errorPage = errorPageManager.find(httpServletResponse.getStatus());
+                if(errorPage == null) {
+                    errorPage = errorPageManager.find(0);
+                }
+            }
+            //Error page
+            if(realThrowable != null || errorPage != null) {
+                errorPageManager.handleErrorPage(errorPage, realThrowable, httpServletRequest, httpServletResponse);
+            }
+            /*
+             * If not asynchronous, or asynchronous has ended
+             * each response object is valid only if it is within the scope of the servlet's service method or the filter's doFilter method, unless the
+             * the request object associated with the component has started asynchronous processing. If the relevant request has already started asynchronous processing, then up to the AsyncContext
+             * complete method is called, and the request object remains valid. To avoid the performance overhead of creating response objects, the container typically recycles the response object.
+             * before the startAsync of the relevant request is invoked, the developer must be aware that the response object reference remains outside the scope described above
+             * circumference may lead to uncertain behavior
+             */
+            if(httpServletRequest.isAsync()){
+                ServletAsyncContext asyncContext = httpServletRequest.getAsyncContext();
+                //If the asynchronous execution completes, recycle
+                if(asyncContext.isComplete()){
+                    asyncContext.recycle();
+                }else {
+                    //Marks the end of execution for the main thread
+                    httpServletRequest.getAsyncContext().markIoThreadOverFlag();
+                    if(asyncContext.isComplete()) {
+                        asyncContext.recycle();
+                    }
+                }
+            }else {
+                //Not asynchronous direct collection
+                servletHttpExchange.recycle();
+            }
+
+            recycle();
         }
 
         @Override

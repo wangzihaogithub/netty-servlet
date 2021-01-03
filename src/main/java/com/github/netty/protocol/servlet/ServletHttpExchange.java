@@ -5,6 +5,7 @@ import com.github.netty.core.util.Recycler;
 import com.github.netty.protocol.servlet.util.HttpHeaderUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelOutboundBuffer;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.util.Attribute;
 import io.netty.util.AttributeKey;
@@ -154,6 +155,19 @@ public class ServletHttpExchange implements Recyclable, AutoCloseable {
         return null;
     }
 
+    public long getPendingWriteBytes(){
+        ChannelHandlerContext context = this.channelHandlerContext;
+        if(context != null){
+            ChannelOutboundBuffer buffer = context.channel().unsafe().outboundBuffer();
+            if(buffer == null){
+                return 0L;
+            }else {
+                return buffer.totalPendingWriteBytes();
+            }
+        }
+        return -1L;
+    }
+
     public static <T> T getAttribute(ChannelHandlerContext channelHandlerContext,AttributeKey<T> key){
         if(channelHandlerContext != null && channelHandlerContext.channel() != null) {
             Attribute<T> attribute = channelHandlerContext.channel().attr(key);
@@ -214,8 +228,8 @@ public class ServletHttpExchange implements Recyclable, AutoCloseable {
         response = null;
         request = null;
         servletContext = null;
-        RECYCLER.recycleInstance(this);
         close.set(CLOSE_YES);
+        RECYCLER.recycleInstance(this);
     };
 
     public int closeStatus() {

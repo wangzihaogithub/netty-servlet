@@ -104,7 +104,7 @@ public class HttpHeaderUtil {
             if (keepAlive) {
                 h.remove(HttpHeaderConstants.CONNECTION);
             } else {
-//                h.set(HttpHeaderConstants.CONNECTION, HttpHeaderConstants.CLOSE);
+                h.set(HttpHeaderConstants.CONNECTION, HttpHeaderConstants.CLOSE);
             }
         } else {
             if (keepAlive) {

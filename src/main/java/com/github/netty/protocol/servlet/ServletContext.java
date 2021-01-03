@@ -80,6 +80,10 @@ public class ServletContext implements javax.servlet.ServletContext {
     private boolean enableLookupFlag = false;
     private boolean asyncSwitchThread = true;
     private boolean autoFlush;
+    /**
+     * Will not appear in the field in http body. multipart/form-data, application/x-www-form-urlencoded. （In order to avoid the client, you have been waiting for the client.）
+     */
+    private final Collection<String> notExistBodyParameters = new HashSet<>();
     private String serverHeader;
     private String contextPath = "";
     private String requestCharacterEncoding;
@@ -87,6 +91,11 @@ public class ServletContext implements javax.servlet.ServletContext {
     private String servletContextName;
     private InetSocketAddress serverAddress;
     private ClassLoader classLoader;
+    /**
+     * output stream maxBufferBytes
+     * Each buffer accumulate the maximum number of bytes (default 1M)
+     */
+    private int maxBufferBytes = 1024 * 1024;
 
     public ServletContext() {
         this(null);
@@ -95,6 +104,14 @@ public class ServletContext implements javax.servlet.ServletContext {
     public ServletContext(ClassLoader classLoader) {
         this.classLoader = classLoader == null ? getClass().getClassLoader(): classLoader;
         setDocBase(createTempDir("netty-docbase").getAbsolutePath());
+    }
+
+    public void setMaxBufferBytes(int maxBufferBytes) {
+        this.maxBufferBytes = maxBufferBytes;
+    }
+
+    public int getMaxBufferBytes() {
+        return maxBufferBytes;
     }
 
     public boolean isAutoFlush() {
@@ -172,6 +189,10 @@ public class ServletContext implements javax.servlet.ServletContext {
             throw new IllegalStateException("no found async Executor");
         }
         return executor;
+    }
+
+    public Collection<String> getNotExistBodyParameters() {
+        return notExistBodyParameters;
     }
 
     public void setAsyncExecutorSupplier(Supplier<Executor> asyncExecutorSupplier) {

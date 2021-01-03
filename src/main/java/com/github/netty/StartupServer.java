@@ -1,6 +1,9 @@
 package com.github.netty;
 
-import com.github.netty.core.*;
+import com.github.netty.core.AbstractNettyServer;
+import com.github.netty.core.Ordered;
+import com.github.netty.core.ProtocolHandler;
+import com.github.netty.core.ServerListener;
 import com.github.netty.core.util.HostUtil;
 import com.github.netty.core.util.SystemPropertyUtil;
 import com.github.netty.protocol.DynamicProtocolChannelHandler;
@@ -130,7 +133,7 @@ public class StartupServer extends AbstractNettyServer {
      * @throws Exception Exception
      */
     @Override
-    protected void config(ServerBootstrap bootstrap) throws Exception{
+    protected void config(ServerBootstrap bootstrap) throws Exception {
         super.config(bootstrap);
         if(SystemPropertyUtil.get("io.netty.leakDetectionLevel") == null &&
                 SystemPropertyUtil.get("io.netty.leakDetection.level") == null){
@@ -140,8 +143,8 @@ public class StartupServer extends AbstractNettyServer {
             long maxDirectMemory = -1;
             System.setProperty("io.netty.maxDirectMemory", String.valueOf(maxDirectMemory));
         }
-        bootstrap.childOption(ChannelOption.WRITE_SPIN_COUNT,Integer.MAX_VALUE);
-        bootstrap.childOption(ChannelOption.WRITE_BUFFER_WATER_MARK, new WriteBufferWaterMark(32 * 1024,Integer.MAX_VALUE));
+        bootstrap.childOption(ChannelOption.WRITE_SPIN_COUNT, Integer.MAX_VALUE);
+        bootstrap.childOption(ChannelOption.WRITE_BUFFER_WATER_MARK, new WriteBufferWaterMark(32 * 1024, Integer.MAX_VALUE));
         bootstrap.childOption(ChannelOption.AUTO_CLOSE,true);
 
         bootstrap.childOption(ChannelOption.TCP_NODELAY, false);

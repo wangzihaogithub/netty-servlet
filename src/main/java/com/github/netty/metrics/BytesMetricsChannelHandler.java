@@ -29,7 +29,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * @author wangzihao
  */
 @ChannelHandler.Sharable
-public class BytesMetricsChannelHandler extends AbstractChannelHandler<ByteBuf, ByteBuf> {
+public class BytesMetricsChannelHandler extends AbstractChannelHandler<ByteBuf,ByteBuf> {
     private static final AttributeKey<BytesMetrics> ATTR_KEY_METRICS = AttributeKey.valueOf(BytesMetrics.class+"#BytesMetrics");
     private AtomicLong readBytes = new AtomicLong();
     private AtomicLong writeBytes = new AtomicLong();

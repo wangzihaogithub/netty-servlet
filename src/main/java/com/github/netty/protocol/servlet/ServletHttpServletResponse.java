@@ -1,5 +1,6 @@
 package com.github.netty.protocol.servlet;
 
+import com.github.netty.core.util.ChunkedWriteHandler;
 import com.github.netty.core.util.Recyclable;
 import com.github.netty.core.util.Recycler;
 import com.github.netty.protocol.servlet.util.HttpConstants;
@@ -7,6 +8,7 @@ import com.github.netty.protocol.servlet.util.HttpHeaderConstants;
 import com.github.netty.protocol.servlet.util.MediaType;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
+import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpResponseStatus;
 
@@ -33,6 +35,7 @@ public class ServletHttpServletResponse implements javax.servlet.http.HttpServle
     private Locale locale;
     private boolean commitFlag = false;
     private long contentLength = -1;
+    private int bufferSize = -1;
     private final ServletOutputStreamWrapper outputStream = new ServletOutputStreamWrapper(new CloseListener());
     private final NettyHttpResponse nettyResponse = new NettyHttpResponse();
     private final List<Cookie> cookies = new ArrayList<>();
@@ -369,12 +372,21 @@ public class ServletHttpServletResponse implements javax.servlet.http.HttpServle
 
     @Override
     public void setBufferSize(int size) {
+        this.bufferSize = size;
+    }
 
+    private ChunkedWriteHandler getChunkedWriteHandler(){
+        ChannelHandlerContext context = getServletHttpExchange().getChannelHandlerContext();
+        ChannelHandlerContext chunked = context.pipeline().context(ChunkedWriteHandler.class);
+        return chunked != null? (ChunkedWriteHandler) chunked.handler() : null;
     }
 
     @Override
     public int getBufferSize() {
-        return 0;
+        if(bufferSize == -1){
+            bufferSize = getServletHttpExchange().getServletContext().getMaxBufferBytes();
+        }
+        return bufferSize;
     }
 
     @Override
@@ -397,12 +409,8 @@ public class ServletHttpServletResponse implements javax.servlet.http.HttpServle
     @Override
     public void reset() {
         checkCommitted();
-        nettyResponse.headers().clear();
-        nettyResponse.setStatus(NettyHttpResponse.DEFAULT_STATUS);
-        if(outputStream.unwrap() == null){
-            return;
-        }
-        outputStream.resetBuffer();
+        resetHeader();
+        resetBuffer();
     }
 
     /**
@@ -411,6 +419,14 @@ public class ServletHttpServletResponse implements javax.servlet.http.HttpServle
     @Override
     public void resetBuffer() {
         resetBuffer(false);
+    }
+
+    public void resetHeader() {
+        nettyResponse.headers().clear();
+        nettyResponse.setStatus(NettyHttpResponse.DEFAULT_STATUS);
+        cookies.clear();
+        contentType = null;
+        locale = null;
     }
 
     /**
@@ -423,7 +439,7 @@ public class ServletHttpServletResponse implements javax.servlet.http.HttpServle
             return;
         }
         outputStream.resetBuffer();
-
+        contentLength = -1;
         if(resetWriterStreamFlags) {
             writer = null;
             characterEncoding = null;
@@ -467,6 +483,7 @@ public class ServletHttpServletResponse implements javax.servlet.http.HttpServle
         public void operationComplete(ChannelFuture future) throws Exception {
             nettyResponse.recycle();
             errorState.set(0);
+            bufferSize = -1;
             contentLength = -1;
             servletHttpExchange = null;
             writer = null;

@@ -8,6 +8,7 @@ import io.netty.util.AttributeKey;
 
 import java.io.IOException;
 import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.function.Supplier;
 
 /**
@@ -17,7 +18,7 @@ import java.util.function.Supplier;
  */
 @ChannelHandler.Sharable
 public class DispatcherChannelHandler extends AbstractChannelHandler<Object, Object> {
-    private final Supplier<Executor> dispatcherExecutor;
+    private Supplier<Executor> dispatcherExecutor;
     public static final AttributeKey<MessageToRunnable> CHANNEL_ATTR_KEY_MESSAGE_TO_RUNNABLE = AttributeKey.valueOf(MessageToRunnable.class + "#MessageToRunnable");
 
     public DispatcherChannelHandler(Supplier<Executor> dispatcherExecutor) {
@@ -41,10 +42,14 @@ public class DispatcherChannelHandler extends AbstractChannelHandler<Object, Obj
 
     protected void run(Runnable task){
         Executor executor = getExecutor();
-        if(executor != null) {
-            executor.execute(task);
-        }else {
-            task.run();
+        try {
+            if (executor != null) {
+                executor.execute(task);
+            } else {
+                task.run();
+            }
+        }catch (RejectedExecutionException e){
+            logger.error("RejectedExecutionException message = {}",e.toString(),e);
         }
     }
 
@@ -59,10 +64,14 @@ public class DispatcherChannelHandler extends AbstractChannelHandler<Object, Obj
         return null;
     }
 
+    public void setDispatcherExecutor(Supplier<Executor> dispatcherExecutor) {
+        this.dispatcherExecutor = dispatcherExecutor;
+    }
+
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         if(cause.getClass() != IOException.class){
-            logger.error("servlet handler exception. case={}, channel={}",cause.toString(),ctx.channel(),cause);
+            logger.error("handler exception. case={}, channel={}",cause.toString(),ctx.channel(),cause);
         }
         ctx.close();
     }

@@ -38,16 +38,11 @@ public class HttpServletProtocol extends AbstractProtocol {
     private final ServletContext servletContext;
     private SslContext sslContext;
     private SslContextBuilder sslContextBuilder;
-    private ChannelHandler servletHandler;
+    private DispatcherChannelHandler servletHandler;
     private long maxContentLength = 20 * 1024 * 1024;
     private int maxInitialLineLength = 40960;
     private int maxHeaderSize = 81920;
     private int maxChunkSize = 5 * 1024 * 1024;
-    /**
-     * output stream maxBufferBytes
-     * Each buffer accumulate the maximum number of bytes (default 1M)
-     */
-    private long maxBufferBytes = 1024 * 1024;
     private boolean enableContentCompression = false;
     private int contentSizeThreshold = 8102;
     private String[] compressionMimeTypes = {"text/html", "text/xml", "text/plain",
@@ -241,10 +236,8 @@ public class HttpServletProtocol extends AbstractProtocol {
             });
         }
 
-        //Block transfer
-        ChunkedWriteHandler chunkedWriteHandler = new ChunkedWriteHandler();
-        chunkedWriteHandler.setMaxBufferBytes(maxBufferBytes);
-        pipeline.addLast("ChunkedWrite",chunkedWriteHandler);
+        //Chunked transfer
+        pipeline.addLast("ChunkedWrite",new ChunkedWriteHandler());
 
         //A business scheduler that lets the corresponding Servlet handle the request
         pipeline.addLast("Servlet", servletHandler);
@@ -254,11 +247,15 @@ public class HttpServletProtocol extends AbstractProtocol {
     }
 
     public long getMaxBufferBytes() {
-        return maxBufferBytes;
+        return servletContext.getMaxBufferBytes();
     }
 
-    public void setMaxBufferBytes(long maxBufferBytes) {
-        this.maxBufferBytes = maxBufferBytes;
+    public void setMaxBufferBytes(int maxBufferBytes) {
+        servletContext.setMaxBufferBytes(maxBufferBytes);
+    }
+
+    public void setExecutor(Supplier<Executor> dispatcherExecutor) {
+        this.servletHandler.setDispatcherExecutor(dispatcherExecutor);
     }
 
     @Override

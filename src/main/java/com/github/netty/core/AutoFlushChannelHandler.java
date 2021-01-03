@@ -112,7 +112,7 @@ public class AutoFlushChannelHandler extends AbstractChannelHandler<Object, Obje
         // Avoid the case where destroy() is called before scheduling timeouts.
         // See: https://github.com/netty/netty/issues/143
         if (logger.isTraceEnabled()) {
-            logger.trace("Initializing autoflush handler on channel {} ", ctx.channel());
+            logger.trace("Initializing autoflush handler on channel {}", ctx.channel());
         }
         switch (state) {
             case 1:
@@ -147,7 +147,7 @@ public class AutoFlushChannelHandler extends AbstractChannelHandler<Object, Obje
     private void channelIdle(ChannelHandlerContext ctx) {
         // ctx.fireUserEventTriggered(evt);
         if (logger.isTraceEnabled()) {
-            logger.trace("Flushing idle Netty channel {} Cid: {}", ctx.channel());
+            logger.trace("Flushing idle Netty channel {}", ctx.channel());
         }
         ctx.channel().flush();
     }

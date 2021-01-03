@@ -27,7 +27,7 @@ public class ResourceManager {
         this(rootPath,workspace, ResourceManager.class.getClassLoader());
     }
 
-    public ResourceManager(String rootPath, String workspace, ClassLoader classLoader) {
+    public ResourceManager(String rootPath, String workspace,ClassLoader classLoader) {
         if(rootPath == null || rootPath.isEmpty()){
             throw new IllegalStateException("path empty");
         }
@@ -309,7 +309,7 @@ public class ResourceManager {
      * @throws IOException IOException
      */
     public void copyFile(String sourcePath, String sourceFileName,
-                         String targetPath, String targetFileName) throws FileNotFoundException, IOException {
+                         String targetPath, String targetFileName) throws FileNotFoundException,IOException {
         IOUtil.copyFile(getRealPath(sourcePath),sourceFileName,
                 getRealPath(targetPath),targetFileName,false);
     }

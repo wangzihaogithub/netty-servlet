@@ -20,7 +20,7 @@ import java.util.function.Consumer;
  * @author wangzihao
  *  2018/8/1/001
  */
-public class ServletHttpExchange implements Recyclable, AutoCloseable {
+public class ServletHttpExchange implements Recyclable,AutoCloseable{
     private static final Recycler<ServletHttpExchange> RECYCLER = new Recycler<>(ServletHttpExchange::new);
     private static final AttributeKey<ServletHttpSession> CHANNEL_ATTR_KEY_SESSION = AttributeKey.valueOf(ServletHttpSession.class + "#ServletHttpSession");
     private static final AttributeKey<ServletHttpExchange> CHANNEL_ATTR_KEY_EXCHANGE = AttributeKey.valueOf(ServletHttpExchange.class + "#ServletHttpExchange");

@@ -56,8 +56,8 @@ public class ServletAsyncContext implements AsyncContext, Recyclable {
         this.servletHttpExchange = Objects.requireNonNull(servletHttpExchange);
         this.servletContext = Objects.requireNonNull(servletContext);
         this.executor = Objects.requireNonNull(executor);
-        this.httpServletRequest = (HttpServletRequest) Objects.requireNonNull(httpServletRequest);
-        this.httpServletResponse = (HttpServletResponse) Objects.requireNonNull(httpServletResponse);
+        this.httpServletRequest = (HttpServletRequest)Objects.requireNonNull(httpServletRequest);
+        this.httpServletResponse = (HttpServletResponse)Objects.requireNonNull(httpServletResponse);
     }
 
     public Throwable getThrowable() {
@@ -172,9 +172,9 @@ public class ServletAsyncContext implements AsyncContext, Recyclable {
         status.compareAndSet(STATUS_INIT,STATUS_START);
     }
 
-    private static class TaskWrapper implements Runnable {
+    private static class TaskWrapper implements Runnable{
         private static final AtomicInteger TASK_ID_INCR = new AtomicInteger();
-        private static final ExpiryLRUMap<Integer,TaskWrapper> TIMEOUT_TASK_MAP = new ExpiryLRUMap<>(256, Long.MAX_VALUE, Long.MAX_VALUE,null);
+        private static final ExpiryLRUMap<Integer,TaskWrapper> TIMEOUT_TASK_MAP = new ExpiryLRUMap<>(256,Long.MAX_VALUE,Long.MAX_VALUE,null);
         static {
             TIMEOUT_TASK_MAP.setOnExpiryConsumer(node -> {
                 //Notice the timeout
@@ -317,7 +317,7 @@ public class ServletAsyncContext implements AsyncContext, Recyclable {
         }
     }
 
-    public static class AsyncRuntimeException extends RuntimeException {
+    public static class AsyncRuntimeException extends RuntimeException{
         private Throwable cause;
         AsyncRuntimeException(Throwable cause) {
             super(cause.getMessage(),cause,true,false);

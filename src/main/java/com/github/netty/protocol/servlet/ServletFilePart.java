@@ -26,7 +26,7 @@ public class ServletFilePart implements Part {
     private FileUpload fileUpload;
     private ResourceManager resourceManager;
     private Supplier<ResourceManager> resourceManagerSupplier;
-    private Map<String, String> headerMap;
+    private Map<String,String> headerMap;
 
     public ServletFilePart(FileUpload fileUpload, Supplier<ResourceManager> resourceManagerSupplier) {
         this.fileUpload = fileUpload;
@@ -116,9 +116,9 @@ public class ServletFilePart implements Part {
         return getHeaderMap().keySet();
     }
 
-    private Map<String, String> getHeaderMap(){
+    private Map<String,String> getHeaderMap(){
         if(headerMap == null) {
-            Map<String, String> headerMap = new CaseInsensitiveKeyMap<>(2);
+            Map<String,String> headerMap = new CaseInsensitiveKeyMap<>(2);
             headerMap.put(HttpHeaderConstants.CONTENT_DISPOSITION.toString(),
                     HttpHeaderConstants.FORM_DATA + "; " + HttpHeaderConstants.NAME + "=\"" + getName() + "\"; " + HttpHeaderConstants.FILENAME + "=\"" + fileUpload.getFilename()+"\"");
             headerMap.put(HttpHeaderConstants.CONTENT_LENGTH.toString(), String.valueOf(fileUpload.length()));

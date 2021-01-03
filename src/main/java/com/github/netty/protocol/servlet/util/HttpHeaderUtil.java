@@ -197,7 +197,7 @@ public class HttpHeaderUtil {
      * @param length length
      */
     public static void setContentLength(HttpHeaders headers, long length) {
-        headers.set(HttpHeaderConstants.CONTENT_LENGTH, (CharSequence) String.valueOf(length));
+        headers.set(HttpHeaderConstants.CONTENT_LENGTH, (CharSequence)String.valueOf(length));
     }
 
     /**

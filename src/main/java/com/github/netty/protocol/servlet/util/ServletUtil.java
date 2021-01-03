@@ -75,12 +75,12 @@ public class ServletUtil {
         return null;
     }
 
-    public static void decodeByUrl(LinkedMultiValueMap<String, String> parameterMap, String uri, Charset charset){
+    public static void decodeByUrl(LinkedMultiValueMap<String,String> parameterMap, String uri, Charset charset){
         decodeParams(parameterMap,uri, findPathEndIndex(uri), charset, 10000);
     }
 
-	public static void decodeByUrl(Map<String, String[]> sourceParameterMap, String uri, Charset charset){
-		LinkedMultiValueMap<String, String> parameterMap = new LinkedMultiValueMap<>();
+	public static void decodeByUrl(Map<String,String[]> sourceParameterMap, String uri, Charset charset){
+		LinkedMultiValueMap<String,String> parameterMap = new LinkedMultiValueMap<>();
 		decodeByUrl(parameterMap,uri, charset);
 		for (Map.Entry<String, List<String>> entry : parameterMap.entrySet()) {
 			String[] values = sourceParameterMap.get(entry.getKey());
@@ -354,7 +354,7 @@ public class ServletUtil {
         return len;
     }
 
-    private static void decodeParams(LinkedMultiValueMap<String, String> parameterMap, String s, int from, Charset charset, int paramsLimit) {
+    private static void decodeParams(LinkedMultiValueMap<String,String> parameterMap, String s, int from, Charset charset, int paramsLimit) {
         int len = s.length();
         if (from >= len) {
             return;
@@ -395,7 +395,7 @@ public class ServletUtil {
     }
 
     private static boolean addParam(String s, int nameStart, int valueStart, int valueEnd,
-                                    LinkedMultiValueMap<String, String> parameterMap, Charset charset) {
+                                    LinkedMultiValueMap<String,String> parameterMap, Charset charset) {
         if (nameStart >= valueEnd) {
             return false;
         }

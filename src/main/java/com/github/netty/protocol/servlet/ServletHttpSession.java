@@ -19,7 +19,7 @@ public class ServletHttpSession implements HttpSession, Wrapper<Session> {
     private ServletContext servletContext;
     private String id;
 
-    private Map<String, Object> attributeMap;
+    private Map<String,Object> attributeMap;
     private long creationTime;
     private long currAccessedTime;
     private long lastAccessedTime;
@@ -197,7 +197,7 @@ public class ServletHttpSession implements HttpSession, Wrapper<Session> {
         onRemoveAttribute(name,oldValue);
     }
 
-    private void onRemoveAttribute(String name, Object oldValue){
+    private void onRemoveAttribute(String name,Object oldValue){
         ServletEventListenerManager listenerManager = servletContext.getServletEventListenerManager();
         if(listenerManager.hasHttpSessionAttributeListener()){
             listenerManager.onHttpSessionAttributeRemoved(new HttpSessionBindingEvent(this,name,oldValue));

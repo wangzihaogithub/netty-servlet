@@ -51,8 +51,8 @@ public class ServletContext implements javax.servlet.ServletContext {
      * Upload file timeout millisecond , -1 is not control timeout.
      */
     private long uploadFileTimeoutMs = -1;
-    private Map<String, Object> attributeMap = new LinkedHashMap<>(16);
-    private Map<String, String> initParamMap = new LinkedHashMap<>(16);
+    private Map<String,Object> attributeMap = new LinkedHashMap<>(16);
+    private Map<String,String> initParamMap = new LinkedHashMap<>(16);
     private Map<String, ServletRegistration> servletRegistrationMap = new LinkedHashMap<>(8);
     private Map<String, ServletFilterRegistration> filterRegistrationMap = new LinkedHashMap<>(8);
     private FastThreadLocal<Map<Charset, HttpDataFactory>> httpDataFactoryThreadLocal = new FastThreadLocal<Map<Charset, HttpDataFactory>>(){
@@ -155,7 +155,7 @@ public class ServletContext implements javax.servlet.ServletContext {
         setDocBase(docBase,workspace);
     }
 
-    public void setDocBase(String docBase, String workspace){
+    public void setDocBase(String docBase,String workspace){
         this.resourceManager = new ResourceManager(docBase,workspace,classLoader);
         this.resourceManager.mkdirs("/");
 
@@ -480,7 +480,7 @@ public class ServletContext implements javax.servlet.ServletContext {
         return initParamMap.get(name);
     }
 
-    public <T>T getInitParameter(String name, T def) {
+    public <T>T getInitParameter(String name,T def) {
         String value = getInitParameter(name);
         if(value == null){
             return def;

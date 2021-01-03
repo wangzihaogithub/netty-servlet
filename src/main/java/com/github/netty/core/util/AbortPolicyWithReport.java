@@ -21,7 +21,7 @@ public class AbortPolicyWithReport extends ThreadPoolExecutor.AbortPolicy {
 
     private static Semaphore guard = new Semaphore(1);
 
-    public AbortPolicyWithReport(String threadName, String dumpPath, String info) {
+    public AbortPolicyWithReport(String threadName,String dumpPath,String info) {
         this.threadName = threadName;
         this.dumpPath = dumpPath == null? System.getProperty("user.home"): dumpPath;
         this.info = info;

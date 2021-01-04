@@ -8,7 +8,10 @@ import com.github.netty.protocol.servlet.*;
 import com.github.netty.protocol.servlet.util.HttpAbortPolicyWithReport;
 import com.github.netty.protocol.servlet.util.HttpHeaderConstants;
 import io.netty.buffer.ByteBuf;
-import io.netty.channel.*;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelPipeline;
+import io.netty.channel.ChannelPromise;
 import io.netty.handler.codec.http.*;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
@@ -237,7 +240,7 @@ public class HttpServletProtocol extends AbstractProtocol {
         }
 
         //Chunked transfer
-        pipeline.addLast("ChunkedWrite",new ChunkedWriteHandler());
+        pipeline.addLast("ChunkedWrite",new ChunkedWriteHandler(this::getMaxBufferBytes));
 
         //A business scheduler that lets the corresponding Servlet handle the request
         pipeline.addLast("Servlet", servletHandler);

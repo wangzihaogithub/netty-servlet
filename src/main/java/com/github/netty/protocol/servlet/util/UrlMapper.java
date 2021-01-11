@@ -56,6 +56,10 @@ public class UrlMapper<T> {
         this.antPathMatcher.setCachePatterns(Boolean.TRUE);
     }
 
+    public void clear(){
+        elementList.clear();
+    }
+
 	public void setRootPath(String rootPath) {
         while (rootPath.startsWith("/")){
             rootPath = rootPath.substring(1);
@@ -158,7 +162,7 @@ public class UrlMapper<T> {
         list.sort(addSortComparator);
     }
 
-    public static class Element<T> implements Comparable<Element<T>>{
+    public static class Element<T> implements Comparable<Element<T>> {
         String pattern;
 	    String originalPattern;
         T object;
@@ -170,11 +174,11 @@ public class UrlMapper<T> {
         boolean defaultFlag;
         int sort;
         int addSort;
-        public Element(String objectName,T object){
+        public Element(String objectName, T object){
             this.objectName = objectName;
             this.object = object;
         }
-        public Element(String rootPath,String originalPattern, T object, String objectName,int addSort) {
+        public Element(String rootPath, String originalPattern, T object, String objectName, int addSort) {
             this.addSort = addSort;
             this.allPatternFlag = "/".equals(originalPattern)
                     || "/*".equals(originalPattern)

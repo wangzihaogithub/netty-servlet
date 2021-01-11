@@ -73,9 +73,9 @@ public class ServletHttpServletRequest implements HttpServletRequest, Recyclable
     private HttpRequest nettyRequest;
     private boolean isMultipart;
     private boolean isFormUrlEncoder;
-    private final Map<String,Object> attributeMap = Collections.synchronizedMap(new LinkedHashMap<>(16));
-    private final LinkedMultiValueMap<String,String> parameterMap = new LinkedMultiValueMap<>(16);
-    private final Map<String,String[]> unmodifiableParameterMap = new AbstractMap<String, String[]>() {
+    private final Map<String, Object> attributeMap = Collections.synchronizedMap(new LinkedHashMap<>(16));
+    private final LinkedMultiValueMap<String, String> parameterMap = new LinkedMultiValueMap<>(16);
+    private final Map<String, String[]> unmodifiableParameterMap = new AbstractMap<String, String[]>() {
 	    @Override
 	    public Set<Entry<String, String[]>> entrySet() {
 	    	if(isEmpty()){
@@ -83,7 +83,7 @@ public class ServletHttpServletRequest implements HttpServletRequest, Recyclable
 		    }
 		    HashSet<Entry<String, String[]>> result = new HashSet<>(6);
 		    Set<Entry<String, List<String>>> entries = parameterMap.entrySet();
-		    for (Entry<String,List<String>> entry : entries) {
+		    for (Entry<String, List<String>> entry : entries) {
 			    List<String> value = entry.getValue();
 			    String[] valueArr = value != null? value.toArray(new String[value.size()]): null;
 			    result.add(new SimpleImmutableEntry<>(entry.getKey(),valueArr));
@@ -1086,7 +1086,7 @@ public class ServletHttpServletRequest implements HttpServletRequest, Recyclable
 
     @Override
     public ServletRequestDispatcher getRequestDispatcher(String path) {
-        return getServletContext().getRequestDispatcher(path);
+        return getServletContext().getRequestDispatcher(path,getDispatcherType());
     }
 
     @Override

@@ -130,6 +130,8 @@ public class FilterMapper<T> {
      * @param urlPattern  urlPattern
      * @param object     object
      * @param objectName objectName
+     * @param isMatchAfter isMatchAfter
+     * @param dispatcherTypes dispatcherTypes
      * @throws IllegalArgumentException IllegalArgumentException
      */
     public void addMapping(String urlPattern, T object, String objectName, boolean isMatchAfter, EnumSet<DispatcherType> dispatcherTypes) throws IllegalArgumentException {

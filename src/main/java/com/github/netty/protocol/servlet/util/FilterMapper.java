@@ -114,15 +114,17 @@ public class FilterMapper<T> {
             rootPath = rootPath.substring(1);
         }
         rootPath = "/" + rootPath;
-        Element<T>[] newElements = new Element[array.length];
-        for (int i = 0; i < this.array.length; i++) {
-            Element<T> source = array[i];
+        synchronized (lock) {
+            Element<T>[] newElements = new Element[array.length];
+            for (int i = 0; i < this.array.length; i++) {
+                Element<T> source = array[i];
 
-            Element<T> element = new Element<>(rootPath, source.originalPattern, source.object,source.objectName,source.dispatcherTypes);
-            newElements[i] = element;
+                Element<T> element = new Element<>(rootPath, source.originalPattern, source.object, source.objectName, source.dispatcherTypes);
+                newElements[i] = element;
+            }
+            this.rootPath = rootPath;
+            this.array = newElements;
         }
-		this.rootPath = rootPath;
-		this.array = newElements;
 	}
 
 	/**

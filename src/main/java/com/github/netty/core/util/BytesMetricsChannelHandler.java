@@ -14,9 +14,10 @@
  * You may elect to redistribute this code under either of these licenses.
  */
 
-package com.github.netty.metrics;
+package com.github.netty.core.util;
 
 import com.github.netty.core.AbstractChannelHandler;
+import io.netty.buffer.ByteBuf;
 import io.netty.channel.*;
 import io.netty.util.Attribute;
 import io.netty.util.AttributeKey;
@@ -24,36 +25,36 @@ import io.netty.util.AttributeKey;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * Communication monitoring (read write/time)
+ * Packet monitoring (read write/byte)
  * @author wangzihao
  */
 @ChannelHandler.Sharable
-public class MessageMetricsChannelHandler extends AbstractChannelHandler<Object, Object> {
-    private static final AttributeKey<MessageMetrics> ATTR_KEY_METRICS = AttributeKey.valueOf(MessageMetrics.class+"#MessageMetrics");
-    private AtomicLong readMessages = new AtomicLong();
-    private AtomicLong writeMessages = new AtomicLong();
+public class BytesMetricsChannelHandler extends AbstractChannelHandler<ByteBuf,ByteBuf> {
+    private static final AttributeKey<BytesMetrics> ATTR_KEY_METRICS = AttributeKey.valueOf(BytesMetrics.class+"#BytesMetrics");
+    private AtomicLong readBytes = new AtomicLong();
+    private AtomicLong writeBytes = new AtomicLong();
 
-    public MessageMetricsChannelHandler() {
+    public BytesMetricsChannelHandler() {
         super(false);
         Runtime.getRuntime().addShutdownHook(new Thread("Metrics-Hook" + hashCode()){
             @Override
             public void run() {
-                logger.info("Metrics messages[read={}/count, write={}/count]", readMessages, writeMessages);
+                logger.info("Metrics bytes[read={}/byte, write={}/byte]", readBytes, writeBytes);
             }
         });
     }
 
     @Override
-    public void onMessageReceived(ChannelHandlerContext ctx, Object msg) throws Exception {
-        MessageMetrics metrics = getOrSetMetrics(ctx.channel());
-        metrics.incrementRead(1);
+    public void onMessageReceived(ChannelHandlerContext ctx, ByteBuf msg) throws Exception {
+        BytesMetrics metrics = getOrSetMetrics(ctx.channel());
+        metrics.incrementRead(msg.readableBytes());
         ctx.fireChannelRead(msg);
     }
 
     @Override
-    protected void onMessageWriter(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
-        MessageMetrics metrics = getOrSetMetrics(ctx.channel());
-        metrics.incrementWrote(1);
+    protected void onMessageWriter(ChannelHandlerContext ctx, ByteBuf msg, ChannelPromise promise) throws Exception {
+        BytesMetrics metrics = getOrSetMetrics(ctx.channel());
+        metrics.incrementWrote(msg.writableBytes());
         if(promise.isVoid()) {
             ctx.write(msg, promise);
         }else {
@@ -63,17 +64,17 @@ public class MessageMetricsChannelHandler extends AbstractChannelHandler<Object,
 
     @Override
     public void close(ChannelHandlerContext ctx, ChannelPromise promise) throws Exception {
-        MessageMetrics metrics = getOrSetMetrics(ctx.channel());
-        readMessages.getAndAdd(metrics.messagesRead());
-        writeMessages.getAndAdd(metrics.messagesWrote());
+        BytesMetrics metrics = getOrSetMetrics(ctx.channel());
+        readBytes.getAndAdd(metrics.bytesRead());
+        writeBytes.getAndAdd(metrics.bytesWrote());
         ctx.close(promise);
     }
 
-    public static MessageMetrics getOrSetMetrics(Channel channel) {
-        Attribute<MessageMetrics> attribute = channel.attr(ATTR_KEY_METRICS);
-        MessageMetrics metrics = attribute.get();
+    public static BytesMetrics getOrSetMetrics(Channel channel) {
+        Attribute<BytesMetrics> attribute = channel.attr(ATTR_KEY_METRICS);
+        BytesMetrics metrics = attribute.get();
         if(metrics == null) {
-            metrics = new MessageMetrics();
+            metrics = new BytesMetrics();
             attribute.set(metrics);
         }
         return metrics;

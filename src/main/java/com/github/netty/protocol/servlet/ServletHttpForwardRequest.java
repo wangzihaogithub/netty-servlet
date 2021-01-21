@@ -49,6 +49,8 @@ public class ServletHttpForwardRequest extends HttpServletRequestWrapper{
      */
     private final Object[] specialAttributes = new Object[specials.length];
 
+    private DispatcherType dispatcherType;
+
     public ServletHttpForwardRequest(HttpServletRequest source) {
         super(source);
     }
@@ -72,9 +74,13 @@ public class ServletHttpForwardRequest extends HttpServletRequestWrapper{
         return servletContext.getRequestDispatcher(path,getDispatcherType());
     }
 
+    public void setDispatcherType(DispatcherType dispatcherType) {
+        this.dispatcherType = dispatcherType;
+    }
+
     @Override
     public DispatcherType getDispatcherType() {
-        return DispatcherType.FORWARD;
+        return dispatcherType;
     }
 
     @Override
@@ -130,7 +136,7 @@ public class ServletHttpForwardRequest extends HttpServletRequestWrapper{
         return servletPath;
     }
 
-    public void setPaths(String pathInfo, String queryString, String requestURI, String servletPath) {
+    public void setPaths(String pathInfo,String queryString,String requestURI,String servletPath) {
         this.pathInfo = pathInfo;
         this.queryString = queryString;
         this.requestURI = requestURI;
@@ -238,8 +244,8 @@ public class ServletHttpForwardRequest extends HttpServletRequestWrapper{
      * Parse forward parameter
      */
     private void decodeParameter(){
-        Map<String, String[]> sourceParameterMap = super.getParameterMap();
-        Map<String, String[]> parameterMap = new LinkedHashMap<>(sourceParameterMap);
+        Map<String,String[]> sourceParameterMap = super.getParameterMap();
+        Map<String,String[]> parameterMap = new LinkedHashMap<>(sourceParameterMap);
         Charset charset = Charset.forName(getCharacterEncoding());
         ServletUtil.decodeByUrl(parameterMap, forwardPath,charset);
 

@@ -41,7 +41,7 @@ public class ServletInputStreamWrapper extends javax.servlet.ServletInputStream 
     private static final LoggerX LOGGER = LoggerFactoryX.getLogger(ServletInputStreamWrapper.class);
     private static final FileAttribute[] EMPTY_FILE_ATTRIBUTE = {};
     private static final Set<? extends OpenOption> WRITE_OPTIONS = new HashSet<>(Arrays.asList(
-            StandardOpenOption.WRITE,StandardOpenOption.CREATE,StandardOpenOption.TRUNCATE_EXISTING));
+            StandardOpenOption.WRITE, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING));
 
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private final AtomicLong receiveContentLength = new AtomicLong();
@@ -67,7 +67,7 @@ public class ServletInputStreamWrapper extends javax.servlet.ServletInputStream 
     private int uploadFileCount = 0;
     private Exception createFileException;
 
-    public ServletInputStreamWrapper(Supplier<InterfaceHttpPostRequestDecoder> requestDecoderSupplier,Supplier<ResourceManager> resourceManagerSupplier) {
+    public ServletInputStreamWrapper(Supplier<InterfaceHttpPostRequestDecoder> requestDecoderSupplier, Supplier<ResourceManager> resourceManagerSupplier) {
         this.requestDecoderSupplier = requestDecoderSupplier;
         this.resourceManagerSupplier = resourceManagerSupplier;
     }
@@ -95,7 +95,7 @@ public class ServletInputStreamWrapper extends javax.servlet.ServletInputStream 
         try {
             if (contentLength == -1 && readableBytes > 0) {
                 LOGGER.warn("not exist contentLength, but receive message。 {}/bytes, message = '{}'",
-                        readableBytes, byteBuf.toString(byteBuf.readerIndex(), Math.min(readableBytes, 255), Charset.defaultCharset()));
+                        readableBytes, byteBuf.toString(byteBuf.readerIndex(), Math.min(readableBytes, 2048), Charset.forName("UTF-8")));
                 return;
             }
 
@@ -204,7 +204,7 @@ public class ServletInputStreamWrapper extends javax.servlet.ServletInputStream 
         return uploadFileOutputChannel;
     }
 
-    private SeekableByteChannel createFileChannel(File file,Path path) throws IOException {
+    private SeekableByteChannel createFileChannel(File file, Path path) throws IOException {
         boolean fileExist = file.exists();
         if(!fileExist){
             File parentFile = file.getParentFile();
@@ -235,7 +235,7 @@ public class ServletInputStreamWrapper extends javax.servlet.ServletInputStream 
     }
 
     @Override
-    public void reset() throws IOException{
+    public void reset() throws IOException {
         if(uploadFileInputStream != null) {
             uploadFileInputStream.reset();
         }else {
@@ -403,7 +403,7 @@ public class ServletInputStreamWrapper extends javax.servlet.ServletInputStream 
         }
     }
 
-    void awaitDataIfNeed() throws HttpPostRequestDecoder.ErrorDataDecoderException,IOException {
+    void awaitDataIfNeed() throws HttpPostRequestDecoder.ErrorDataDecoderException, IOException {
         while (!isFinished()){
             lock.lock();
             try {

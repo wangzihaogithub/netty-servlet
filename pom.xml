@@ -27,10 +27,10 @@
         <java.version>1.8</java.version>
 
         <servlet-api.version>4.0.1</servlet-api.version>
-
         <javax-websocket-api.version>1.1</javax-websocket-api.version>
 
         <netty.version>4.1.48.Final</netty.version>
+        <netty.boringssl.version>2.0.34.Final</netty.boringssl.version>
     </properties>
 
     <licenses>
@@ -63,13 +63,17 @@
             <version>4.1.48.Final</version>
         </dependency>
         <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-tcnative-boringssl-static</artifactId>
+            <version>${netty.boringssl.version}</version>
+        </dependency>
+        <dependency>
             <groupId>javax.servlet</groupId>
             <artifactId>javax.servlet-api</artifactId>
             <version>${servlet-api.version}</version>
             <!--            <scope>provided</scope>-->
             <!--            <optional>true</optional>-->
         </dependency>
-
         <dependency>
             <groupId>javax.websocket</groupId>
             <artifactId>javax.websocket-api</artifactId>

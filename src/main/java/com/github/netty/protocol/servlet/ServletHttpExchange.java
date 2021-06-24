@@ -168,7 +168,7 @@ public class ServletHttpExchange implements Recyclable,AutoCloseable{
         return -1L;
     }
 
-    public static <T> T getAttribute(ChannelHandlerContext channelHandlerContext,AttributeKey<T> key){
+    public static <T> T getAttribute(ChannelHandlerContext channelHandlerContext, AttributeKey<T> key){
         if(channelHandlerContext != null && channelHandlerContext.channel() != null) {
             Attribute<T> attribute = channelHandlerContext.channel().attr(key);
             if(attribute != null){
@@ -178,7 +178,7 @@ public class ServletHttpExchange implements Recyclable,AutoCloseable{
         return null;
     }
 
-    public static <T> void setAttribute(ChannelHandlerContext context, AttributeKey<T> key,T value){
+    public static <T> void setAttribute(ChannelHandlerContext context, AttributeKey<T> key, T value){
         if(isChannelActive(context)) {
             context.channel().attr(key).set(value);
         }
@@ -194,10 +194,31 @@ public class ServletHttpExchange implements Recyclable,AutoCloseable{
         return null;
     }
 
-    public <T> void setAttribute(AttributeKey<T> key,T value){
+    public <T> void setAttribute(AttributeKey<T> key, T value){
         if(isChannelActive(channelHandlerContext)) {
             channelHandlerContext.channel().attr(key).set(value);
         }
+    }
+
+    public boolean isChannelActive() {
+        return isChannelActive(channelHandlerContext);
+    }
+
+    public boolean isAsyncStartIng() {
+        ServletHttpServletRequest request = this.request;
+        if (request != null) {
+            ServletAsyncContext asyncContext = request.getAsyncContext();
+            return asyncContext != null && asyncContext.isStarted() && !asyncContext.isComplete();
+        }
+        return false;
+    }
+
+    public ServletAsyncContext getAsyncContext(){
+        ServletHttpServletRequest request = getRequest();
+        if (request != null) {
+            return request.getAsyncContext();
+        }
+        return null;
     }
 
     /**

@@ -65,7 +65,6 @@ https://github.com/wangzihaogithub/spring-boot-protocol
     
         private static HttpServletProtocol newHttpProtocol() {
             ServletContext servletContext = new ServletContext();
-            servletContext.setContextPath("/1");
             servletContext.addServlet("myHttpServlet", new MyHttpServlet())
                     .addMapping("/test");
             return new HttpServletProtocol(servletContext);

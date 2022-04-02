@@ -1,9 +1,6 @@
 package com.github.netty;
 
-import com.github.netty.core.AbstractNettyServer;
-import com.github.netty.core.Ordered;
-import com.github.netty.core.ProtocolHandler;
-import com.github.netty.core.ServerListener;
+import com.github.netty.core.*;
 import com.github.netty.core.util.HostUtil;
 import com.github.netty.core.util.SystemPropertyUtil;
 import com.github.netty.protocol.DynamicProtocolChannelHandler;
@@ -16,7 +13,6 @@ import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.WriteBufferWaterMark;
 import io.netty.util.ResourceLeakDetector;
-import io.netty.util.internal.PlatformDependent;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -102,7 +98,9 @@ public class StartupServer extends AbstractNettyServer {
         //Exception thrown
         Throwable cause = future.cause();
         if(cause != null){
-            PlatformDependent.throwException(cause);
+            logger.error("server startup fail. cause={}", cause.toString(),cause);
+            System.exit(-1);
+            return;
         }
 
         logger.info("{} start (version = {}, port = {}, pid = {}, protocol = {}, os = {}) ...",
@@ -133,7 +131,7 @@ public class StartupServer extends AbstractNettyServer {
      * @throws Exception Exception
      */
     @Override
-    protected void config(ServerBootstrap bootstrap) throws Exception {
+    protected void config(ServerBootstrap bootstrap) throws Exception{
         super.config(bootstrap);
         if(SystemPropertyUtil.get("io.netty.leakDetectionLevel") == null &&
                 SystemPropertyUtil.get("io.netty.leakDetection.level") == null){
@@ -143,8 +141,8 @@ public class StartupServer extends AbstractNettyServer {
             long maxDirectMemory = -1;
             System.setProperty("io.netty.maxDirectMemory", String.valueOf(maxDirectMemory));
         }
-        bootstrap.childOption(ChannelOption.WRITE_SPIN_COUNT, Integer.MAX_VALUE);
-        bootstrap.childOption(ChannelOption.WRITE_BUFFER_WATER_MARK, new WriteBufferWaterMark(32 * 1024, Integer.MAX_VALUE));
+        bootstrap.childOption(ChannelOption.WRITE_SPIN_COUNT,Integer.MAX_VALUE);
+        bootstrap.childOption(ChannelOption.WRITE_BUFFER_WATER_MARK, new WriteBufferWaterMark(32 * 1024,Integer.MAX_VALUE));
         bootstrap.childOption(ChannelOption.AUTO_CLOSE,true);
 
         bootstrap.childOption(ChannelOption.TCP_NODELAY, false);
@@ -188,6 +186,11 @@ public class StartupServer extends AbstractNettyServer {
      */
     public Collection<ServerListener> getServerListeners() {
         return serverListeners;
+    }
+
+    public void addProtocol(AbstractProtocol protocol){
+        protocolHandlers.add(protocol);
+        serverListeners.add(protocol);
     }
 
     public DynamicProtocolChannelHandler getDynamicProtocolChannelHandler() {

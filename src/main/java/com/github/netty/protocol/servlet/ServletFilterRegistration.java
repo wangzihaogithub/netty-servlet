@@ -22,9 +22,9 @@ public class ServletFilterRegistration implements FilterRegistration,FilterRegis
     private ServletContext servletContext;
     private FilterMapper<ServletFilterRegistration> urlMapper;
     private boolean asyncSupported = true;
-    private Map<String, String> initParameterMap = new LinkedHashMap<>();
+    private Map<String,String> initParameterMap = new LinkedHashMap<>();
     private MappingSet mappingSet = new MappingSet();
-    class MappingSet extends LinkedHashSet<String> {
+    class MappingSet extends LinkedHashSet<String>{
         @Override
         public boolean add(String pattern) {
             return add(pattern,false,null);
@@ -38,7 +38,7 @@ public class ServletFilterRegistration implements FilterRegistration,FilterRegis
             return c.size() > 0;
         }
 
-        public boolean add(String pattern, boolean isMatchAfter, EnumSet<DispatcherType> dispatcherTypes) {
+        public boolean add(String pattern,boolean isMatchAfter,EnumSet<DispatcherType> dispatcherTypes) {
             urlMapper.addMapping(pattern, ServletFilterRegistration.this, filterName,isMatchAfter,dispatcherTypes);
             return super.add(pattern);
         }

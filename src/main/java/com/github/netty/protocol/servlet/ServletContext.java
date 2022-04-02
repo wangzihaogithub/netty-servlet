@@ -6,6 +6,7 @@ import com.github.netty.protocol.servlet.util.FilterMapper;
 import com.github.netty.protocol.servlet.util.HttpConstants;
 import com.github.netty.protocol.servlet.util.MimeMappingsX;
 import com.github.netty.protocol.servlet.util.UrlMapper;
+import com.github.netty.protocol.servlet.websocket.WebSocketServerContainer;
 import io.netty.handler.codec.http.multipart.DefaultHttpDataFactory;
 import io.netty.handler.codec.http.multipart.DiskAttribute;
 import io.netty.handler.codec.http.multipart.DiskFileUpload;
@@ -36,6 +37,7 @@ import java.util.function.Supplier;
  */
 public class ServletContext implements javax.servlet.ServletContext {
     private LoggerX logger = LoggerFactoryX.getLogger(getClass());
+    public static final String SERVER_CONTAINER_SERVLET_CONTEXT_ATTRIBUTE = "javax.websocket.server.ServerContainer";
     /**
      * Default: 20 minutes,
      */
@@ -52,8 +54,8 @@ public class ServletContext implements javax.servlet.ServletContext {
      * Upload file timeout millisecond , -1 is not control timeout.
      */
     private long uploadFileTimeoutMs = -1;
-    private Map<String, Object> attributeMap = new LinkedHashMap<>(16);
-    private Map<String, String> initParamMap = new LinkedHashMap<>(16);
+    private Map<String,Object> attributeMap = new LinkedHashMap<>(16);
+    private Map<String,String> initParamMap = new LinkedHashMap<>(16);
     private Map<String, ServletRegistration> servletRegistrationMap = new LinkedHashMap<>(8);
     private Map<String, ServletFilterRegistration> filterRegistrationMap = new LinkedHashMap<>(8);
     private FastThreadLocal<Map<Charset, HttpDataFactory>> httpDataFactoryThreadLocal = new FastThreadLocal<Map<Charset, HttpDataFactory>>(){
@@ -147,7 +149,7 @@ public class ServletContext implements javax.servlet.ServletContext {
         setDocBase(docBase,workspace);
     }
 
-    public void setDocBase(String docBase, String workspace){
+    public void setDocBase(String docBase,String workspace){
         this.resourceManager = new ResourceManager(docBase,workspace,classLoader);
         this.resourceManager.mkdirs("/");
 
@@ -246,7 +248,7 @@ public class ServletContext implements javax.servlet.ServletContext {
     }
 
     public void setContextPath(String contextPath) {
-        this.contextPath = contextPath;
+        this.contextPath = normPath(contextPath);
         this.filterUrlMapper.setRootPath(contextPath);
         this.servletUrlMapper.setRootPath(contextPath);
     }
@@ -476,7 +478,7 @@ public class ServletContext implements javax.servlet.ServletContext {
         return initParamMap.get(name);
     }
 
-    public <T>T getInitParameter(String name, T def) {
+    public <T>T getInitParameter(String name,T def) {
         String value = getInitParameter(name);
         if(value == null){
             return def;
@@ -501,6 +503,12 @@ public class ServletContext implements javax.servlet.ServletContext {
 
     @Override
     public Object getAttribute(String name) {
+        if(SERVER_CONTAINER_SERVLET_CONTEXT_ATTRIBUTE.equals(name)){
+            try {
+                attributeMap.put(name, new WebSocketServerContainer());
+            }catch (Exception ignored){
+            }
+        }
         return attributeMap.get(name);
     }
 
@@ -784,4 +792,19 @@ public class ServletContext implements javax.servlet.ServletContext {
         throw new UnsupportedOperationException("addJspFile");
     }
 
+    public static String normPath(String path) {
+        if(path.isEmpty()){
+            return path;
+        }
+        while (path.startsWith("//")) {
+            path = path.substring(1);
+        }
+        if (!path.startsWith("/")) {
+            path = "/" + path;
+        }
+        while (path.endsWith("/")) {
+            path = path.substring(0, path.length() - 1);
+        }
+        return path;
+    }
 }

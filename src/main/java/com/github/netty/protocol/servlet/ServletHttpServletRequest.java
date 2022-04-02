@@ -664,7 +664,7 @@ public class ServletHttpServletRequest implements HttpServletRequest, Recyclable
             if(contextPath.length() > 0){
                 servletPath = servletPath.replaceFirst(contextPath,"");
             }
-            this.servletPath = servletPath;
+            this.servletPath = ServletContext.normPath(servletPath);
         }
         return this.servletPath;
     }
@@ -725,12 +725,12 @@ public class ServletHttpServletRequest implements HttpServletRequest, Recyclable
     @Override
     public ServletHttpSession getSession(boolean create) {
 	    String sessionId = getRequestedSessionId();
-	    if(sessionIdSource == null && !create){
-	        return null;
-        }
         ServletHttpSession httpSession = servletHttpExchange.getHttpSession();
         if (httpSession != null && httpSession.isValid() && httpSession.getId().equals(sessionId)) {
             return httpSession;
+        }
+        if(sessionIdSource == null && !create){
+            return null;
         }
 	    ServletContext servletContext = getServletContext();
 	    SessionService sessionService = servletContext.getSessionService();
@@ -1371,4 +1371,5 @@ public class ServletHttpServletRequest implements HttpServletRequest, Recyclable
         this.attributeMap.clear();
         RECYCLER.recycleInstance(this);
     }
+
 }

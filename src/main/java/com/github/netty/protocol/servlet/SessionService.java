@@ -1,6 +1,5 @@
 package com.github.netty.protocol.servlet;
 
-import com.github.netty.annotation.Protocol;
 
 import java.util.List;
 
@@ -9,7 +8,6 @@ import java.util.List;
  * @author wangzihao
  * 2018/8/19/019
  */
-@Protocol.RpcService(value = "/_nrpc/sessionService",timeout = 1000)
 public interface SessionService {
 
     /**
@@ -17,32 +15,32 @@ public interface SessionService {
      * @param sessionId sessionId
      * @return Session
      */
-    Session getSession(@Protocol.RpcParam("sessionId") String sessionId);
+    Session getSession(String sessionId);
 
     /**
      * Save the session
      * @param session session
      */
-    void saveSession(@Protocol.RpcParam("session") Session session);
+    void saveSession(Session session);
 
     /**
      * Delete session
      * @param sessionId sessionId
      */
-    void removeSession(@Protocol.RpcParam("sessionId") String sessionId);
+    void removeSession( String sessionId);
 
     /**
      * Delete session (batch)
      * @param sessionIdList sessionIdList
      */
-    void removeSessionBatch(@Protocol.RpcParam("sessionIdList") List<String> sessionIdList);
+    void removeSessionBatch(List<String> sessionIdList);
 
     /**
      * Change the sessionId
      * @param oldSessionId oldSessionId
      * @param newSessionId newSessionId
      */
-    void changeSessionId(@Protocol.RpcParam("oldSessionId") String oldSessionId, @Protocol.RpcParam("newSessionId") String newSessionId);
+    void changeSessionId(String oldSessionId,  String newSessionId);
 
     /**
      * Get the number of sessions

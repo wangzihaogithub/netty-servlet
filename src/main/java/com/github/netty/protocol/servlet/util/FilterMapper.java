@@ -136,7 +136,7 @@ public class FilterMapper<T> {
      * @param dispatcherTypes dispatcherTypes
      * @throws IllegalArgumentException IllegalArgumentException
      */
-    public void addMapping(String urlPattern, T object, String objectName, boolean isMatchAfter, EnumSet<DispatcherType> dispatcherTypes) throws IllegalArgumentException {
+    public void addMapping(String urlPattern, T object, String objectName,boolean isMatchAfter,EnumSet<DispatcherType> dispatcherTypes) throws IllegalArgumentException {
         Objects.requireNonNull(urlPattern);
 
         Element<T> element = new Element<>(rootPath, urlPattern, object, objectName,dispatcherTypes);
@@ -209,11 +209,11 @@ public class FilterMapper<T> {
         boolean allPatternFlag;
         boolean defaultFlag;
         EnumSet<DispatcherType> dispatcherTypes;
-        public Element(String objectName, T object){
+        public Element(String objectName,T object){
             this.objectName = objectName;
             this.object = object;
         }
-        public Element(String rootPath, String originalPattern, T object, String objectName, EnumSet<DispatcherType> dispatcherTypes) {
+        public Element(String rootPath,String originalPattern, T object, String objectName,EnumSet<DispatcherType> dispatcherTypes) {
             this.dispatcherTypes = dispatcherTypes;
             this.allPatternFlag = "/".equals(originalPattern)
                     || "/*".equals(originalPattern)

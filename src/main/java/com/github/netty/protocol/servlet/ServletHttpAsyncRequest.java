@@ -139,7 +139,7 @@ public class ServletHttpAsyncRequest extends HttpServletRequestWrapper{
         return servletPath;
     }
 
-    public void setPaths(String pathInfo, String queryString, String requestURI, String servletPath) {
+    public void setPaths(String pathInfo,String queryString,String requestURI,String servletPath) {
         this.pathInfo = pathInfo;
         this.queryString = queryString;
         this.requestURI = requestURI;
@@ -247,8 +247,8 @@ public class ServletHttpAsyncRequest extends HttpServletRequestWrapper{
      * Parse forward parameter
      */
     private void decodeParameter(){
-        Map<String, String[]> sourceParameterMap = super.getParameterMap();
-        Map<String, String[]> parameterMap = new LinkedHashMap<>(sourceParameterMap);
+        Map<String,String[]> sourceParameterMap = super.getParameterMap();
+        Map<String,String[]> parameterMap = new LinkedHashMap<>(sourceParameterMap);
         Charset charset = Charset.forName(getCharacterEncoding());
         ServletUtil.decodeByUrl(parameterMap, dispatchPath,charset);
 

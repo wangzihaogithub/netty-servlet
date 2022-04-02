@@ -40,24 +40,45 @@ https://github.com/wangzihaogithub/spring-boot-protocol
 <dependency>
   <groupId>com.github.wangzihaogithub</groupId>
   <artifactId>spring-boot-protocol</artifactId>
-  <version>2.1.2</version>
+  <version>2.2.3</version>
 </dependency>
 ```
 	
-#### 2.开启netty容器
+#### 2.写个自己的servlet业务逻辑类
+    
+    public class MyHttpServlet extends HttpServlet {
+        @Override
+        protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+            resp.getWriter().write("hi! doGet");
+        }
+    }
+    
+#### 3.写个main方法，启动服务
 
-    @EnableNettyEmbedded//切换容器的注解
-    @SpringBootApplication
-    public class ExampleApplication {
+    public class HttpBootstrap {
     
         public static void main(String[] args) {
-            SpringApplication.run(ExampleApplication.class, args);
+            StartupServer server = new StartupServer(8080);
+            server.addProtocol(newHttpProtocol());
+            server.start();
+        }
+    
+        private static HttpServletProtocol newHttpProtocol() {
+            ServletContext servletContext = new ServletContext();
+            servletContext.setContextPath("/1");
+            servletContext.addServlet("myHttpServlet", new MyHttpServlet())
+                    .addMapping("/test");
+            return new HttpServletProtocol(servletContext);
         }
     }
 
-#### 3.启动, 已经成功替换tomcat, 切换至 NettyTcpServer!
-	2019-02-28 22:06:16.192  INFO 9096 --- [er-Boss-NIO-2-1] c.g.n.springboot.server.NettyTcpServer   : NettyTcpServer@1 start (port = 10004, pid = 9096, protocol = [my-protocol, http, nrpc, mqtt], os = windows 8.1) ...
-	2019-02-28 22:06:16.193  INFO 9096 --- [           main] c.g.example.ProtocolApplication10004     : Started ProtocolApplication10004 in 2.508 seconds (JVM running for 3.247)    
+    
+#### 4.打开浏览器
+
+    访问http://localhost:8080/test
+    页面显示 hi! doGet， 测试成功！
+ 
+    
 ---
 
 #### 补充: Servlet的概念

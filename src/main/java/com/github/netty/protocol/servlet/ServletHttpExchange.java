@@ -32,6 +32,11 @@ public class ServletHttpExchange implements Recyclable,AutoCloseable{
     private boolean isHttpKeepAlive;
     private final AtomicInteger close = new AtomicInteger(CLOSE_NO);
     private boolean websocket;
+    /**
+     * on start async after. client abort
+     */
+    private boolean abortFlag;
+
     public static final int CLOSE_NO = 0;
     public static final int CLOSE_ING = 1;
     public static final int CLOSE_YES = 2;
@@ -230,6 +235,14 @@ public class ServletHttpExchange implements Recyclable,AutoCloseable{
         return null;
     }
 
+    public void abort(){
+        this.abortFlag = true;
+    }
+
+    public boolean isAbort() {
+        return abortFlag;
+    }
+
     /**
      * Recycle servlet object
      */
@@ -250,18 +263,19 @@ public class ServletHttpExchange implements Recyclable,AutoCloseable{
 
     private final Consumer<Object> recycleCallback = e ->{
         request.recycle();
-
         if(channelHandlerContext instanceof Recyclable){
             ((Recyclable) channelHandlerContext).recycle();
         }
-
+        close.set(CLOSE_YES);
+        if(isAbort()){
+            return;
+        }
         if(channelHandlerContext != null) {
             setAttribute(channelHandlerContext, CHANNEL_ATTR_KEY_EXCHANGE, null);
         }
         response = null;
         request = null;
         servletContext = null;
-        close.set(CLOSE_YES);
         RECYCLER.recycleInstance(this);
     };
 

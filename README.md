@@ -56,7 +56,7 @@ https://github.com/wangzihaogithub/spring-boot-protocol
     
         private static HttpServletProtocol newHttpProtocol() {
             ServletContext servletContext = new ServletContext();
-            servletContext.setDocBase("D://demo", "/webapp"); // 静态资源文件夹
+            servletContext.setDocBase("D://demo", "/webapp"); // 静态资源文件夹(非必填,默认用临时目录)
             servletContext.addServlet("myHttpServlet", new DefaultServlet())
                     .addMapping("/*");
             return new HttpServletProtocol(servletContext);

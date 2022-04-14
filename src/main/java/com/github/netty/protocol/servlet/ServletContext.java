@@ -18,8 +18,6 @@ import javax.servlet.descriptor.JspConfigDescriptor;
 import javax.servlet.http.HttpSessionAttributeListener;
 import javax.servlet.http.HttpSessionIdListener;
 import javax.servlet.http.HttpSessionListener;
-import java.io.File;
-import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.net.InetSocketAddress;
@@ -105,7 +103,6 @@ public class ServletContext implements javax.servlet.ServletContext {
 
     public ServletContext(ClassLoader classLoader) {
         this.classLoader = classLoader == null ? getClass().getClassLoader(): classLoader;
-        setDocBase(createTempDir("netty-docbase").getAbsolutePath());
     }
 
     public void setMaxBufferBytes(int maxBufferBytes) {
@@ -150,28 +147,16 @@ public class ServletContext implements javax.servlet.ServletContext {
     }
 
     public void setDocBase(String docBase,String workspace){
-        this.resourceManager = new ResourceManager(docBase,workspace,classLoader);
+        ResourceManager old = this.resourceManager;
+        this.resourceManager = new ResourceManager(docBase, workspace, classLoader);
         this.resourceManager.mkdirs("/");
-
+        if (old != null) {
+            logger.warn("ServletContext docBase override. old = {}, new = {}", old, this.resourceManager);
+        }
         DiskFileUpload.deleteOnExitTemporaryFile = true;
         DiskAttribute.deleteOnExitTemporaryFile = true;
         DiskFileUpload.baseDirectory = resourceManager.getRealPath("/");
         DiskAttribute.baseDirectory = resourceManager.getRealPath("/");
-    }
-
-    protected static File createTempDir(String prefix) {
-        try {
-            File tempDir = File.createTempFile(prefix + ".", "");
-            tempDir.delete();
-            tempDir.mkdir();
-            tempDir.deleteOnExit();
-            return tempDir;
-        }catch (IOException ex) {
-            throw new IllegalStateException(
-                    "Unable to create tempDir. java.io.tmpdir is set to "
-                            + System.getProperty("java.io.tmpdir"),
-                    ex);
-        }
     }
 
     public Executor getAsyncExecutor() {
@@ -476,19 +461,6 @@ public class ServletContext implements javax.servlet.ServletContext {
     @Override
     public String getInitParameter(String name) {
         return initParamMap.get(name);
-    }
-
-    public <T>T getInitParameter(String name,T def) {
-        String value = getInitParameter(name);
-        if(value == null){
-            return def;
-        }
-        Class<?> clazz = def.getClass();
-        Object valCast = TypeUtil.cast((Object) value,clazz);
-        if(valCast != null && valCast.getClass().isAssignableFrom(clazz)){
-            return (T) valCast;
-        }
-        return def;
     }
 
     @Override

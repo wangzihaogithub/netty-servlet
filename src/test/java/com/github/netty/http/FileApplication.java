@@ -5,22 +5,20 @@ import com.github.netty.protocol.HttpServletProtocol;
 import com.github.netty.protocol.servlet.DefaultServlet;
 import com.github.netty.protocol.servlet.ServletContext;
 
-public class HttpBootstrap {
-
+public class FileApplication {
     public static void main(String[] args) {
-        StartupServer server = new StartupServer(8080);
+        StartupServer server = new StartupServer(80);
         server.addProtocol(newHttpProtocol());
         server.start();
+        // http://localhost/myfile.html
+        // http://localhost/a/myfile.html
     }
 
     private static HttpServletProtocol newHttpProtocol() {
         ServletContext servletContext = new ServletContext();
-        servletContext.addServlet("myHttpServlet", new DefaultServlet())
-                .addMapping("/*");
-        servletContext.addServlet("ServletDefaultHttpServlet", new MyHttpServlet())
-                .addMapping("/hello");
-
-        HttpServletProtocol protocol = new HttpServletProtocol(servletContext);
-        return protocol;
+//        servletContext.setDocBase("D://demo", "/webapp");
+        servletContext.setDocBase(System.getProperty("user.dir"), "/webapp");
+        servletContext.addServlet("myServlet", new DefaultServlet()).addMapping("/");
+        return new HttpServletProtocol(servletContext);
     }
 }

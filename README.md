@@ -40,19 +40,10 @@ https://github.com/wangzihaogithub/spring-boot-protocol
 <dependency>
   <groupId>com.github.wangzihaogithub</groupId>
   <artifactId>spring-boot-protocol</artifactId>
-  <version>2.2.4</version>
+  <version>2.2.5</version>
 </dependency>
 ```
-	
-#### 2.写个自己的servlet业务逻辑类
-    
-    public class MyHttpServlet extends HttpServlet {
-        @Override
-        protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-            resp.getWriter().write("hi! doGet");
-        }
-    }
-    
+
 #### 3.写个main方法，启动服务
 
     public class HttpBootstrap {
@@ -65,8 +56,9 @@ https://github.com/wangzihaogithub/spring-boot-protocol
     
         private static HttpServletProtocol newHttpProtocol() {
             ServletContext servletContext = new ServletContext();
-            servletContext.addServlet("myHttpServlet", new MyHttpServlet())
-                    .addMapping("/test");
+            servletContext.setDocBase("D://demo", "/webapp"); // 静态资源文件夹
+            servletContext.addServlet("myHttpServlet", new DefaultServlet())
+                    .addMapping("/*");
             return new HttpServletProtocol(servletContext);
         }
     }

@@ -21,7 +21,7 @@ public class RecyclableUtil {
         }
     };
 
-    public static  RecyclableArrayList newRecyclableList(int minCapacity) {
+    public static RecyclableArrayList newRecyclableList(int minCapacity) {
         RecyclableArrayList finishListeners = RecyclableArrayList.newInstance(minCapacity);
         return finishListeners;
     }

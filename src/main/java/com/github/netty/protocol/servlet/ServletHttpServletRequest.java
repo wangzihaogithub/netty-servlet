@@ -3,6 +3,7 @@ package com.github.netty.protocol.servlet;
 import com.github.netty.core.util.*;
 import com.github.netty.protocol.servlet.util.*;
 import io.netty.handler.codec.CodecException;
+import io.netty.handler.codec.DateFormatter;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.multipart.*;
@@ -18,8 +19,6 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.charset.Charset;
 import java.security.Principal;
-import java.text.DateFormat;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -536,19 +535,10 @@ public class ServletHttpServletRequest implements HttpServletRequest, Recyclable
     @Override
     public long getDateHeader(String name) throws IllegalArgumentException {
         String value = getHeader(name);
-        if(StringUtil.isEmpty(value)){
+        if (value == null || value.isEmpty()) {
             return -1;
         }
-
-        DateFormat[] formats = FORMATS_TEMPLATE;
-        Date date = null;
-        for (int i = 0; (date == null) && (i < formats.length); i++) {
-            try {
-                date = formats[i].parse(value);
-            } catch (ParseException e) {
-                // Ignore
-            }
-        }
+        Date date = DateFormatter.parseHttpDate(value);
         if (date == null) {
             throw new IllegalArgumentException(value);
         }
@@ -721,13 +711,19 @@ public class ServletHttpServletRequest implements HttpServletRequest, Recyclable
 
     @Override
     public ServletHttpSession getSession(boolean create) {
-	    String sessionId = getRequestedSessionId();
+        String sessionId = null;
         ServletHttpSession httpSession = servletHttpExchange.getHttpSession();
-        if (httpSession != null && httpSession.isValid() && httpSession.getId().equals(sessionId)) {
-            return httpSession;
+        if (httpSession != null && httpSession.isValid()) {
+            sessionId = getRequestedSessionId0();
+            if (httpSession.getId().equals(sessionId)) {
+                return httpSession;
+            }
         }
-        if(sessionIdSource == null && !create){
+        if (sessionIdSource == null && !create) {
             return null;
+        }
+        if (sessionId == null || sessionId.isEmpty()) {
+            sessionId = getRequestedSessionId();
         }
 	    ServletContext servletContext = getServletContext();
 	    SessionService sessionService = servletContext.getSessionService();
@@ -751,8 +747,8 @@ public class ServletHttpServletRequest implements HttpServletRequest, Recyclable
             httpSession.setServletContext(servletContext);
         }
         httpSession.wrap(session);
-        httpSession.access();
         httpSession.setNewSessionFlag(newSessionFlag);
+        httpSession.access();
         servletHttpExchange.setHttpSession(httpSession);
         return httpSession;
     }
@@ -783,14 +779,14 @@ public class ServletHttpServletRequest implements HttpServletRequest, Recyclable
 
     @Override
     public boolean isRequestedSessionIdValid() {
-        getRequestedSessionId();
+        getRequestedSessionId0();
         return sessionIdSource == SessionTrackingMode.COOKIE ||
                 sessionIdSource == SessionTrackingMode.URL;
     }
 
     @Override
     public boolean isRequestedSessionIdFromCookie() {
-        getRequestedSessionId();
+        getRequestedSessionId0();
         return sessionIdSource == SessionTrackingMode.COOKIE;
     }
 
@@ -801,37 +797,44 @@ public class ServletHttpServletRequest implements HttpServletRequest, Recyclable
 
     @Override
     public boolean isRequestedSessionIdFromUrl() {
-        getRequestedSessionId();
+        getRequestedSessionId0();
         return sessionIdSource == SessionTrackingMode.URL;
     }
 
-    @Override
-    public String getRequestedSessionId() {
-        if(sessionId != null){
+    private String getRequestedSessionId0() {
+        if (sessionId != null) {
             return sessionId;
         }
 
         //If the user sets the sessionCookie name, the user set the sessionCookie name
         String userSettingCookieName = getServletContext().getSessionCookieConfig().getName();
-        String cookieSessionName = StringUtil.isNotEmpty(userSettingCookieName)? userSettingCookieName : HttpConstants.JSESSION_ID_COOKIE;
+        String cookieSessionName = userSettingCookieName != null && userSettingCookieName.length() > 0 ?
+                userSettingCookieName : HttpConstants.JSESSION_ID_COOKIE;
 
         //Find the value of sessionCookie first from cookie, then from url parameter
-        String sessionId = ServletUtil.getCookieValue(getCookies(),cookieSessionName);
-        if(StringUtil.isNotEmpty(sessionId)){
+        String sessionId = ServletUtil.getCookieValue(getCookies(), cookieSessionName);
+        if (sessionId != null && sessionId.length() > 0) {
             sessionIdSource = SessionTrackingMode.COOKIE;
-        }else {
+        } else {
             String queryString = getQueryString();
-            if(queryString != null && queryString.contains(HttpConstants.JSESSION_ID_URL)) {
+            if (queryString != null && queryString.contains(HttpConstants.JSESSION_ID_URL)) {
                 sessionId = getParameter(HttpConstants.JSESSION_ID_URL);
             }
-            if(StringUtil.isNotEmpty(sessionId)){
+            if (sessionId != null && sessionId.length() > 0) {
                 sessionIdSource = SessionTrackingMode.URL;
-            }else{
+            } else {
                 sessionIdSource = null;
-                sessionId = newSessionId();
             }
         }
+        return sessionId;
+    }
 
+    @Override
+    public String getRequestedSessionId() {
+        String sessionId = getRequestedSessionId0();
+        if (sessionId == null || sessionId.isEmpty()) {
+            sessionId = newSessionId();
+        }
         this.sessionId = sessionId;
         return sessionId;
     }

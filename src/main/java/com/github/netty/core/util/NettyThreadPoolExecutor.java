@@ -11,7 +11,7 @@ import java.util.concurrent.TimeUnit;
  * Use netty thread
  *
  * @author wangzihaogithub 2020-11-21
- * @see  DefaultThreadFactory
+ * @see  io.netty.util.concurrent.DefaultThreadFactory
  * @see io.netty.util.concurrent.FastThreadLocalThread
  * @see io.netty.util.internal.InternalThreadLocalMap#handlerSharableCache()
  */

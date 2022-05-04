@@ -66,7 +66,7 @@ public class ChunkedWriteHandler extends ChannelDuplexHandler {
         this(new ArrayDeque<PendingWrite>(),maxBufferBytes);
     }
 
-    public ChunkedWriteHandler(Queue<PendingWrite> queue, LongSupplier maxBufferBytes) {
+    public ChunkedWriteHandler(Queue<PendingWrite> queue,LongSupplier maxBufferBytes) {
         this.queue = queue;
         this.maxBufferBytes = maxBufferBytes;
     }

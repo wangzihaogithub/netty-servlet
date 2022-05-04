@@ -323,7 +323,7 @@ public class IOUtil {
         return new FileInputStream(inFile);
     }
 
-    public static int indexOf(ByteBuf byteBuf,byte value){
+    public static int indexOf(ByteBuf byteBuf, byte value){
         int len = byteBuf.readableBytes();
         for(int i= 0; i<len; i++){
             byte b = byteBuf.getByte(i);

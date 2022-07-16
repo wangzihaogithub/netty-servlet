@@ -14,14 +14,20 @@ public interface ProtocolHandler extends Ordered {
      * Get the protocol name
      * @return name
      */
-    String getProtocolName();
+    default String getProtocolName() {
+        String name = getClass().getSimpleName();
+        if (name.isEmpty()) {
+            name = getClass().getName();
+        }
+        return name;
+    }
 
     /**
      * Support protocol
-     * @param msg client first message
+     * @param clientFirstMsg client first message
      * @return true=Support, false=no Support
      */
-    boolean canSupport(ByteBuf msg);
+    boolean canSupport(ByteBuf clientFirstMsg);
 
     /**
      * Support protocol
@@ -35,9 +41,10 @@ public interface ProtocolHandler extends Ordered {
     /**
      * add protocol pipeline support
      * @param channel TCP channel
+     * @param clientFirstMsg clientFirstMsg
      * @throws Exception Exception
      */
-    void addPipeline(Channel channel) throws Exception;
+    void addPipeline(Channel channel, ByteBuf clientFirstMsg) throws Exception;
 
     /**
      * default Priority order 0

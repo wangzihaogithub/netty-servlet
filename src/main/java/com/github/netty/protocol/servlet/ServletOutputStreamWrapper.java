@@ -11,7 +11,6 @@ import javax.servlet.WriteListener;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
 import java.util.function.Consumer;
 
 /**
@@ -64,11 +63,6 @@ public class ServletOutputStreamWrapper extends javax.servlet.ServletOutputStrea
     @Override
     public ChannelProgressivePromise write(ChunkedInput httpBody) throws IOException {
         return source.write(httpBody);
-    }
-
-    @Override
-    public ChannelProgressivePromise write(FileChannel fileChannel, long position, long count) throws IOException {
-        return source.write(fileChannel,position,count);
     }
 
     @Override

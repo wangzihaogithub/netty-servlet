@@ -19,6 +19,10 @@ public class FileApplication {
 //        servletContext.setDocBase("D://demo", "/webapp");
         servletContext.setDocBase(System.getProperty("user.dir"), "/webapp");
         servletContext.addServlet("myServlet", new DefaultServlet()).addMapping("/");
-        return new HttpServletProtocol(servletContext);
+
+        HttpServletProtocol protocol = new HttpServletProtocol(servletContext);
+//        protocol.setEnableH2c(true);
+//        protocol.setSslFileJks();
+        return protocol;
     }
 }

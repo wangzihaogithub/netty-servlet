@@ -1,28 +1,20 @@
 package com.github.netty.http;
 
-import jdk.incubator.http.HttpRequest;
-import jdk.incubator.http.HttpResponse;
+import com.github.netty.core.util.IOUtil;
 
 import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
+import java.io.InputStream;
+import java.net.URL;
+import java.util.Objects;
 
 public class HttpTests {
 
     public static void main(String[] args) throws IOException {
-        jdk.incubator.http.HttpClient client = jdk.incubator.http.HttpClient.newBuilder()
-                .build();
+        URL url = new URL("http://localhost:8080/test/hello?name=xiaowang");
+        InputStream inputStream = url.openStream();
+        String responseBody = IOUtil.readInput(inputStream);
 
-        try {
-            HttpResponse<String> send = client.send(HttpRequest.newBuilder(new URI("localhost/test")).GET().build(), HttpResponse.BodyHandler.asString());
-
-            System.out.println("client = " + send);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        } catch (URISyntaxException e) {
-            e.printStackTrace();
-        }
-        System.out.println("client = " + client);
+        assert Objects.equals("hi! xiaowang",responseBody);
     }
 
 }

@@ -40,7 +40,7 @@ https://github.com/wangzihaogithub/spring-boot-protocol
 <dependency>
   <groupId>com.github.wangzihaogithub</groupId>
   <artifactId>spring-boot-protocol</artifactId>
-  <version>2.2.12</version>
+  <version>2.3.0</version>
 </dependency>
 ```
 

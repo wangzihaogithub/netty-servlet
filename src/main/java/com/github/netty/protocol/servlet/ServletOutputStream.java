@@ -1,7 +1,6 @@
 package com.github.netty.protocol.servlet;
 
 import com.github.netty.core.util.*;
-import com.github.netty.protocol.servlet.util.Protocol;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.Unpooled;
@@ -98,8 +97,7 @@ public class ServletOutputStream extends javax.servlet.ServletOutputStream imple
     }
 
     public boolean isHttp2(){
-        Protocol protocol = servletHttpExchange.getProtocol();
-        return protocol == Protocol.h2 || protocol == Protocol.h2c;
+        return servletHttpExchange.getProtocol().isHttp2();
     }
 
     protected ChannelProgressivePromise writeHttpBody(Object httpBody, long length) throws IOException {

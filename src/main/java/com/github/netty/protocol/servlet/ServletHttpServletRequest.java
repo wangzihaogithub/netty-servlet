@@ -72,9 +72,9 @@ public class ServletHttpServletRequest implements HttpServletRequest, Recyclable
     private HttpRequest nettyRequest;
     private boolean isMultipart;
     private boolean isFormUrlEncoder;
-    private final Map<String,Object> attributeMap = Collections.synchronizedMap(new LinkedHashMap<>(16));
-    private final LinkedMultiValueMap<String,String> parameterMap = new LinkedMultiValueMap<>(16);
-    private final Map<String,String[]> unmodifiableParameterMap = new AbstractMap<String, String[]>() {
+    private final Map<String, Object> attributeMap = Collections.synchronizedMap(new LinkedHashMap<>(16));
+    private final LinkedMultiValueMap<String, String> parameterMap = new LinkedMultiValueMap<>(16);
+    private final Map<String, String[]> unmodifiableParameterMap = new AbstractMap<String, String[]>() {
 	    @Override
 	    public Set<Entry<String, String[]>> entrySet() {
 	    	if(isEmpty()){
@@ -82,7 +82,7 @@ public class ServletHttpServletRequest implements HttpServletRequest, Recyclable
 		    }
 		    HashSet<Entry<String, String[]>> result = new HashSet<>(6);
 		    Set<Entry<String, List<String>>> entries = parameterMap.entrySet();
-		    for (Entry<String,List<String>> entry : entries) {
+		    for (Entry<String, List<String>> entry : entries) {
 			    List<String> value = entry.getValue();
 			    String[] valueArr = value != null? value.toArray(new String[value.size()]): null;
 			    result.add(new SimpleImmutableEntry<>(entry.getKey(),valueArr));
@@ -941,16 +941,10 @@ public class ServletHttpServletRequest implements HttpServletRequest, Recyclable
     @Override
     public String getProtocol() {
         Protocol protocol = servletHttpExchange.getProtocol();
-        switch (protocol) {
-            case h2:
-            case h2c: {
-                return "HTTP/2.0";
-            }
-            case http1_1:
-            case https1_1:
-            default: {
-                return nettyRequest.protocolVersion().toString();
-            }
+        if (protocol.isHttp2()) {
+            return "HTTP/2.0";
+        } else {
+            return nettyRequest.protocolVersion().toString();
         }
     }
 

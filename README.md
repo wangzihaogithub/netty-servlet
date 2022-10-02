@@ -2,7 +2,7 @@
 
 ### 简介
 
-- 基于netty实现的servlet容器, 可以替代tomcat或jetty. (jdk1.8+)
+- 基于Netty实现的servlet容器, 可以替代tomcat或jetty. (jdk1.8+)
 - 解决Netty在EventLoop线程里写繁忙后不返回数据的BUG.
 - 解决Netty的Http遇到请求参数携带%号会报错的问题.
 - 从19年开始，一直跑在作者公司某产线的线上环境运行.

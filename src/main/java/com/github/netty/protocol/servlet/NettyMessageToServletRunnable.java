@@ -66,7 +66,7 @@ public class NettyMessageToServletRunnable implements MessageToRunnable {
     private final Protocol protocol;
     private final boolean ssl;
     private ServletHttpExchange exchange;
-    private volatile HttpRunnable httpRunnable;
+    private /*volatile */ HttpRunnable httpRunnable;
 
     public NettyMessageToServletRunnable(ServletContext servletContext, long maxContentLength, Protocol protocol, boolean ssl) {
         this.servletContext = servletContext;
@@ -109,7 +109,7 @@ public class NettyMessageToServletRunnable implements MessageToRunnable {
             }
         }
 
-        // discard
+        // abort discard
         if (needDiscard) {
             discard(msg);
         }
@@ -126,6 +126,8 @@ public class NettyMessageToServletRunnable implements MessageToRunnable {
                 if (asyncContext != null && !asyncContext.isComplete()) {
                     asyncContext.complete(new ClosedChannelException());
                 }
+            } else if (exchange.closeStatus() == CLOSE_NO) {
+                exchange.abort();
             }
             exchange.close();
         }
@@ -155,10 +157,10 @@ public class NettyMessageToServletRunnable implements MessageToRunnable {
                 byteBuf = null;
             }
             ServletHttpExchange exchange = this.exchange;
-            if (byteBuf != null && byteBuf.isReadable()) {
-                LOGGER.warn("http packet discard {} = '{}', exchange.closeStatus = {}, httpRunnable = {}",
+            if (byteBuf != null && byteBuf.isReadable() && LOGGER.isDebugEnabled()) {
+                LOGGER.debug("http packet discard {} = '{}', exchange.closeStatus = {}, httpRunnable = {}",
                         msg.getClass().getName(),
-                        byteBuf.toString(byteBuf.readerIndex(), Math.min(byteBuf.readableBytes(), 2048), Charset.forName("UTF-8")),
+                        byteBuf.toString(byteBuf.readerIndex(), Math.min(byteBuf.readableBytes(), 100), Charset.forName("UTF-8")),
                         exchange != null ? exchange.closeStatus() : "null",
                         httpRunnable);
             }
@@ -233,8 +235,9 @@ public class NettyMessageToServletRunnable implements MessageToRunnable {
                 exchange.getServletContext().getDefaultExecutorSupplier().get().execute(this);
                 return;
             }
+            ServletRequestDispatcher dispatcher = null;
             try {
-                ServletRequestDispatcher dispatcher = request.getRequestDispatcher(request.getRequestURI());
+                dispatcher = request.getRequestDispatcher(request.getRequestURI());
                 if (dispatcher == null) {
                     Servlet defaultServlet = exchange.getServletContext().getDefaultServlet();
                     if (defaultServlet != null) {
@@ -253,10 +256,13 @@ public class NettyMessageToServletRunnable implements MessageToRunnable {
                 realThrowable = throwable;
             } finally {
                 try {
-                    handleErrorPage(errorPageManager,realThrowable, request, response);
+                    handleErrorPage(errorPageManager, realThrowable, dispatcher, request, response);
                 } catch (Throwable e) {
                     logger.warn("handleErrorPage error = {}", e.toString(), e);
                 } finally {
+                    if (dispatcher != null) {
+                        dispatcher.recycle();
+                    }
                     /*
                      * If not asynchronous, or asynchronous has ended
                      * each response object is valid only if it is within the scope of the servlet's service method or the filter's doFilter method, unless the
@@ -286,7 +292,7 @@ public class NettyMessageToServletRunnable implements MessageToRunnable {
             }
         }
 
-        protected void handleErrorPage(ServletErrorPageManager errorPageManager, Throwable realThrowable, ServletHttpServletRequest request, ServletHttpServletResponse response) {
+        protected void handleErrorPage(ServletErrorPageManager errorPageManager, Throwable realThrowable, ServletRequestDispatcher requestDispatcher, ServletHttpServletRequest request, ServletHttpServletResponse response) {
             /*
              * Error pages are obtained according to two types: 1. By exception type; 2. By status code
              */
@@ -311,7 +317,7 @@ public class NettyMessageToServletRunnable implements MessageToRunnable {
             }
             //Error page
             if (realThrowable != null || errorPage != null) {
-                errorPageManager.handleErrorPage(errorPage, realThrowable, request, response);
+                errorPageManager.handleErrorPage(errorPage, realThrowable, requestDispatcher, request, response);
             }
         }
 

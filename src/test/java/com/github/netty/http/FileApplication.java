@@ -18,7 +18,6 @@ public class FileApplication {
         ServletContext servletContext = new ServletContext();
 //        servletContext.setDocBase("D://demo", "/webapp");
         servletContext.setDocBase(System.getProperty("user.dir"), "/webapp");
-        servletContext.addServlet("myServlet", new DefaultServlet()).addMapping("/");
 
         HttpServletProtocol protocol = new HttpServletProtocol(servletContext);
 //        protocol.setEnableH2c(true);

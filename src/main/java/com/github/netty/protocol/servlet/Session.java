@@ -5,14 +5,15 @@ import java.util.Map;
 
 /**
  * Session entity class
+ *
  * @author wangzihao
- *  2018/8/18/018
+ * 2018/8/18/018
  */
-public class Session implements Serializable{
+public class Session implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private String id;
-    private Map<String,Object> attributeMap;
+    private Map<String, Object> attributeMap;
     private long creationTime;
     private long lastAccessedTime;
     /**
@@ -24,12 +25,17 @@ public class Session implements Serializable{
     public Session() {
     }
 
-    public Session(String id) {
+    public Session(String id, int maxInactiveInterval) {
         this.id = id;
+        long currTime = System.currentTimeMillis();
+        this.creationTime = currTime;
+        this.lastAccessedTime = currTime;
+        this.maxInactiveInterval = maxInactiveInterval;
     }
 
     /**
      * The validity of
+     *
      * @return True is valid, false is not
      */
     public boolean isValid() {

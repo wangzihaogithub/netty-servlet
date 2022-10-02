@@ -7,6 +7,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * An abstract Protocols Register
+ *
  * @author wangzihao
  */
 public abstract class AbstractProtocol implements ProtocolHandler, ServerListener {
@@ -18,18 +19,18 @@ public abstract class AbstractProtocol implements ProtocolHandler, ServerListene
      */
     private int autoFlushIdleMs;
 
-    public void setAutoFlushIdleMs(int autoFlushIdleMs) {
-        this.autoFlushIdleMs = autoFlushIdleMs;
-    }
-
     public int getAutoFlushIdleMs() {
         return autoFlushIdleMs;
+    }
+
+    public void setAutoFlushIdleMs(int autoFlushIdleMs) {
+        this.autoFlushIdleMs = autoFlushIdleMs;
     }
 
     @Override
     public void addPipeline(Channel channel, ByteBuf clientFirstMsg) throws Exception {
         int autoFlushIdleTime = getAutoFlushIdleMs();
-        if(autoFlushIdleTime > 0) {
+        if (autoFlushIdleTime > 0) {
             channel.pipeline().addLast("autoflush", new AutoFlushChannelHandler(autoFlushIdleTime, TimeUnit.MILLISECONDS));
         }
     }

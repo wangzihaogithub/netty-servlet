@@ -17,13 +17,14 @@ import java.util.function.Supplier;
 
 /**
  * formData Text block
+ *
  * @author wangzihao
  */
 public class ServletTextPart implements Part {
     private Attribute attribute;
     private ResourceManager resourceManager;
     private Supplier<ResourceManager> resourceManagerSupplier;
-    private Map<String,String> headerMap;
+    private Map<String, String> headerMap;
 
     public ServletTextPart(Attribute attribute, Supplier<ResourceManager> resourceManagerSupplier) {
         this.attribute = attribute;
@@ -33,9 +34,9 @@ public class ServletTextPart implements Part {
     @Override
     public InputStream getInputStream() throws IOException {
         InputStream inputStream;
-        if(attribute.isInMemory()){
-            inputStream = new ByteBufInputStream(attribute.getByteBuf().retainedDuplicate(),true);
-        }else {
+        if (attribute.isInMemory()) {
+            inputStream = new ByteBufInputStream(attribute.getByteBuf().retainedDuplicate(), true);
+        } else {
             inputStream = new FileInputStream(attribute.getFile());
         }
         return inputStream;
@@ -63,15 +64,15 @@ public class ServletTextPart implements Part {
 
     @Override
     public void write(String fileName) throws IOException {
-        if(resourceManager == null){
+        if (resourceManager == null) {
             resourceManager = resourceManagerSupplier.get();
         }
-        resourceManager.writeFile(getInputStream(),"/",fileName);
+        resourceManager.writeFile(getInputStream(), "/", fileName);
     }
 
     @Override
     public void delete() throws IOException {
-        if(!attribute.isInMemory()) {
+        if (!attribute.isInMemory()) {
             attribute.delete();
         }
     }
@@ -84,9 +85,9 @@ public class ServletTextPart implements Part {
     @Override
     public Collection<String> getHeaders(String name) {
         String value = getHeaderMap().get(name);
-        if(value == null){
+        if (value == null) {
             return Collections.emptyList();
-        }else {
+        } else {
             return Collections.singletonList(value);
         }
     }
@@ -96,9 +97,9 @@ public class ServletTextPart implements Part {
         return getHeaderMap().keySet();
     }
 
-    private Map<String,String> getHeaderMap(){
-        if(headerMap == null) {
-            Map<String,String> headerMap = new CaseInsensitiveKeyMap<>(2);
+    private Map<String, String> getHeaderMap() {
+        if (headerMap == null) {
+            Map<String, String> headerMap = new CaseInsensitiveKeyMap<>(2);
             headerMap.put(HttpHeaderConstants.CONTENT_DISPOSITION.toString(),
                     HttpHeaderConstants.FORM_DATA + "; " + HttpHeaderConstants.NAME + "=\"" + getName() + "\"; ");
             headerMap.put(HttpHeaderConstants.CONTENT_LENGTH.toString(), attribute.length() + "");

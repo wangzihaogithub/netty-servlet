@@ -21,10 +21,37 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author wangzihao
  */
 public class ServletErrorPageManager {
-    private final LoggerX logger = LoggerFactoryX.getLogger(getClass());
-    private boolean showErrorMessage = false;
+    private static final LoggerX logger = LoggerFactoryX.getLogger(ServletErrorPageManager.class);
     private final Map<String, ServletErrorPage> exceptionPages = new ConcurrentHashMap<>();
     private final Map<Integer, ServletErrorPage> statusPages = new ConcurrentHashMap<>();
+    private boolean showErrorMessage = false;
+
+    public static void printThrowable(Throwable throwable, ServletRequestDispatcher requestDispatcher) {
+        if (throwable == null) {
+            return;
+        }
+        if (requestDispatcher == null) {
+            logger.error("a unknown error! ", throwable);
+        } else if (requestDispatcher.getFilterChain().isFilterEnd()) {
+            logger.error("Servlet.service() for servlet [{}] threw exception",
+                    requestDispatcher.getName(), throwable);
+        } else {
+            logger.error("Filter.doFilter() for filter [{}] threw exception",
+                    requestDispatcher.getFilterChain().getFilterRegistration().getName(), throwable);
+        }
+    }
+
+    public static String getErrorPagePath(HttpServletRequest request, ServletErrorPage errorPage) {
+        String path = errorPage.getPath();
+        if (path == null || path.isEmpty()) {
+            return null;
+        }
+        if (!path.startsWith("/")) {
+            path = "/".concat(path);
+        }
+        String contextPath = request.getContextPath();
+        return contextPath == null || contextPath.isEmpty() ? path : contextPath.concat(path);
+    }
 
     public void add(ServletErrorPage errorPage) {
         String exceptionType = errorPage.getExceptionType();
@@ -81,14 +108,15 @@ public class ServletErrorPageManager {
      *
      * @param errorPage           errorPage
      * @param throwable           throwable
+     * @param requestDispatcher   requestDispatcher
      * @param httpServletRequest  httpServletRequest
      * @param httpServletResponse httpServletResponse
      */
-    public void handleErrorPage(ServletErrorPage errorPage, Throwable throwable, HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse) {
+    public void handleErrorPage(ServletErrorPage errorPage, Throwable throwable, ServletRequestDispatcher requestDispatcher, HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse) {
+        printThrowable(throwable, requestDispatcher);
+
         if (errorPage == null) {
             if (throwable != null) {
-                String msg = "a unknown error! " + throwable;
-                logger.error(msg, throwable);
                 try {
                     httpServletResponse.setCharacterEncoding("utf-8");
                     httpServletResponse.setContentType("text/html");
@@ -100,7 +128,7 @@ public class ServletErrorPageManager {
                             "    <title>a unknown error!</title>\n" +
                             "</head>\n" +
                             "<body>\n" +
-                            "<p>" + msg + "</p>\n" +
+                            "<p>" + throwable + "</p>\n" +
                             "</body>\n" +
                             "</html>");
                 } catch (IOException ignored) {
@@ -111,7 +139,7 @@ public class ServletErrorPageManager {
 
         ServletHttpServletRequest request = ServletUtil.unWrapper(httpServletRequest);
         ServletHttpServletResponse response = ServletUtil.unWrapper(httpServletResponse);
-        if(!request.getServletHttpExchange().getChannelHandlerContext().channel().isActive()){
+        if (!request.getServletHttpExchange().getChannelHandlerContext().channel().isActive()) {
             return;
         }
 
@@ -175,17 +203,5 @@ public class ServletErrorPageManager {
                 throw (VirtualMachineError) e;
             }
         }
-    }
-
-    public static String getErrorPagePath(HttpServletRequest request, ServletErrorPage errorPage) {
-        String path = errorPage.getPath();
-        if (path == null || path.isEmpty()) {
-            return null;
-        }
-        if (!path.startsWith("/")) {
-            path = "/".concat(path);
-        }
-        String contextPath = request.getContextPath();
-        return contextPath == null || contextPath.isEmpty() ? path : contextPath.concat(path);
     }
 }

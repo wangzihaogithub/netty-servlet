@@ -1,5 +1,51 @@
 # netty-servlet
-一个基于netty实现的servlet容器, 可以替代tomcat或jetty. 导包即用,容易与springboot集成 (jdk1.8+)
+
+### 简介
+
+- 基于netty实现的servlet容器, 可以替代tomcat或jetty. (jdk1.8+)
+- 解决Netty在EventLoop线程里写繁忙后不返回数据的BUG.
+- 解决Netty的Http遇到请求参数携带%号会报错的问题.
+- 从19年开始，一直跑在作者公司某产线的线上环境运行.
+
+### 优势
+
+- 1.针对spring项目# 可以替代tomcat或jetty. 导包后一个@EnableNettyEmbedded注解即用.
+
+- 2.针对非spring项目# 本项目可以只依赖一个netty（举个使用servlet的例子）
+
+
+       StartupServer server = new StartupServer(80);
+
+       ServletContext servletContext = new ServletContext();
+       servletContext.setDocBase("D://static", "/webapp");
+       servletContext.addServlet("myServlet", new MyHttpServlet()).addMapping("/test");
+       server.addProtocol(new HttpServletProtocol(servletContext));
+
+       server.start();
+
+
+- 3.支持# http请求聚合, 然后用 select * from id in (httpRequestList).
+
+
+    示例代码：com.github.netty.http.example.HttpGroupByApiController.java
+
+
+- 4.支持# h2c (注: 不建议用h2,h2c当rpc, 原因在文档最底部有说明)
+
+- 5.支持# 异步零拷贝。sendFile, mmap.
+
+        示例代码：com.github.netty.http.example.HttpZeroCopyController.java
+
+        ((NettyOutputStream)servletResponse.getOutputStream()).write(new File("c://123.txt"));
+        ((NettyOutputStream)servletResponse.getOutputStream()).write(MappedByteBuffer);
+
+        com.github.netty.protocol.servlet.DefaultServlet#sendFile
+
+- 6.性能# HttpServlet比tomcat的NIO2高出25%/TPS。
+
+        1. Netty的池化内存,减少了GC对CPU的消耗 
+        2. Tomcat的NIO2, 注册OP_WRITE后,tomcat会阻塞用户线程等待, 并没有释放线程. 
+        3. 与tomcat不同,支持两种IO模型,可供用户选择
 
 作者邮箱 : 842156727@qq.com
 
@@ -40,7 +86,7 @@ https://github.com/wangzihaogithub/spring-boot-protocol
 <dependency>
   <groupId>com.github.wangzihaogithub</groupId>
   <artifactId>spring-boot-protocol</artifactId>
-  <version>2.3.0</version>
+  <version>2.3.5</version>
 </dependency>
 ```
 
@@ -49,7 +95,7 @@ https://github.com/wangzihaogithub/spring-boot-protocol
     public class HttpBootstrap {
     
         public static void main(String[] args) {
-            StartupServer server = new StartupServer(8080);
+            StartupServer server = new StartupServer(80);
             server.addProtocol(newHttpProtocol());
             server.start();
         }
@@ -57,8 +103,8 @@ https://github.com/wangzihaogithub/spring-boot-protocol
         private static HttpServletProtocol newHttpProtocol() {
             ServletContext servletContext = new ServletContext();
             servletContext.setDocBase("D://demo", "/webapp"); // 静态资源文件夹(非必填,默认用临时目录)
-            servletContext.addServlet("myHttpServlet", new DefaultServlet())
-                    .addMapping("/*");
+            servletContext.addServlet("myHttpServlet", new MyHttpServlet())
+                    .addMapping("/test");
             return new HttpServletProtocol(servletContext);
         }
     }

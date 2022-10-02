@@ -15,8 +15,7 @@ public class HttpBootstrap {
 
     private static HttpServletProtocol newHttpProtocol() {
         ServletContext servletContext = new ServletContext();
-        servletContext.addServlet("myHttpServlet", new DefaultServlet())
-                .addMapping("/*");
+        servletContext.setDocBase(System.getProperty("user.dir"), "/webapp");
         servletContext.addServlet("ServletDefaultHttpServlet", new MyHttpServlet())
                 .addMapping("/hello");
 

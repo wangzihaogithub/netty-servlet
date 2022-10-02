@@ -2,7 +2,6 @@ package com.github.netty.protocol.servlet;
 
 import com.github.netty.core.util.*;
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.handler.codec.http.DefaultLastHttpContent;
@@ -30,8 +29,8 @@ import java.util.function.Consumer;
  */
 public class ServletOutputStream extends javax.servlet.ServletOutputStream implements Recyclable, NettyOutputStream {
     public static final ServletResetBufferIOException RESET_BUFFER_EXCEPTION = new ServletResetBufferIOException();
-    public static int h2ChunkSize = 81920;
     private static final Recycler<ServletOutputStream> RECYCLER = new Recycler<>(ServletOutputStream::new);
+    public static int h2ChunkSize = 81920;
     protected final AtomicLong writeBytes = new AtomicLong();
     protected final AtomicBoolean isClosed = new AtomicBoolean(false);
     protected final AtomicBoolean isSendResponse = new AtomicBoolean(false);
@@ -39,7 +38,6 @@ public class ServletOutputStream extends javax.servlet.ServletOutputStream imple
     protected ServletHttpExchange servletHttpExchange;
     protected WriteListener writeListener;
     protected ChannelProgressivePromise lastContentPromise;
-    private int responseWriterChunkMaxHeapByteLength;
     private ChannelProgressivePromise blockPromise;
 
     protected ServletOutputStream() {
@@ -50,7 +48,6 @@ public class ServletOutputStream extends javax.servlet.ServletOutputStream imple
         instance.blockPromise = null;
         instance.setServletHttpExchange(servletHttpExchange);
         instance.writeBytes.set(0);
-        instance.responseWriterChunkMaxHeapByteLength = servletHttpExchange.getServletContext().getResponseWriterChunkMaxHeapByteLength();
         instance.isSendResponse.set(false);
         instance.isClosed.set(false);
         return instance;
@@ -79,9 +76,9 @@ public class ServletOutputStream extends javax.servlet.ServletOutputStream imple
 
     @Override
     public ChannelProgressivePromise write(File file, long position, long count) throws IOException {
-        if(isHttp2()){
-            return writeHttpBody(new ChunkedFile(new RandomAccessFile(file, "r"), position, count, h2ChunkSize),count);
-        }else {
+        if (isHttp2()) {
+            return writeHttpBody(new ChunkedFile(new RandomAccessFile(file, "r"), position, count, h2ChunkSize), count);
+        } else {
             return writeHttpBody(new DefaultFileRegion(file, position, count), count);
         }
     }
@@ -89,19 +86,19 @@ public class ServletOutputStream extends javax.servlet.ServletOutputStream imple
     @Override
     public ChannelProgressivePromise write(File httpBody) throws IOException {
         long length = httpBody.length();
-        if(isHttp2()){
-            return writeHttpBody(new ChunkedFile(new RandomAccessFile(httpBody, "r"), 0, length, h2ChunkSize),length);
-        }else {
+        if (isHttp2()) {
+            return writeHttpBody(new ChunkedFile(new RandomAccessFile(httpBody, "r"), 0, length, h2ChunkSize), length);
+        } else {
             return writeHttpBody(new DefaultFileRegion(httpBody, 0, length), length);
         }
     }
 
-    public boolean isHttp2(){
+    public boolean isHttp2() {
         return servletHttpExchange.getProtocol().isHttp2();
     }
 
     protected ChannelProgressivePromise writeHttpBody(Object httpBody, long length) throws IOException {
-        if(httpBody instanceof FileRegion){
+        if (httpBody instanceof FileRegion) {
             servletHttpExchange.getResponse().getNettyResponse().setWriteSendFile(true);
         }
         try {
@@ -217,7 +214,7 @@ public class ServletOutputStream extends javax.servlet.ServletOutputStream imple
         }
 
         ChannelHandlerContext context = servletHttpExchange.getChannelHandlerContext();
-        ByteBuf ioByteBuf = allocByteBuf(context.alloc(), len);
+        ByteBuf ioByteBuf = context.alloc().ioBuffer(len);
         ioByteBuf.writeBytes(b, off, len);
         IOUtil.writerModeToReadMode(ioByteBuf);
 
@@ -333,23 +330,6 @@ public class ServletOutputStream extends javax.servlet.ServletOutputStream imple
         if (exchange != null && !exchange.isChannelActive() && exchange.isAsyncStartIng()) {
             throw new IOException("connection was forcibly closed by the remote host. " + exchange.getChannelHandlerContext().channel());
         }
-    }
-
-    /**
-     * Allocation buffer
-     *
-     * @param allocator allocator distributor
-     * @param len       The required byte length
-     * @return ByteBuf
-     */
-    protected ByteBuf allocByteBuf(ByteBufAllocator allocator, int len) {
-        ByteBuf ioByteBuf;
-        if (len > responseWriterChunkMaxHeapByteLength && NettyUtil.freeDirectMemory() > len) {
-            ioByteBuf = allocator.directBuffer(len);
-        } else {
-            ioByteBuf = allocator.heapBuffer(len);
-        }
-        return ioByteBuf;
     }
 
     /**

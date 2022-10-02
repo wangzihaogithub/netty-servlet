@@ -1,13 +1,12 @@
 package com.github.netty.protocol.servlet.util;
 
 import com.github.netty.core.util.LinkedMultiValueMap;
-import com.github.netty.core.util.LoggerFactoryX;
 import com.github.netty.core.util.RecyclableUtil;
 import com.github.netty.protocol.servlet.ServletHttpServletRequest;
 import com.github.netty.protocol.servlet.ServletHttpServletResponse;
 import io.netty.handler.codec.DateFormatter;
 import io.netty.handler.codec.http.HttpConstants;
-import io.netty.util.CharsetUtil;
+import io.netty.util.internal.PlatformDependent;
 import io.netty.util.internal.RecyclableArrayList;
 
 import javax.servlet.ServletRequest;
@@ -15,15 +14,8 @@ import javax.servlet.ServletRequestWrapper;
 import javax.servlet.ServletResponse;
 import javax.servlet.ServletResponseWrapper;
 import javax.servlet.http.Cookie;
-import java.nio.Buffer;
-import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
-import java.nio.charset.CharacterCodingException;
 import java.nio.charset.Charset;
-import java.nio.charset.CharsetDecoder;
-import java.nio.charset.CoderResult;
-import java.text.SimpleDateFormat;
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -36,10 +28,40 @@ import java.util.Map;
  */
 public class ServletUtil {
     private static final String EMPTY_STRING = "";
-    private static final char SPACE = 0x20;
+    private static final String CHARSET_APPEND = HttpHeaderConstants.CHARSET + "=";
+    private static final char SPACE = ' ';
+    private static final Cookie[] EMPTY_COOKIE = {};
+    private static final byte[] HEX2B;
     private static long lastTimestamp = System.currentTimeMillis();
     private static Date lastDate = new Date(lastTimestamp);
     private static String nowRFCTime = DateFormatter.format(lastDate);
+
+    static {
+        HEX2B = new byte[65536];
+        Arrays.fill(HEX2B, (byte) -1);
+        HEX2B[48] = 0;
+        HEX2B[49] = 1;
+        HEX2B[50] = 2;
+        HEX2B[51] = 3;
+        HEX2B[52] = 4;
+        HEX2B[53] = 5;
+        HEX2B[54] = 6;
+        HEX2B[55] = 7;
+        HEX2B[56] = 8;
+        HEX2B[57] = 9;
+        HEX2B[65] = 10;
+        HEX2B[66] = 11;
+        HEX2B[67] = 12;
+        HEX2B[68] = 13;
+        HEX2B[69] = 14;
+        HEX2B[70] = 15;
+        HEX2B[97] = 10;
+        HEX2B[98] = 11;
+        HEX2B[99] = 12;
+        HEX2B[100] = 13;
+        HEX2B[101] = 14;
+        HEX2B[102] = 15;
+    }
 
     public static String getDateByRfcHttp() {
         long timestamp = System.currentTimeMillis();
@@ -50,10 +72,6 @@ public class ServletUtil {
             nowRFCTime = DateFormatter.format(lastDate);
         }
         return nowRFCTime;
-    }
-
-    public static String date2string(long date) {
-        return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date(date));
     }
 
     public static String getCookieValue(Cookie[] cookies, String cookieName) {
@@ -74,21 +92,23 @@ public class ServletUtil {
     }
 
     public static void decodeByUrl(LinkedMultiValueMap<String, String> parameterMap, String uri, Charset charset) {
-        StringBuilder buffer = RecyclableUtil.newStringBuilder();
-        decodeParams(parameterMap, uri, findPathEndIndex(uri), charset, 10000, buffer);
+        decodeParams(parameterMap, uri, findPathEndIndex(uri), charset);
     }
 
     public static void decodeByUrl(Map<String, String[]> sourceParameterMap, String uri, Charset charset) {
         LinkedMultiValueMap<String, String> parameterMap = RecyclableUtil.newLinkedMultiValueMap();
         try {
-            decodeByUrl(parameterMap, uri, charset);
+            decodeParams(parameterMap, uri, findPathEndIndex(uri), charset);
             for (Map.Entry<String, List<String>> entry : parameterMap.entrySet()) {
-                String[] values = sourceParameterMap.get(entry.getKey());
+                String key = entry.getKey();
                 List<String> newValueList = entry.getValue();
+                String[] values = sourceParameterMap.get(key);
                 if (values != null) {
-                    Collections.addAll(newValueList, values);
+                    for (String element : values) {
+                        newValueList.add(element);
+                    }
                 }
-                sourceParameterMap.put(entry.getKey(), newValueList.toArray(new String[0]));
+                sourceParameterMap.put(key, newValueList.toArray(new String[newValueList.size()]));
             }
         } finally {
             parameterMap.clear();
@@ -99,7 +119,7 @@ public class ServletUtil {
         if (contentType == null) {
             return null;
         }
-        int start = contentType.indexOf(HttpHeaderConstants.CHARSET + "=");
+        int start = contentType.indexOf(CHARSET_APPEND);
         if (start < 0) {
             return null;
         }
@@ -174,8 +194,6 @@ public class ServletUtil {
         }
         return buf.toString();
     }
-
-    private static final Cookie[] EMPTY_COOKIE = {};
 
     /**
      * Decodes the specified Set-Cookie HTTP header value into a
@@ -311,11 +329,11 @@ public class ServletUtil {
 
                     // skip obsolete RFC2965 fields
                     String name = header.substring(newNameStart, newNameEnd);
-                    try {
-                        cookies.add(new Cookie(name, value));
-                    } catch (IllegalArgumentException e) {
-                        LoggerFactoryX.getLogger(ServletUtil.class).warn("discard cookie. cause = {}", e.toString());
-                    }
+//                    try {
+                    cookies.add(new Cookie(name, value));
+//                    } catch (IllegalArgumentException e) {
+//                        LoggerFactoryX.getLogger(ServletUtil.class).warn("discard cookie. cause = {}", e.toString());
+//                    }
                 }
             }
             return cookies.toArray(EMPTY_COOKIE);
@@ -367,12 +385,12 @@ public class ServletUtil {
         return len;
     }
 
-    private static void decodeParams(LinkedMultiValueMap<String, String> parameterMap, String s, int from, Charset charset, int paramsLimit, StringBuilder buffer) {
-        int len = s.length();
+    private static void decodeParams(LinkedMultiValueMap<String, String> parameterMap, String uri, int from, Charset charset) {
+        int len = uri.length();
         if (from >= len) {
             return;
         }
-        if (s.charAt(from) == '?') {
+        if (uri.charAt(from) == '?') {
             from++;
         }
         int nameStart = from;
@@ -380,7 +398,7 @@ public class ServletUtil {
         int i;
         loop:
         for (i = from; i < len; i++) {
-            switch (s.charAt(i)) {
+            switch (uri.charAt(i)) {
                 case '=':
                     if (nameStart == i) {
                         nameStart = i + 1;
@@ -390,11 +408,8 @@ public class ServletUtil {
                     break;
                 case '&':
                 case ';':
-                    if (addParam(s, nameStart, valueStart, i, parameterMap, charset, buffer)) {
-                        paramsLimit--;
-                        if (paramsLimit == 0) {
-                            return;
-                        }
+                    if (nameStart < i) {
+                        addParam(uri, nameStart, valueStart, i, parameterMap, charset);
                     }
                     nameStart = i + 1;
                     break;
@@ -404,24 +419,22 @@ public class ServletUtil {
                     // continue
             }
         }
-        addParam(s, nameStart, valueStart, i, parameterMap, charset, buffer);
+        if (nameStart < i) {
+            addParam(uri, nameStart, valueStart, i, parameterMap, charset);
+        }
     }
 
-    private static boolean addParam(String s, int nameStart, int valueStart, int valueEnd,
-                                    LinkedMultiValueMap<String, String> parameterMap, Charset charset, StringBuilder buffer) {
-        if (nameStart >= valueEnd) {
-            return false;
-        }
+    private static void addParam(String s, int nameStart, int valueStart, int valueEnd,
+                                 LinkedMultiValueMap<String, String> parameterMap, Charset charset) {
         if (valueStart <= nameStart) {
             valueStart = valueEnd + 1;
         }
-        String name = decodeComponent(s, nameStart, valueStart - 1, charset, buffer);
-        String value = decodeComponent(s, valueStart, valueEnd, charset, buffer);
+        String name = decodeComponent(s, nameStart, valueStart - 1, charset);
+        String value = decodeComponent(s, valueStart, valueEnd, charset);
         parameterMap.add(name, value);
-        return true;
     }
 
-    private static String decodeComponent(String s, int from, int toExcluded, Charset charset, StringBuilder strBuf) {
+    public static String decodeComponent(String s, int from, int toExcluded, Charset charset) {
         int len = toExcluded - from;
         if (len <= 0) {
             return EMPTY_STRING;
@@ -438,18 +451,12 @@ public class ServletUtil {
             return s.substring(from, toExcluded);
         }
 
-        CharsetDecoder decoder = CharsetUtil.decoder(charset);
-
         // Each encoded byte takes 3 characters (e.g. "%20")
         int decodedCapacity = (toExcluded - firstEscaped) / 3;
-        ByteBuffer byteBuf = ByteBuffer.allocate(decodedCapacity);
-        CharBuffer charBuf = CharBuffer.allocate(decodedCapacity);
+        byte[] buf = PlatformDependent.allocateUninitializedArray(decodedCapacity);
+        int bufIdx;
 
-        // jdk9 bug. java.lang.NoSuchMethodError: java.nio.ByteBuffer.clear()Ljava/nio/ByteBuffer;
-        Buffer byteBufHandler = Buffer.class.cast(byteBuf);
-        Buffer charBufHandler = Buffer.class.cast(charBuf);
-
-        strBuf.setLength(0);
+        StringBuilder strBuf = new StringBuilder(len);
         strBuf.append(s, from, firstEscaped);
 
         for (int i = firstEscaped; i < toExcluded; i++) {
@@ -459,45 +466,28 @@ public class ServletUtil {
                 continue;
             }
 
-            byteBufHandler.clear();
+            bufIdx = 0;
             do {
                 if (i + 3 > toExcluded) {
-                    throw new IllegalArgumentException("unterminated escape sequence at index " + i + " of: " + s);
+                    return s.substring(from, toExcluded);
+//                    throw new IllegalArgumentException("unterminated escape sequence at index " + i + " of: " + s);
+                }
+                int hi = HEX2B[s.charAt(i + 1)];
+                int lo = HEX2B[s.charAt(i + 2)];
+                if (hi != -1 && lo != -1) {
+                    buf[bufIdx++] = (byte) ((hi << 4) + lo);
+                }else{
+                    return s.substring(from, toExcluded);
+//                    throw new IllegalArgumentException(String.format("invalid hex byte '%s' at index %d of '%s'", s.subSequence(pos, pos + 2), pos, s));
                 }
 
-                byteBuf.put(decodeHexByte(s, i + 1));
                 i += 3;
             } while (i < toExcluded && s.charAt(i) == '%');
             i--;
 
-            byteBufHandler.flip();
-            charBufHandler.clear();
-            CoderResult result = decoder.reset().decode(byteBuf, charBuf, true);
-            try {
-                if (!result.isUnderflow()) {
-                    result.throwException();
-                }
-                result = decoder.flush(charBuf);
-                if (!result.isUnderflow()) {
-                    result.throwException();
-                }
-            } catch (CharacterCodingException ex) {
-                throw new IllegalStateException(ex);
-            }
-            charBufHandler.flip();
-            strBuf.append(charBuf);
+            strBuf.append(new String(buf, 0, bufIdx, charset));
         }
         return strBuf.toString();
-    }
-
-    private static byte decodeHexByte(CharSequence s, int pos) {
-        int hi = decodeHexNibble(s.charAt(pos));
-        int lo = decodeHexNibble(s.charAt(pos + 1));
-        if (hi == -1 || lo == -1) {
-            throw new IllegalArgumentException(String.format(
-                    "invalid hex byte '%s' at index %d of '%s'", s.subSequence(pos, pos + 2), pos, s));
-        }
-        return (byte) ((hi << 4) + lo);
     }
 
     private static int decodeHexNibble(final char c) {
@@ -514,5 +504,4 @@ public class ServletUtil {
         }
         return -1;
     }
-
 }

@@ -26,14 +26,13 @@ import static com.github.netty.protocol.servlet.util.HttpHeaderConstants.CLOSE;
 public class NettyHttpResponse implements HttpResponse, Recyclable, Flushable {
     public static final HttpResponseStatus DEFAULT_STATUS = HttpResponseStatus.OK;
     private static final String APPEND_CONTENT_TYPE = ";" + HttpHeaderConstants.CHARSET + "=";
-
+    protected final AtomicBoolean isSettingResponse = new AtomicBoolean(false);
     private DecoderResult decoderResult;
     private HttpVersion version;
     private HttpHeaders headers;
     private HttpResponseStatus status;
     private LastHttpContent lastHttpContent;
     private ServletHttpExchange exchange;
-    protected final AtomicBoolean isSettingResponse = new AtomicBoolean(false);
     private boolean writeSendFile = false;
 
     public NettyHttpResponse() {
@@ -41,6 +40,28 @@ public class NettyHttpResponse implements HttpResponse, Recyclable, Flushable {
         this.version = HttpVersion.HTTP_1_1;
         this.status = DEFAULT_STATUS;
         this.decoderResult = DecoderResult.SUCCESS;
+    }
+
+    /**
+     * Determine if we must drop the connection because of the HTTP status
+     * code.  Use the same list of codes as Apache/httpd.
+     *
+     * @param status response status
+     * @return is need close.  true = need close
+     */
+    private static boolean statusDropsConnection(int status) {
+//        if(status == 200){
+//            return false;
+//        }
+        return
+//                status == 400 /* SC_BAD_REQUEST */ ||
+//                status == 408 /* SC_REQUEST_TIMEOUT */ ||
+//                status == 411 /* SC_LENGTH_REQUIRED */ ||
+//                status == 413 /* SC_REQUEST_ENTITY_TOO_LARGE */ ||
+//                status == 414 /* SC_REQUEST_URI_TOO_LONG */ ||
+//                status == 500 /* SC_INTERNAL_SERVER_ERROR */ ||
+//                status == 501 /* SC_NOT_IMPLEMENTED */ ||
+                status == 503 /* SC_SERVICE_UNAVAILABLE */;
     }
 
     /**
@@ -71,13 +92,30 @@ public class NettyHttpResponse implements HttpResponse, Recyclable, Flushable {
     }
 
     @Override
+    public NettyHttpResponse setStatus(HttpResponseStatus status) {
+        this.status = status;
+        return this;
+    }
+
+    @Override
     public HttpVersion getProtocolVersion() {
         return version;
     }
 
     @Override
+    public NettyHttpResponse setProtocolVersion(HttpVersion version) {
+        this.version = version;
+        return this;
+    }
+
+    @Override
     public DecoderResult getDecoderResult() {
         return decoderResult;
+    }
+
+    @Override
+    public void setDecoderResult(DecoderResult result) {
+        this.decoderResult = result;
     }
 
     public HttpResponseStatus status() {
@@ -92,34 +130,13 @@ public class NettyHttpResponse implements HttpResponse, Recyclable, Flushable {
         return decoderResult;
     }
 
-    public void setWriteSendFile(boolean writeSendFile) {
-        this.writeSendFile = writeSendFile;
-    }
-
-    @Override
-    public NettyHttpResponse setStatus(HttpResponseStatus status) {
-        this.status = status;
-        return this;
-    }
-
     public LastHttpContent getLastHttpContent() {
         return lastHttpContent;
     }
 
     @Override
-    public NettyHttpResponse setProtocolVersion(HttpVersion version) {
-        this.version = version;
-        return this;
-    }
-
-    @Override
     public HttpHeaders headers() {
         return headers;
-    }
-
-    @Override
-    public void setDecoderResult(DecoderResult result) {
-        this.decoderResult = result;
     }
 
     @Override
@@ -135,6 +152,10 @@ public class NettyHttpResponse implements HttpResponse, Recyclable, Flushable {
 
     public boolean isWriteSendFile() {
         return writeSendFile;
+    }
+
+    public void setWriteSendFile(boolean writeSendFile) {
+        this.writeSendFile = writeSendFile;
     }
 
     @Override
@@ -165,10 +186,7 @@ public class NettyHttpResponse implements HttpResponse, Recyclable, Flushable {
         if (!status.equals(that.status)) {
             return false;
         }
-        if (!headers.equals(that.headers)) {
-            return false;
-        }
-        return true;
+        return headers.equals(that.headers);
     }
 
     @Override
@@ -199,29 +217,6 @@ public class NettyHttpResponse implements HttpResponse, Recyclable, Flushable {
     public boolean isKeepAlive() {
         return exchange.isHttpKeepAlive()
                 && !statusDropsConnection(exchange.getResponse().getStatus());
-    }
-
-
-    /**
-     * Determine if we must drop the connection because of the HTTP status
-     * code.  Use the same list of codes as Apache/httpd.
-     *
-     * @param status response status
-     * @return is need close.  true = need close
-     */
-    private static boolean statusDropsConnection(int status) {
-//        if(status == 200){
-//            return false;
-//        }
-        return
-//                status == 400 /* SC_BAD_REQUEST */ ||
-//                status == 408 /* SC_REQUEST_TIMEOUT */ ||
-//                status == 411 /* SC_LENGTH_REQUIRED */ ||
-//                status == 413 /* SC_REQUEST_ENTITY_TOO_LARGE */ ||
-//                status == 414 /* SC_REQUEST_URI_TOO_LONG */ ||
-//                status == 500 /* SC_INTERNAL_SERVER_ERROR */ ||
-//                status == 501 /* SC_NOT_IMPLEMENTED */ ||
-                status == 503 /* SC_SERVICE_UNAVAILABLE */;
     }
 
     /**
@@ -301,9 +296,7 @@ public class NettyHttpResponse implements HttpResponse, Recyclable, Flushable {
         // Cookies processing
         //Session is handled first. If it is a new Session and the Session id is not the same as the Session id passed by the request, it needs to be written through the Cookie
         ServletHttpSession httpSession = servletRequest.getSession(false);
-        if (httpSession != null && httpSession.isNew()
-//		        && !httpSession.getId().equals(servletRequest.getRequestedSessionId())
-        ) {
+        if (httpSession != null && httpSession.isNew()) {
             String sessionCookieName = sessionCookieConfig.getName();
             if (sessionCookieName == null || sessionCookieName.isEmpty()) {
                 sessionCookieName = HttpConstants.JSESSION_ID_COOKIE;
@@ -312,11 +305,9 @@ public class NettyHttpResponse implements HttpResponse, Recyclable, Flushable {
             if (sessionCookiePath == null || sessionCookiePath.isEmpty()) {
                 sessionCookiePath = HttpConstants.DEFAULT_SESSION_COOKIE_PATH;
             }
-            String sessionCookieText = ServletUtil.encodeCookie(sessionCookieName, servletRequest.getRequestedSessionId(), -1,
-                    sessionCookiePath, sessionCookieConfig.getDomain(), sessionCookieConfig.isSecure(), Boolean.TRUE);
+            String sessionCookieText = ServletUtil.encodeCookie(sessionCookieName, httpSession.getId(), sessionCookieConfig.getMaxAge(),
+                    sessionCookiePath, sessionCookieConfig.getDomain(), sessionCookieConfig.isSecure(), sessionCookieConfig.isHttpOnly());
             headers.add(HttpHeaderConstants.SET_COOKIE, sessionCookieText);
-
-            httpSession.setNewSessionFlag(false);
         }
 
         //Cookies set by other businesses or frameworks are written to the response header one by one

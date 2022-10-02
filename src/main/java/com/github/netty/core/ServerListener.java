@@ -8,16 +8,22 @@ import io.netty.bootstrap.ServerBootstrap;
  */
 public interface ServerListener extends Ordered {
 
-    default <T extends AbstractNettyServer> void onServerStart(T server) throws Exception{}
-    default <T extends AbstractNettyServer> void onServerStop(T server) throws Exception{}
-    default void config(ServerBootstrap bootstrap) throws Exception{}
+    default <T extends AbstractNettyServer> void onServerStart(T server) throws Exception {
+    }
+
+    default <T extends AbstractNettyServer> void onServerStop(T server) throws Exception {
+    }
+
+    default void config(ServerBootstrap bootstrap) throws Exception {
+    }
 
     /**
      * default Priority order 0
+     *
      * @return The smaller the value of order, the more likely it is to be executed first
      */
     @Override
-    default int getOrder(){
+    default int getOrder() {
         return 0;
     }
 }

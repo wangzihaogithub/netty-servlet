@@ -50,11 +50,7 @@
 作者邮箱 : 842156727@qq.com
 
 github地址 : https://github.com/wangzihaogithub/netty-servlet
-
-已迁移至新项目,支持这个项目的所有功能, 同时多了新特性.
  
-https://github.com/wangzihaogithub/spring-boot-protocol
-
 ---
 
 #### 优势:
@@ -79,6 +75,7 @@ https://github.com/wangzihaogithub/spring-boot-protocol
 #### 如果需要集成spring就用这个 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.wangzihaogithub/spring-boot-protocol/badge.svg)](https://search.maven.org/search?q=g:com.github.wangzihaogithub%20AND%20a:spring-boot-protocol)
 
 ```xml
+<!-- https://github.com/wangzihaogithub/spring-boot-protocol -->
 <!-- https://mvnrepository.com/artifact/com.github.wangzihaogithub/spring-boot-protocol -->
 <dependency>
   <groupId>com.github.wangzihaogithub</groupId>
@@ -90,6 +87,7 @@ https://github.com/wangzihaogithub/spring-boot-protocol
 #### 如果不需要集成spring就用这个 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.wangzihaogithub/netty-servlet/badge.svg)](https://search.maven.org/search?q=g:com.github.wangzihaogithub%20AND%20a:netty-servlet)
 
 ```xml
+<!-- https://github.com/wangzihaogithub/spring-servlet -->
 <!-- https://mvnrepository.com/artifact/com.github.wangzihaogithub/netty-servlet -->
 <dependency>
   <groupId>com.github.wangzihaogithub</groupId>

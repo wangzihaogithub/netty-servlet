@@ -72,21 +72,29 @@ https://github.com/wangzihaogithub/spring-boot-protocol
 
 2.单体应用,连接不复用qps达到5100+, tomcat=4600+
 
-3.单体应用,双jvm(1.servlet jvm, 2.session jvm), session会话存储分离, qps达到8000+, 
- 
-
 ----
 
-### 使用方法
+### 使用方法 - 添加依赖
 
-#### 1.添加依赖, 在pom.xml中加入 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.wangzihaogithub/spring-boot-protocol/badge.svg)](https://search.maven.org/search?q=g:com.github.wangzihaogithub%20AND%20a:spring-boot-protocol)
+#### 如果需要集成spring就用这个 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.wangzihaogithub/spring-boot-protocol/badge.svg)](https://search.maven.org/search?q=g:com.github.wangzihaogithub%20AND%20a:spring-boot-protocol)
 
 ```xml
 <!-- https://mvnrepository.com/artifact/com.github.wangzihaogithub/spring-boot-protocol -->
 <dependency>
   <groupId>com.github.wangzihaogithub</groupId>
   <artifactId>spring-boot-protocol</artifactId>
-  <version>2.3.5</version>
+  <version>2.3.11</version>
+</dependency>
+```
+
+#### 如果不需要集成spring就用这个 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.wangzihaogithub/netty-servlet/badge.svg)](https://search.maven.org/search?q=g:com.github.wangzihaogithub%20AND%20a:netty-servlet)
+
+```xml
+<!-- https://mvnrepository.com/artifact/com.github.wangzihaogithub/netty-servlet -->
+<dependency>
+  <groupId>com.github.wangzihaogithub</groupId>
+  <artifactId>netty-servlet</artifactId>
+  <version>2.3.11</version>
 </dependency>
 ```
 

@@ -2,7 +2,6 @@ package com.github.netty.http;
 
 import com.github.netty.StartupServer;
 import com.github.netty.protocol.HttpServletProtocol;
-import com.github.netty.protocol.servlet.DefaultServlet;
 import com.github.netty.protocol.servlet.ServletContext;
 
 public class HttpBootstrap {

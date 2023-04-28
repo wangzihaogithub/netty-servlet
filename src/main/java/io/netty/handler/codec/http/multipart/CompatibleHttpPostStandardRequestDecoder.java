@@ -38,7 +38,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import static io.netty.util.internal.ObjectUtil.checkNotNull;
 import static io.netty.util.internal.ObjectUtil.checkPositiveOrZero;
 
 /**
@@ -149,9 +148,9 @@ public class CompatibleHttpPostStandardRequestDecoder implements InterfaceHttpPo
      *             errors
      */
     public CompatibleHttpPostStandardRequestDecoder(HttpDataFactory factory, HttpRequest request, Charset charset) {
-        this.request = checkNotNull(request, "request");
-        this.charset = checkNotNull(charset, "charset");
-        this.factory = checkNotNull(factory, "factory");
+        this.request = request;
+        this.charset = charset;
+        this.factory = factory;
         try {
             if (request instanceof HttpContent) {
                 // Offer automatically if the given request is as type of HttpContent
@@ -330,7 +329,7 @@ public class CompatibleHttpPostStandardRequestDecoder implements InterfaceHttpPo
         if (currentStatus == MultiPartStatus.EPILOGUE) {
             // OK except if end of list
             if (bodyListHttpDataRank >= bodyListHttpData.size()) {
-                throw new EndOfDataDecoderException();
+                return false;
             }
         }
         return !bodyListHttpData.isEmpty() && bodyListHttpDataRank < bodyListHttpData.size();

@@ -9,6 +9,7 @@ import io.netty.buffer.ByteBufHolder;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.*;
+import io.netty.util.concurrent.FastThreadLocal;
 
 import javax.servlet.RequestDispatcher;
 import javax.servlet.Servlet;
@@ -16,10 +17,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
 import java.nio.channels.ClosedChannelException;
 import java.nio.charset.Charset;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 import static com.github.netty.protocol.servlet.ServletHttpExchange.CLOSE_NO;
 import static com.github.netty.protocol.servlet.util.HttpHeaderConstants.*;
@@ -67,6 +65,22 @@ public class NettyMessageToServletRunnable implements MessageToRunnable {
     private final boolean ssl;
     private ServletHttpExchange exchange;
     private /*volatile */ HttpRunnable httpRunnable;
+
+    private static final FastThreadLocal<List<Runnable>> ASYNC_CONTEXT_DISPATCH_THREAD_LOCAL = new FastThreadLocal<>();
+
+    static boolean isCurrentRunAtRequesting() {
+        return ASYNC_CONTEXT_DISPATCH_THREAD_LOCAL.get() != null;
+    }
+
+    static boolean addAsyncContextDispatch(Runnable runnable) {
+        List<Runnable> list = ASYNC_CONTEXT_DISPATCH_THREAD_LOCAL.get();
+        if (list != null) {
+            list.add(runnable);
+            return true;
+        }else {
+            return false;
+        }
+    }
 
     public NettyMessageToServletRunnable(ServletContext servletContext, long maxContentLength, Protocol protocol, boolean ssl) {
         this.servletContext = servletContext;
@@ -235,6 +249,9 @@ public class NettyMessageToServletRunnable implements MessageToRunnable {
                 exchange.getServletContext().getDefaultExecutorSupplier().get().execute(this);
                 return;
             }
+
+            LinkedList<Runnable> asyncContextDispatchOperList = new LinkedList<>();
+            ASYNC_CONTEXT_DISPATCH_THREAD_LOCAL.set(asyncContextDispatchOperList);
             ServletRequestDispatcher dispatcher = null;
             try {
                 dispatcher = request.getRequestDispatcher(request.getRequestURI());
@@ -288,6 +305,18 @@ public class NettyMessageToServletRunnable implements MessageToRunnable {
                         exchange.close();
                     }
                     recycle();
+                }
+
+                try {
+                    while (!asyncContextDispatchOperList.isEmpty()) {
+                        List<Runnable> asyncContextDispatchOperListCopy = new ArrayList<>(asyncContextDispatchOperList);
+                        asyncContextDispatchOperList.clear();
+                        for (Runnable runnable : asyncContextDispatchOperListCopy) {
+                            runnable.run();
+                        }
+                    }
+                } finally {
+                    ASYNC_CONTEXT_DISPATCH_THREAD_LOCAL.remove();
                 }
             }
         }

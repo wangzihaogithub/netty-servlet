@@ -28,8 +28,18 @@ public class NamespaceUtil {
     }
 
     public static String newIdName(Class obj) {
-        String name = StringUtil.firstUpperCase(obj.getSimpleName());
+        String name = firstUpperCase(obj.getSimpleName());
         return getDefaultNamespace().newIdName(obj, name);
+    }
+
+    public static String firstUpperCase(String str) {
+        if (str == null || str.isEmpty() || Character.isUpperCase(str.charAt(0))) {
+            return str;
+        }
+
+        char[] cs = str.toCharArray();
+        cs[0] -= 32;
+        return new String(cs);
     }
 
     public static String newIdName(String preName, Class obj) {

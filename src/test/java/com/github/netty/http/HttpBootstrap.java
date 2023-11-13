@@ -7,7 +7,7 @@ import com.github.netty.protocol.servlet.ServletContext;
 public class HttpBootstrap {
 
     public static void main(String[] args) {
-        StartupServer server = new StartupServer(8080);
+        StartupServer server = new StartupServer(8089);
         server.addProtocol(newHttpProtocol());
         server.start();
     }

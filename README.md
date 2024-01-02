@@ -80,7 +80,7 @@ github地址 : https://github.com/wangzihaogithub/netty-servlet
 <dependency>
   <groupId>com.github.wangzihaogithub</groupId>
   <artifactId>spring-boot-protocol</artifactId>
-  <version>2.3.12</version>
+  <version>2.3.13</version>
 </dependency>
 ```
 
@@ -92,7 +92,7 @@ github地址 : https://github.com/wangzihaogithub/netty-servlet
 <dependency>
   <groupId>com.github.wangzihaogithub</groupId>
   <artifactId>netty-servlet</artifactId>
-  <version>2.3.12</version>
+  <version>2.3.13</version>
 </dependency>
 ```
 

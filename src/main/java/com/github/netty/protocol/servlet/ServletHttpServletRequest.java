@@ -514,7 +514,7 @@ public class ServletHttpServletRequest implements HttpServletRequest, Recyclable
         } else {
             queryString = null;
         }
-        this.requestURI = ServletContext.normPath(requestURI);
+        this.requestURI = requestURI;
         this.queryString = queryString;
         this.decodePathsFlag = true;
     }

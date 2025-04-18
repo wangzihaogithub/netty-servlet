@@ -14,6 +14,7 @@ import io.netty.handler.codec.http.multipart.DefaultHttpDataFactory;
 import io.netty.handler.codec.http.multipart.DiskAttribute;
 import io.netty.handler.codec.http.multipart.DiskFileUpload;
 import io.netty.handler.codec.http.multipart.HttpDataFactory;
+import io.netty.util.AsciiString;
 import io.netty.util.concurrent.FastThreadLocal;
 
 import javax.servlet.*;
@@ -85,8 +86,10 @@ public class ServletContext implements javax.servlet.ServletContext {
     private Set<SessionTrackingMode> sessionTrackingModeSet;
     private Servlet defaultServlet = new DefaultServlet();
     private boolean enableLookupFlag = false;
+    private boolean mapperContextRootRedirectEnabled = true;
     private boolean autoFlush;
     private String serverHeader;
+    private CharSequence serverHeaderAscii;
     private String contextPath = "";
     private String requestCharacterEncoding;
     private String responseCharacterEncoding;
@@ -194,6 +197,14 @@ public class ServletContext implements javax.servlet.ServletContext {
         this.uploadFileTimeoutMs = uploadFileTimeoutMs;
     }
 
+    public boolean isMapperContextRootRedirectEnabled() {
+        return mapperContextRootRedirectEnabled;
+    }
+
+    public void setMapperContextRootRedirectEnabled(boolean mapperContextRootRedirectEnabled) {
+        this.mapperContextRootRedirectEnabled = mapperContextRootRedirectEnabled;
+    }
+
     public boolean isEnableLookupFlag() {
         return enableLookupFlag;
     }
@@ -291,8 +302,15 @@ public class ServletContext implements javax.servlet.ServletContext {
         return serverHeader;
     }
 
+    public CharSequence getServerHeaderAscii() {
+        return serverHeaderAscii;
+    }
+
     public void setServerHeader(String serverHeader) {
         this.serverHeader = serverHeader;
+        if (serverHeader != null) {
+            this.serverHeaderAscii = AsciiString.cached(serverHeader);
+        }
     }
 
     public ServletEventListenerManager getServletEventListenerManager() {

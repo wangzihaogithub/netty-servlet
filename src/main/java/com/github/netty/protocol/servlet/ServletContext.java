@@ -41,6 +41,20 @@ import java.util.function.Supplier;
  * 2018/7/14/014
  */
 public class ServletContext implements javax.servlet.ServletContext {
+
+    private static final boolean SUPPORT_SET_BASE_DIR;
+
+    static {
+        boolean supportSetBaseDir;
+        try {
+            DefaultHttpDataFactory.class.getDeclaredMethod("setBaseDir", String.class);
+            supportSetBaseDir = true;
+        } catch (Throwable e) {
+            supportSetBaseDir = false;
+        }
+        SUPPORT_SET_BASE_DIR = supportSetBaseDir;
+    }
+
     public static final int MIN_FILE_SIZE_THRESHOLD = 16384;
     public static final String DEFAULT_UPLOAD_DIR = "/upload";
     public static final String SERVER_CONTAINER_SERVLET_CONTEXT_ATTRIBUTE = "javax.websocket.server.ServerContainer";
@@ -87,6 +101,7 @@ public class ServletContext implements javax.servlet.ServletContext {
     private Servlet defaultServlet = new DefaultServlet();
     private boolean enableLookupFlag = false;
     private boolean mapperContextRootRedirectEnabled = true;
+    private boolean useRelativeRedirects = true;
     private boolean autoFlush;
     private String serverHeader;
     private CharSequence serverHeaderAscii;
@@ -197,6 +212,14 @@ public class ServletContext implements javax.servlet.ServletContext {
         this.uploadFileTimeoutMs = uploadFileTimeoutMs;
     }
 
+    public boolean isUseRelativeRedirects() {
+        return useRelativeRedirects;
+    }
+
+    public void setUseRelativeRedirects(boolean useRelativeRedirects) {
+        this.useRelativeRedirects = useRelativeRedirects;
+    }
+
     public boolean isMapperContextRootRedirectEnabled() {
         return mapperContextRootRedirectEnabled;
     }
@@ -268,8 +291,10 @@ public class ServletContext implements javax.servlet.ServletContext {
         Map<Charset, DefaultHttpDataFactory> httpDataFactoryMap = httpDataFactoryThreadLocal.get();
         return httpDataFactoryMap.computeIfAbsent(charset, c -> {
             DefaultHttpDataFactory factory = new DefaultHttpDataFactory(fileSizeThreshold, c);
-            factory.setDeleteOnExit(true);
-            factory.setBaseDir(resourceManager.mkdirs(DEFAULT_UPLOAD_DIR).toString());
+            if (SUPPORT_SET_BASE_DIR) {
+                factory.setDeleteOnExit(true);
+                factory.setBaseDir(resourceManager.mkdirs(DEFAULT_UPLOAD_DIR).toString());
+            }
             return factory;
         });
     }
@@ -410,7 +435,7 @@ public class ServletContext implements javax.servlet.ServletContext {
             return null;
         }
         String extension = file.substring(period + 1);
-        if (extension.length() < 1) {
+        if (extension.isEmpty()) {
             return null;
         }
         return mimeMappings.get(extension);
@@ -701,6 +726,20 @@ public class ServletContext implements javax.servlet.ServletContext {
         return sessionCookieConfig;
     }
 
+    public String getSessionCookieParamName() {
+        String userSettingCookieName = sessionCookieConfig.getName();
+        return userSettingCookieName != null && !userSettingCookieName.isEmpty() ?
+                userSettingCookieName : HttpConstants.JSESSION_ID_COOKIE;
+    }
+
+    public String getSessionUriParamName() {
+        String userSettingCookieName = sessionCookieConfig.getName();
+        if (userSettingCookieName == null || userSettingCookieName.isEmpty()) {
+            userSettingCookieName = HttpConstants.JSESSION_ID_URL;
+        }
+        return userSettingCookieName;
+    }
+
     @Override
     public void setSessionTrackingModes(Set<SessionTrackingMode> sessionTrackingModes) {
         sessionTrackingModeSet = sessionTrackingModes;
@@ -714,7 +753,7 @@ public class ServletContext implements javax.servlet.ServletContext {
     @Override
     public Set<SessionTrackingMode> getEffectiveSessionTrackingModes() {
         if (sessionTrackingModeSet == null) {
-            return getDefaultSessionTrackingModes();
+            return defaultSessionTrackingModeSet;
         }
         return sessionTrackingModeSet;
     }

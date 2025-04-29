@@ -584,7 +584,7 @@ public class ExpiryLRUMap<K, V> extends AbstractMap<K, V> implements ConcurrentM
         @Override
         public void run() {
             while (true) {
-                ExpiryLRUMap.Node node;
+                Node node;
                 try {
                     node = EXPIRY_NOTIFY_QUEUE.take();
                 } catch (InterruptedException e) {
